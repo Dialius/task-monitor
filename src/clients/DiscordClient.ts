@@ -17,6 +17,9 @@ import {
   TextChannel
 } from 'discord.js';
 import { getLogger } from '../utils/Logger';
+import { ActivityStatusService, ActivityConfig } from '../services/ActivityStatusService';
+import { TaskService } from '../services/TaskService';
+import { getActivityTemplates } from '../config/activityTemplates';
 
 const logger = getLogger();
 
@@ -25,6 +28,8 @@ export interface DiscordConfig {
   clientId: string;
   guildId: string;
   channelId: string;
+  activityEnabled?: boolean;
+  activityInterval?: number;
 }
 
 export interface SlashCommand {
@@ -40,6 +45,7 @@ export class DiscordClient {
   private client: Client;
   private config: DiscordConfig;
   private isConnected: boolean = false;
+  private activityStatusService?: ActivityStatusService;
 
   constructor(config: DiscordConfig) {
     this.config = config;
@@ -68,6 +74,11 @@ export class DiscordClient {
         guildId: this.config.guildId
       });
       this.isConnected = true;
+
+      // Start activity status rotation if enabled
+      if (this.activityStatusService) {
+        this.activityStatusService.start();
+      }
     });
 
     this.client.on('error', (error) => {
@@ -77,6 +88,11 @@ export class DiscordClient {
     this.client.on('disconnect', () => {
       logger.warn('Discord client disconnected');
       this.isConnected = false;
+
+      // Stop activity status rotation
+      if (this.activityStatusService) {
+        this.activityStatusService.stop();
+      }
     });
   }
 
@@ -98,6 +114,11 @@ export class DiscordClient {
    * Disconnect from Discord
    */
   async disconnect(): Promise<void> {
+    // Stop activity status rotation
+    if (this.activityStatusService) {
+      this.activityStatusService.stop();
+    }
+
     this.client.destroy();
     this.isConnected = false;
     logger.info('Discord client disconnected');
@@ -281,5 +302,40 @@ export class DiscordClient {
       logger.error('Failed to fetch guild info', error as Error);
       return null;
     }
+  }
+
+  /**
+   * Setup activity status rotation
+   * Call this after client is ready and TaskService is available
+   */
+  setupActivityStatus(taskService: TaskService): void {
+    const activityConfig: ActivityConfig = {
+      enabled: this.config.activityEnabled ?? true,
+      rotationInterval: this.config.activityInterval ?? 5,
+      activities: getActivityTemplates()
+    };
+
+    this.activityStatusService = new ActivityStatusService(
+      this.client,
+      taskService,
+      activityConfig
+    );
+
+    // Start immediately if client is already ready
+    if (this.isConnected) {
+      this.activityStatusService.start();
+    }
+
+    logger.info('Activity status service initialized', {
+      enabled: activityConfig.enabled,
+      interval: activityConfig.rotationInterval
+    });
+  }
+
+  /**
+   * Get activity status service
+   */
+  getActivityStatusService(): ActivityStatusService | undefined {
+    return this.activityStatusService;
   }
 }

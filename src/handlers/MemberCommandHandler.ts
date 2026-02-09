@@ -24,7 +24,7 @@ export class MemberCommandHandler {
    * Handle /tugas command - Get all active tasks
    * Requirement: 2.6
    */
-  async handleTugas(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleTugas(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const tasks = await this.taskService.getTasks();
       
@@ -35,8 +35,37 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatTaskList(tasks);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = tasks.map((task, index) => {
+          const emoji = this.getTaskEmoji(task.tipe);
+          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+          });
+          
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '', // Not used for embeds
+          embedData: {
+            title: '📝 Daftar Tugas',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatTaskList(tasks);
       return {
         success: true,
         message
@@ -50,11 +79,29 @@ export class MemberCommandHandler {
     }
   }
 
+  private getTaskEmoji(tipe: string): string {
+    const emojiMap: Record<string, string> = {
+      'individu': '👤',
+      'kelompok': '👥',
+      'ujian': '📝'
+    };
+    return emojiMap[tipe] || '📝';
+  }
+
+  private getPriorityEmoji(prioritas: string): string {
+    const emojiMap: Record<string, string> = {
+      'urgent': '🚨',
+      'penting': '⚠️',
+      'normal': 'ℹ️'
+    };
+    return emojiMap[prioritas] || 'ℹ️';
+  }
+
   /**
    * Handle /tugas_hari_ini command
    * Requirement: 2.7
    */
-  async handleTugasHariIni(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleTugasHariIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const tasks = await this.taskService.getTasksForToday();
       
@@ -65,8 +112,37 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatTaskList(tasks);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = tasks.map((task, index) => {
+          const emoji = this.getTaskEmoji(task.tipe);
+          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+          });
+          
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📅 Tugas Hari Ini',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatTaskList(tasks);
       return {
         success: true,
         message: `📅 *Tugas Hari Ini*\n\n${message}`
@@ -84,7 +160,7 @@ export class MemberCommandHandler {
    * Handle /tugas_minggu_ini command
    * Requirement: 2.8
    */
-  async handleTugasMingguIni(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleTugasMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const tasks = await this.taskService.getTasksForWeek();
       
@@ -95,8 +171,37 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatTaskList(tasks);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = tasks.map((task, index) => {
+          const emoji = this.getTaskEmoji(task.tipe);
+          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
+            weekday: 'short', 
+            day: 'numeric', 
+            month: 'short' 
+          });
+          
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📊 Tugas Minggu Ini',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatTaskList(tasks);
       return {
         success: true,
         message: `📊 *Tugas Minggu Ini*\n\n${message}`
@@ -114,7 +219,7 @@ export class MemberCommandHandler {
    * Handle /jadwal or /jadwal_hari_ini command
    * Requirement: 3.5
    */
-  async handleJadwal(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleJadwal(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const schedules = await this.scheduleService.getTodaySchedule();
       
@@ -125,8 +230,29 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatSchedule(schedules);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
+            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📅 Jadwal Hari Ini',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatSchedule(schedules);
       return {
         success: true,
         message
@@ -144,7 +270,7 @@ export class MemberCommandHandler {
    * Handle /jadwal_besok command
    * Requirement: 3.6
    */
-  async handleJadwalBesok(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleJadwalBesok(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const schedules = await this.scheduleService.getTomorrowSchedule();
       
@@ -155,8 +281,29 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatSchedule(schedules);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
+            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📅 Jadwal Besok',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatSchedule(schedules);
       return {
         success: true,
         message: `📅 *Jadwal Besok*\n\n${message}`
@@ -174,7 +321,7 @@ export class MemberCommandHandler {
    * Handle /jadwal_minggu_ini command
    * Requirement: 3.7
    */
-  async handleJadwalMingguIni(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleJadwalMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const schedules = await this.scheduleService.getSchedulesForWeek(new Date());
       
@@ -185,8 +332,29 @@ export class MemberCommandHandler {
         };
       }
 
-      const message = Formatter.formatSchedule(schedules);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
+            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
+            inline: false
+          };
+        });
 
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📊 Jadwal Minggu Ini',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
+      const message = Formatter.formatSchedule(schedules);
       return {
         success: true,
         message: `📊 *Jadwal Minggu Ini*\n\n${message}`
@@ -204,7 +372,7 @@ export class MemberCommandHandler {
    * Handle /piket command
    * Requirement: 4.3
    */
-  async handlePiket(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handlePiket(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const piket = await this.piketService.getTodayPiket();
       
@@ -215,8 +383,27 @@ export class MemberCommandHandler {
         };
       }
 
-      const formatted = this.piketService.formatPiketMessage(piket);
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
+        
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: `🧹 Piket ${piket.hari}`,
+            color: 0x2ecc71,
+            fields: [{
+              name: 'Petugas Piket',
+              value: studentList || 'Tidak ada petugas',
+              inline: false
+            }]
+          }
+        };
+      }
 
+      // For WhatsApp, return plain text with mentions
+      const formatted = this.piketService.formatPiketMessage(piket);
       return {
         success: true,
         message: formatted.text,
@@ -235,7 +422,7 @@ export class MemberCommandHandler {
    * Handle /piket_minggu_ini command
    * Requirement: 4.4
    */
-  async handlePiketMingguIni(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handlePiketMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const pikets = await this.piketService.getPiketForWeek(new Date());
       
@@ -246,6 +433,29 @@ export class MemberCommandHandler {
         };
       }
 
+      // For Discord, return embed data
+      if (platform === 'discord') {
+        const fields = pikets.map(piket => {
+          const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
+          return {
+            name: `📅 ${piket.hari}`,
+            value: studentList || 'Tidak ada petugas',
+            inline: false
+          };
+        });
+
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '🧹 Jadwal Piket Minggu Ini',
+            color: 0x2ecc71,
+            fields
+          }
+        };
+      }
+
+      // For WhatsApp, return plain text
       let message = '🧹 *Jadwal Piket Minggu Ini*\n\n';
       pikets.forEach(piket => {
         message += `📅 ${piket.hari}:\n`;

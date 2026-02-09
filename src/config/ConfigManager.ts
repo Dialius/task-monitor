@@ -18,6 +18,8 @@ export interface AppConfig {
   discordClientId?: string;
   discordGuildId?: string;
   discordChannelId?: string;
+  discordActivityEnabled: boolean;
+  discordActivityInterval: number;
 
   // WhatsApp
   whatsappEnabled: boolean;
@@ -71,6 +73,8 @@ export class ConfigManager {
       discordClientId: process.env.DISCORD_CLIENT_ID,
       discordGuildId: process.env.DISCORD_GUILD_ID,
       discordChannelId: process.env.DISCORD_CHANNEL_ID,
+      discordActivityEnabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
+      discordActivityInterval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
 
       // WhatsApp
       whatsappEnabled: process.env.WHATSAPP_ENABLED === 'true',

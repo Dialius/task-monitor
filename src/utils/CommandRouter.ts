@@ -13,6 +13,15 @@ export interface CommandResponse {
   success: boolean;
   message: string;
   data?: any;
+  embedData?: {
+    title: string;
+    color: number;
+    fields: Array<{
+      name: string;
+      value: string;
+      inline?: boolean;
+    }>;
+  };
 }
 
 export type CommandHandler = (

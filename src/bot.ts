@@ -63,7 +63,7 @@ class MultiPlatformBot {
   async initialize(): Promise<void> {
     try {
       console.log('\n╔════════════════════════════════════════════════════════╗');
-      console.log('║   🤖 MULTI-PLATFORM CLASS REMINDER BOT               ║');
+      console.log('║   🤖 MULTI-PLATFORM CLASS REMINDER BOT                ║');
       console.log('╚════════════════════════════════════════════════════════╝\n');
       
       console.log('📋 Step 1/7: Initializing logger...');
@@ -243,14 +243,21 @@ class MultiPlatformBot {
    * Initialize Discord
    */
   private async initializeDiscord(): Promise<void> {
+    const config = getConfigManager();
+    
     this.discordClient = new DiscordClient({
       token: process.env.DISCORD_BOT_TOKEN!,
       clientId: process.env.DISCORD_CLIENT_ID!,
       guildId: process.env.DISCORD_GUILD_ID!,
-      channelId: process.env.DISCORD_CHANNEL_ID!
+      channelId: process.env.DISCORD_CHANNEL_ID!,
+      activityEnabled: config.get('discordActivityEnabled'),
+      activityInterval: config.get('discordActivityInterval')
     });
 
     await this.discordClient.connect();
+
+    // Setup activity status rotation
+    this.discordClient.setupActivityStatus(this.taskService);
 
     this.discordAdapter = new DiscordAdapter(this.discordClient.getClient());
 
@@ -281,7 +288,20 @@ class MultiPlatformBot {
         'discord'
       );
 
-      await interaction.reply(response.message);
+      // Check if response has embed data
+      if (response.embedData) {
+        const { EmbedBuilder } = await import('discord.js');
+        const embed = new EmbedBuilder()
+          .setTitle(response.embedData.title)
+          .setColor(response.embedData.color)
+          .addFields(response.embedData.fields)
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
+      } else {
+        // Use plain text for other commands
+        await interaction.reply(response.message);
+      }
     });
 
     // Handle text commands (fallback)
@@ -297,12 +317,33 @@ class MultiPlatformBot {
         'discord'
       );
 
-      await message.reply(response.message);
+      // Check if response has embed data
+      if (response.embedData) {
+        const { EmbedBuilder } = await import('discord.js');
+        const embed = new EmbedBuilder()
+          .setTitle(response.embedData.title)
+          .setColor(response.embedData.color)
+          .addFields(response.embedData.fields)
+          .setTimestamp();
+
+        await message.reply({ embeds: [embed] });
+      } else {
+        await message.reply(response.message);
+      }
     });
 
     console.log('      ✓ Discord bot online');
     console.log(`      ✓ Server: ${process.env.DISCORD_GUILD_ID}`);
     console.log(`      ✓ Channel: ${process.env.DISCORD_CHANNEL_ID}`);
+    
+    const activityService = this.discordClient.getActivityStatusService();
+    if (activityService) {
+      const activityConfig = activityService.getConfig();
+      console.log(`      ✓ Activity rotation: ${activityConfig.enabled ? 'Enabled' : 'Disabled'}`);
+      if (activityConfig.enabled) {
+        console.log(`      ✓ Rotation interval: ${activityConfig.rotationInterval} minutes`);
+      }
+    }
   }
 
   /**

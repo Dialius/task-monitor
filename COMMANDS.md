@@ -1,236 +1,30 @@
-# Command Reference
+# 📋 Daftar Command Bot
 
-Dokumentasi lengkap untuk semua command yang tersedia di Multi-Platform Class Reminder Bot.
+Dokumentasi lengkap semua command yang tersedia.
 
-## Format Command
+## 🔰 Member Commands
 
-Semua command menggunakan format:
-```
-/command | arg1 | arg2 | arg3
-```
+Command yang bisa digunakan oleh semua user (member dan admin).
 
-- Prefix: `/` (slash)
-- Delimiter: `|` (pipe)
-- Whitespace di sekitar delimiter akan di-trim otomatis
-
-## Permission Levels
-
-| Role | Description |
-|------|-------------|
-| **Admin** | Full access ke semua command |
-| **Koordinator** | Access ke task/schedule/piket management, tidak bisa broadcast/manage users/Notion sync |
-| **Member** | Read-only access, hanya query commands |
-
----
-
-## Admin Commands
-
-### Task Management
-
-#### `/add_tugas`
-Menambahkan tugas baru dengan AI enhancement untuk deskripsi.
-
-**Format:**
-```
-/add_tugas | Judul | Deskripsi | YYYY-MM-DD | Mata Pelajaran | Tipe
-```
-
-**Arguments:**
-- `Judul`: Judul tugas (required)
-- `Deskripsi`: Deskripsi detail tugas (required)
-- `YYYY-MM-DD`: Deadline dalam format tahun-bulan-tanggal (required)
-- `Mata Pelajaran`: Nama mata pelajaran (required)
-- `Tipe`: Jenis tugas - `individu`, `kelompok`, atau `ujian` (required)
-
-**Prioritas Otomatis:**
-- `urgent`: Deadline < 24 jam
-- `penting`: Deadline < 72 jam
-- `normal`: Deadline ≥ 72 jam
-
-**Example:**
-```
-/add_tugas | Essay Sejarah | Tulis essay tentang Perang Dunia II | 2024-03-15 | Sejarah | individu
-```
-
-**Response:**
-- Success: Konfirmasi tugas ditambahkan dengan ID dan prioritas
-- Error: Pesan error jika format salah atau field kosong
-
----
-
-#### `/edit_tugas`
-Mengedit field tertentu dari tugas yang sudah ada.
-
-**Format:**
-```
-/edit_tugas | task_id | field | new_value
-```
-
-**Arguments:**
-- `task_id`: MongoDB ObjectId dari tugas (required)
-- `field`: Field yang ingin diedit - `judul`, `deskripsi`, `deadline`, `mata_pelajaran`, `tipe` (required)
-- `new_value`: Nilai baru untuk field tersebut (required)
-
-**Example:**
-```
-/edit_tugas | 507f1f77bcf86cd799439011 | deadline | 2024-03-20
-/edit_tugas | 507f1f77bcf86cd799439011 | tipe | kelompok
-```
-
-**Response:**
-- Success: Konfirmasi field berhasil diupdate
-- Error: Task ID tidak ditemukan atau field invalid
-
----
-
-#### `/hapus_tugas`
-Menghapus tugas dari database (hard delete).
-
-**Format:**
-```
-/hapus_tugas | task_id
-```
-
-**Arguments:**
-- `task_id`: MongoDB ObjectId dari tugas (required)
-
-**Example:**
-```
-/hapus_tugas | 507f1f77bcf86cd799439011
-```
-
-**Response:**
-- Success: Konfirmasi tugas berhasil dihapus
-- Error: Task ID tidak ditemukan
-
----
-
-#### `/tandai_selesai`
-Menandai tugas sebagai selesai.
-
-**Format:**
-```
-/tandai_selesai | task_id
-```
-
-**Arguments:**
-- `task_id`: MongoDB ObjectId dari tugas (required)
-
-**Example:**
-```
-/tandai_selesai | 507f1f77bcf86cd799439011
-```
-
-**Response:**
-- Success: Konfirmasi tugas ditandai selesai
-- Error: Task ID tidak ditemukan
-
----
-
-### Schedule Management
-
-#### `/add_jadwal`
-Menambahkan jadwal pelajaran untuk hari tertentu.
-
-**Format:**
-```
-/add_jadwal | Hari | HH:MM-HH:MM | Mata Pelajaran | Ruangan
-```
-
-**Arguments:**
-- `Hari`: Nama hari - `Senin`, `Selasa`, `Rabu`, `Kamis`, `Jumat`, `Sabtu` (required)
-- `HH:MM-HH:MM`: Waktu mulai dan selesai (required)
-- `Mata Pelajaran`: Nama mata pelajaran (required)
-- `Ruangan`: Nama/nomor ruangan (required)
-
-**Example:**
-```
-/add_jadwal | Senin | 08:00-09:30 | Matematika | R.301
-/add_jadwal | Rabu | 13:00-14:30 | Fisika | Lab Fisika
-```
-
-**Response:**
-- Success: Konfirmasi jadwal ditambahkan
-- Error: Format waktu salah atau hari invalid
-
----
-
-### Piket Management
-
-#### `/set_piket`
-Mengatur jadwal piket untuk hari tertentu dengan mention otomatis.
-
-**Format:**
-```
-/set_piket | Hari | Nama1,Nama2,Nama3 | Nomor1,Nomor2,Nomor3
-```
-
-**Arguments:**
-- `Hari`: Nama hari - `Senin`, `Selasa`, `Rabu`, `Kamis`, `Jumat`, `Sabtu` (required)
-- `Nama1,Nama2,...`: Daftar nama siswa dipisah koma (required)
-- `Nomor1,Nomor2,...`: Daftar nomor WhatsApp dipisah koma (required)
-
-**Important:**
-- Jumlah nama dan nomor harus sama
-- Nomor WhatsApp tanpa tanda + atau spasi (contoh: 628123456789)
-
-**Example:**
-```
-/set_piket | Senin | Budi,Ani,Citra | 628123456789,628234567890,628345678901
-```
-
-**Response:**
-- Success: Konfirmasi piket diatur dengan mention
-- Error: Jumlah nama dan nomor tidak sama
-
----
-
-### Announcement Management
-
-#### `/add_pengumuman`
-Menambahkan pengumuman khusus dengan tipe tertentu.
-
-**Format:**
-```
-/add_pengumuman | Judul | Isi | YYYY-MM-DD | Tipe
-```
-
-**Arguments:**
-- `Judul`: Judul pengumuman (required)
-- `Isi`: Isi pengumuman (required)
-- `YYYY-MM-DD`: Tanggal pengumuman (required)
-- `Tipe`: Jenis pengumuman - `umum`, `penting`, atau `urgent` (required)
-
-**Example:**
-```
-/add_pengumuman | Libur Nasional | Besok libur nasional, tidak ada kelas | 2024-03-17 | penting
-```
-
-**Response:**
-- Success: Konfirmasi pengumuman ditambahkan
-- Error: Format tanggal salah atau tipe invalid
-
----
-
-## Member Commands
-
-### Task Queries
+### 📝 Tugas
 
 #### `/tugas`
-Menampilkan semua tugas aktif yang belum selesai.
+Menampilkan semua tugas yang belum selesai.
 
 **Format:**
 ```
 /tugas
 ```
 
-**Response:**
-- List tugas dengan format:
-  - Emoji berdasarkan tipe (📝 individu, 👥 kelompok, 📋 ujian)
-  - Judul, mata pelajaran, deadline
-  - Prioritas (🔴 urgent, 🟡 penting, 🟢 normal)
-  - Deskripsi
-- Jika tidak ada tugas: "Tidak ada tugas aktif"
+**Output:**
+```
+📝 Daftar Tugas:
+
+1. 👤 Soal Matematika Bab 5
+   🚨 Matematika • Sel, 10 Feb
+   Selesaikan soal integral di halaman 45-50
+   🆔 6989fc62e52dcb6f17493d50
+```
 
 ---
 
@@ -242,10 +36,6 @@ Menampilkan tugas yang deadline-nya hari ini.
 /tugas_hari_ini
 ```
 
-**Response:**
-- List tugas hari ini dengan format sama seperti `/tugas`
-- Jika tidak ada: "Tidak ada tugas untuk hari ini"
-
 ---
 
 #### `/tugas_minggu_ini`
@@ -256,13 +46,9 @@ Menampilkan tugas yang deadline-nya minggu ini.
 /tugas_minggu_ini
 ```
 
-**Response:**
-- List tugas minggu ini dengan format sama seperti `/tugas`
-- Jika tidak ada: "Tidak ada tugas untuk minggu ini"
-
 ---
 
-### Schedule Queries
+### 📅 Jadwal
 
 #### `/jadwal` atau `/jadwal_hari_ini`
 Menampilkan jadwal pelajaran hari ini.
@@ -272,12 +58,14 @@ Menampilkan jadwal pelajaran hari ini.
 /jadwal
 ```
 
-**Response:**
-- List jadwal dengan format:
-  - Waktu (HH:MM-HH:MM)
-  - Mata pelajaran
-  - Ruangan
-- Jika tidak ada: "Tidak ada jadwal untuk hari ini"
+**Output:**
+```
+📅 Jadwal Pelajaran:
+
+1. 📖 Matematika
+   ⏰ 08:00-09:30 • R.101 • Pak Budi
+   🆔 6989fc62e52dcb6f17493d51
+```
 
 ---
 
@@ -289,72 +77,58 @@ Menampilkan jadwal pelajaran besok.
 /jadwal_besok
 ```
 
-**Response:**
-- List jadwal besok dengan format sama seperti `/jadwal`
-- Jika tidak ada: "Tidak ada jadwal untuk besok"
-
 ---
 
 #### `/jadwal_minggu_ini`
-Menampilkan jadwal pelajaran untuk minggu ini, dikelompokkan per hari.
+Menampilkan jadwal pelajaran minggu ini.
 
 **Format:**
 ```
 /jadwal_minggu_ini
 ```
 
-**Response:**
-- Jadwal per hari (Senin - Sabtu)
-- Format sama seperti `/jadwal`
-- Jika tidak ada: "Tidak ada jadwal untuk minggu ini"
-
 ---
 
-### Piket Queries
+### 🧹 Piket
 
 #### `/piket`
-Menampilkan jadwal piket hari ini dengan mention.
+Menampilkan jadwal piket hari ini.
 
 **Format:**
 ```
 /piket
 ```
 
-**Response:**
-- Nama siswa piket dengan mention (WhatsApp: @nomor, Discord: <@userId>)
-- Jika tidak ada: "Tidak ada piket untuk hari ini"
+**Output:**
+```
+🧹 Piket Senin:
+
+1. Budi
+2. Ani
+3. Citra
+```
 
 ---
 
 #### `/piket_minggu_ini`
-Menampilkan jadwal piket untuk minggu ini.
+Menampilkan jadwal piket minggu ini.
 
 **Format:**
 ```
 /piket_minggu_ini
 ```
 
-**Response:**
-- Piket per hari (Senin - Sabtu)
-- Nama siswa dengan mention
-- Jika tidak ada: "Tidak ada piket untuk minggu ini"
-
 ---
 
-### Utility Commands
+### ℹ️ Info
 
 #### `/help` atau `/bantuan`
-Menampilkan daftar command yang tersedia berdasarkan role user.
+Menampilkan daftar command yang tersedia.
 
 **Format:**
 ```
 /help
 ```
-
-**Response:**
-- Admin: Semua command (admin + member)
-- Koordinator: Command management + query (tanpa broadcast/Notion)
-- Member: Hanya query commands
 
 ---
 
@@ -366,140 +140,355 @@ Menampilkan status bot dan statistik.
 /status
 ```
 
-**Response:**
-- Platform yang aktif (Discord/WhatsApp)
-- Database connection status
-- Uptime
-- Total users, tasks, schedules
+**Output:**
+```
+✅ Bot Status: Online
+📊 Statistik:
+   • Tugas aktif: 5
+   • Jadwal hari ini: 3
+   • Piket hari ini: 3 siswa
+```
 
 ---
 
-## Platform-Specific Features
+## 👑 Admin Commands
 
-### Discord
+Command yang hanya bisa digunakan oleh admin.
 
-#### Slash Commands
-- Semua command tersedia sebagai slash commands
-- Auto-complete untuk arguments
-- Inline help text
+### 📝 Manajemen Tugas
 
-#### Embeds
-- Task list menggunakan embeds dengan color coding:
-  - 🔴 Red: Urgent
-  - 🟡 Yellow: Penting
-  - 🟢 Green: Normal
-- Schedule dan piket juga menggunakan embeds
+#### `/add_tugas`
+Menambahkan tugas baru.
 
-#### Buttons
-- Task list memiliki buttons untuk quick actions
-- Pagination untuk list panjang
+**Format:**
+```
+/add_tugas | judul | deskripsi | deadline | mata_pelajaran | tipe
+```
 
-#### Mentions
-- Format: `<@userId>`
-- Auto-resolve dari Discord role/member
+**Parameter:**
+- `judul`: Judul tugas
+- `deskripsi`: Deskripsi tugas (akan di-enhance oleh AI)
+- `deadline`: Tanggal deadline (format: YYYY-MM-DD)
+- `mata_pelajaran`: Nama mata pelajaran
+- `tipe`: Tipe tugas (`individu`, `kelompok`, atau `ujian`)
 
-### WhatsApp
+**Contoh:**
+```
+/add_tugas | Essay Sejarah | Tulis essay tentang kemerdekaan | 2026-02-25 | Sejarah | individu
+```
 
-#### Text Commands
-- Semua command menggunakan text dengan prefix `/`
-- Parse dari message text
+**Output:**
+```
+✅ Tugas ditambahkan!
 
-#### Mentions
-- Format: `@phoneNumber`
-- Mention langsung ke nomor WhatsApp
+📝 Essay Sejarah
+ℹ️ Sejarah • Rab, 25 Feb
+🆔 6989fc62e52dcb6f17493d52
 
-#### Group Messages
-- Bot hanya merespon di group yang dikonfigurasi
-- Filter message dari bot sendiri
-
----
-
-## Error Messages
-
-### Common Errors
-
-**"Anda tidak memiliki akses untuk command ini"**
-- User tidak punya permission untuk command tersebut
-- Cek role di database
-
-**"Format command salah"**
-- Argument kurang atau format tidak sesuai
-- Cek format command di dokumentasi
-
-**"Task ID tidak ditemukan"**
-- Task dengan ID tersebut tidak ada di database
-- Pastikan ID benar (MongoDB ObjectId)
-
-**"Format tanggal salah, gunakan YYYY-MM-DD"**
-- Tanggal tidak sesuai format
-- Contoh yang benar: 2024-03-15
-
-**"Format waktu salah, gunakan HH:MM"**
-- Waktu tidak sesuai format
-- Contoh yang benar: 08:00 atau 13:30
-
-**"Tipe tidak valid"**
-- Enum value tidak sesuai
-- Cek nilai yang diperbolehkan (individu/kelompok/ujian, umum/penting/urgent, dll)
+💡 Gunakan ID untuk edit/hapus
+```
 
 ---
 
-## Tips & Best Practices
+#### `/edit_tugas`
+Mengedit tugas yang sudah ada.
 
-1. **Task Management**
-   - Gunakan deskripsi yang jelas dan detail
-   - Set deadline yang realistis
-   - Review tugas secara berkala
+**Format:**
+```
+/edit_tugas | task_id | field | value
+```
 
-2. **Schedule Management**
-   - Update jadwal jika ada perubahan
-   - Gunakan format waktu yang konsisten
-   - Cantumkan ruangan dengan jelas
+**Parameter:**
+- `task_id`: ID tugas (lihat dari output `/tugas`)
+- `field`: Field yang mau diubah (`judul`, `deskripsi`, `deadline`, `mata_pelajaran`, `tipe`)
+- `value`: Nilai baru
 
-3. **Piket Management**
-   - Pastikan nomor WhatsApp benar
-   - Update jika ada perubahan anggota
-   - Gunakan nama lengkap untuk clarity
-
-4. **Announcements**
-   - Gunakan tipe yang sesuai (urgent untuk hal penting)
-   - Tulis judul yang descriptive
-   - Set tanggal yang relevan
-
-5. **Query Commands**
-   - Gunakan command spesifik untuk hasil lebih fokus
-   - `/tugas_hari_ini` lebih cepat dari `/tugas`
-   - Check status bot jika ada masalah
+**Contoh:**
+```
+/edit_tugas | 6989fc62e52dcb6f17493d52 | deadline | 2026-02-28
+```
 
 ---
 
-## Automated Features
+#### `/hapus_tugas`
+Menghapus tugas.
 
-### Daily Recap (Default: 17:00)
-Bot akan otomatis mengirim recap harian berisi:
-- Jadwal besok
-- Tugas yang deadline-nya besok
-- Piket besok
-- Pengumuman yang relevan
+**Format:**
+```
+/hapus_tugas | task_id
+```
 
-### Weekly Recap (Default: Jumat 20:00)
-Bot akan otomatis mengirim recap mingguan berisi:
-- Statistik tugas minggu depan
-- Breakdown by tipe (individu/kelompok/ujian)
-- Breakdown by prioritas (urgent/penting/normal)
-- Pengumuman minggu depan
-
-### AI Enhancement
-- Deskripsi tugas akan di-enhance oleh AI
-- Recap akan diformat dengan AI untuk lebih engaging
-- Fallback ke text original jika AI gagal
+**Contoh:**
+```
+/hapus_tugas | 6989fc62e52dcb6f17493d52
+```
 
 ---
 
-## Support
+#### `/tandai_selesai`
+Menandai tugas sebagai selesai.
 
-Jika ada pertanyaan atau masalah:
-1. Cek dokumentasi di README.md
-2. Cek logs di `./logs/` untuk error details
-3. Contact admin bot
-4. Open issue di GitHub repository
+**Format:**
+```
+/tandai_selesai | task_id
+```
+
+**Contoh:**
+```
+/tandai_selesai | 6989fc62e52dcb6f17493d52
+```
+
+---
+
+### 📅 Manajemen Jadwal
+
+#### `/add_jadwal`
+Menambahkan jadwal pelajaran baru.
+
+**Format:**
+```
+/add_jadwal | hari | jam_mulai | jam_selesai | mata_pelajaran | ruangan | nama_guru
+```
+
+**Parameter:**
+- `hari`: Hari (`Senin`, `Selasa`, `Rabu`, `Kamis`, `Jumat`, `Sabtu`, `Minggu`)
+- `jam_mulai`: Jam mulai (format: HH:MM)
+- `jam_selesai`: Jam selesai (format: HH:MM)
+- `mata_pelajaran`: Nama mata pelajaran
+- `ruangan`: Nama ruangan
+- `nama_guru`: Nama guru
+
+**Contoh:**
+```
+/add_jadwal | Senin | 08:00 | 09:30 | Matematika | R.101 | Pak Budi
+```
+
+---
+
+#### `/edit_jadwal`
+Mengedit jadwal yang sudah ada.
+
+**Format:**
+```
+/edit_jadwal | schedule_id | field | value
+```
+
+**Parameter:**
+- `schedule_id`: ID jadwal
+- `field`: Field yang mau diubah (`jam_mulai`, `jam_selesai`, `mata_pelajaran`, `ruangan`, `nama_guru`)
+- `value`: Nilai baru
+
+**Contoh:**
+```
+/edit_jadwal | 6989fc62e52dcb6f17493d53 | ruangan | R.202
+```
+
+---
+
+#### `/hapus_jadwal`
+Menghapus jadwal.
+
+**Format:**
+```
+/hapus_jadwal | schedule_id
+```
+
+**Contoh:**
+```
+/hapus_jadwal | 6989fc62e52dcb6f17493d53
+```
+
+---
+
+#### `/ganti_jadwal`
+Mengganti jadwal dan otomatis membuat pengumuman.
+
+**Format:**
+```
+/ganti_jadwal | schedule_id | field | value | alasan
+```
+
+**Parameter:**
+- `schedule_id`: ID jadwal
+- `field`: Field yang mau diubah
+- `value`: Nilai baru
+- `alasan`: Alasan perubahan (akan masuk ke pengumuman)
+
+**Contoh:**
+```
+/ganti_jadwal | 6989fc62e52dcb6f17493d53 | ruangan | R.202 | Ruangan lama sedang renovasi
+```
+
+---
+
+### 🧹 Manajemen Piket
+
+#### `/set_piket`
+Mengatur jadwal piket untuk hari tertentu.
+
+**Format:**
+```
+/set_piket | hari | nama1,nomor1 | nama2,nomor2 | ...
+```
+
+**Parameter:**
+- `hari`: Hari (`Senin`, `Selasa`, `Rabu`, `Kamis`, `Jumat`, `Sabtu`, `Minggu`)
+- `nama,nomor`: Nama siswa dan nomor WhatsApp (dipisah koma)
+
+**Contoh:**
+```
+/set_piket | Senin | Budi,081234567890 | Ani,081234567891 | Citra,081234567892
+```
+
+---
+
+#### `/edit_piket`
+Mengedit jadwal piket (sama dengan `/set_piket`).
+
+**Format:**
+```
+/edit_piket | hari | nama1,nomor1 | nama2,nomor2 | ...
+```
+
+---
+
+### 📢 Manajemen Pengumuman
+
+#### `/add_pengumuman`
+Menambahkan pengumuman baru.
+
+**Format:**
+```
+/add_pengumuman | tanggal | judul | tipe | keterangan
+```
+
+**Parameter:**
+- `tanggal`: Tanggal pengumuman (format: YYYY-MM-DD)
+- `judul`: Judul pengumuman
+- `tipe`: Tipe pengumuman (`acara`, `perubahan_jadwal`, `praktikum`, `lainnya`)
+- `keterangan`: Keterangan pengumuman
+
+**Contoh:**
+```
+/add_pengumuman | 2026-02-15 | Libur Nasional | acara | Sekolah libur untuk peringatan hari besar
+```
+
+---
+
+#### `/hapus_pengumuman`
+Menghapus pengumuman.
+
+**Format:**
+```
+/hapus_pengumuman | announcement_id
+```
+
+**Contoh:**
+```
+/hapus_pengumuman | 6989fc62e52dcb6f17493d54
+```
+
+---
+
+### 📣 Broadcast
+
+#### `/broadcast`
+Mengirim broadcast pesan ke grup.
+
+**Format:**
+```
+/broadcast | pesan
+```
+
+**Contoh:**
+```
+/broadcast | Besok ada rapat OSIS jam 14:00
+```
+
+**Output:**
+```
+📢 PENGUMUMAN
+
+Besok ada rapat OSIS jam 14:00
+```
+
+---
+
+#### `/broadcast_urgent`
+Mengirim broadcast urgent dengan highlight.
+
+**Format:**
+```
+/broadcast_urgent | pesan
+```
+
+**Contoh:**
+```
+/broadcast_urgent | Ujian Matematika dimajukan ke besok!
+```
+
+**Output:**
+```
+🚨 PENGUMUMAN PENTING 🚨
+
+Ujian Matematika dimajukan ke besok!
+
+⚠️ Mohon segera dibaca!
+```
+
+---
+
+## 📝 Tips Penggunaan
+
+### 1. Mendapatkan ID
+Setiap kali menambahkan tugas/jadwal/pengumuman, ID akan ditampilkan. Copy ID tersebut untuk edit/hapus.
+
+Atau gunakan command list untuk melihat ID:
+```
+/tugas          → Lihat ID tugas
+/jadwal         → Lihat ID jadwal
+```
+
+### 2. Format Tanggal
+Selalu gunakan format `YYYY-MM-DD`:
+- ✅ Benar: `2026-02-15`
+- ❌ Salah: `15-02-2026`, `15/02/2026`, `2026/02/15`
+
+### 3. Format Waktu
+Selalu gunakan format `HH:MM`:
+- ✅ Benar: `08:00`, `14:30`
+- ❌ Salah: `8:00`, `14.30`, `2:30 PM`
+
+### 4. Delimiter
+Gunakan `|` (pipe) untuk memisahkan argumen:
+- ✅ Benar: `/add_tugas | Judul | Deskripsi | 2026-02-15 | Matematika | individu`
+- ❌ Salah: `/add_tugas Judul Deskripsi 2026-02-15 Matematika individu`
+
+### 5. Tipe Tugas
+Pilihan tipe tugas:
+- `individu` → Tugas individu (emoji: 👤)
+- `kelompok` → Tugas kelompok (emoji: 👥)
+- `ujian` → Ujian (emoji: 📝)
+
+### 6. Tipe Pengumuman
+Pilihan tipe pengumuman:
+- `acara` → Acara sekolah (emoji: 🎉)
+- `perubahan_jadwal` → Perubahan jadwal (emoji: 🔄)
+- `praktikum` → Praktikum (emoji: 🔬)
+- `lainnya` → Lainnya (emoji: 📢)
+
+### 7. Prioritas Tugas (Otomatis)
+Bot akan otomatis menentukan prioritas berdasarkan deadline:
+- 🚨 **Urgent**: Deadline < 24 jam
+- ⚠️ **Penting**: Deadline < 72 jam (3 hari)
+- ℹ️ **Normal**: Deadline ≥ 72 jam
+
+---
+
+## 🔗 Dokumentasi Lainnya
+
+- [Quick Start](QUICK_START.md) - Panduan cepat mulai
+- [Setup Guide](SETUP_GUIDE.md) - Setup lengkap
+- [Admin Setup](ADMIN_SETUP.md) - Setup admin pertama
+- [Discord Setup](DISCORD_SETUP.md) - Setup Discord bot
+- [How to Get ID](HOW_TO_GET_ID.md) - Cara mendapatkan ID

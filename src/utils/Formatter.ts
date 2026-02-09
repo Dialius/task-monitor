@@ -13,7 +13,7 @@ export class Formatter {
       return '📝 Tidak ada tugas saat ini.';
     }
 
-    let result = '📝 *Daftar Tugas:*\n\n';
+    const lines: string[] = ['📝 **Daftar Tugas:**', ''];
     
     tasks.forEach((task, index) => {
       const emoji = this.getTaskEmoji(task.tipe);
@@ -24,13 +24,14 @@ export class Formatter {
         month: 'short' 
       });
       
-      result += `${index + 1}. ${emoji} *${task.judul}*\n`;
-      result += `   ${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n`;
-      result += `   ${task.deskripsi}\n`;
-      result += `   🆔 \`${task._id}\`\n\n`;
+      lines.push(`${index + 1}. ${emoji} **${task.judul}**`);
+      lines.push(`   ${priorityEmoji} ${task.mata_pelajaran} • ${deadline}`);
+      lines.push(`   ${task.deskripsi}`);
+      lines.push(`   🆔 \`${task._id}\``);
+      lines.push('');
     });
 
-    return result;
+    return lines.join('\n');
   }
 
   /**
@@ -42,15 +43,16 @@ export class Formatter {
       return '📅 Tidak ada jadwal untuk hari ini.';
     }
 
-    let result = '📅 *Jadwal Pelajaran:*\n\n';
+    const lines: string[] = ['📅 **Jadwal Pelajaran:**', ''];
     
     schedules.forEach((schedule, index) => {
-      result += `${index + 1}. 📖 *${schedule.mata_pelajaran}*\n`;
-      result += `   ⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n`;
-      result += `   🆔 \`${schedule._id}\`\n\n`;
+      lines.push(`${index + 1}. 📖 **${schedule.mata_pelajaran}**`);
+      lines.push(`   ⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}`);
+      lines.push(`   🆔 \`${schedule._id}\``);
+      lines.push('');
     });
 
-    return result;
+    return lines.join('\n');
   }
 
   /**
@@ -62,13 +64,13 @@ export class Formatter {
       return '🧹 Tidak ada jadwal piket untuk hari ini.';
     }
 
-    let result = `🧹 *Piket ${piket.hari}:*\n\n`;
+    const lines: string[] = [`🧹 **Piket ${piket.hari}:**`, ''];
     
     piket.nama_siswa.forEach((nama: string, index: number) => {
-      result += `${index + 1}. ${nama}\n`;
+      lines.push(`${index + 1}. ${nama}`);
     });
 
-    return result;
+    return lines.join('\n');
   }
 
   /**
@@ -83,11 +85,13 @@ export class Formatter {
       month: 'short' 
     });
     
-    let result = `${typeEmoji} *${announcement.judul}*\n`;
-    result += `📅 ${tanggal} • ${announcement.keterangan}\n`;
-    result += `🆔 \`${announcement._id}\`\n`;
+    const lines: string[] = [
+      `${typeEmoji} **${announcement.judul}**`,
+      `📅 ${tanggal} • ${announcement.keterangan}`,
+      `🆔 \`${announcement._id}\``
+    ];
     
-    return result;
+    return lines.join('\n');
   }
 
   /**
