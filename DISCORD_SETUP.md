@@ -27,6 +27,12 @@ Panduan lengkap untuk setup Discord bot dan deploy slash commands.
    - Klik kanan pada channel yang ingin digunakan
    - Klik "Copy Channel ID" (ini adalah DISCORD_CHANNEL_ID)
 
+5. **Discord User ID (Untuk Admin Pertama)**
+   - Buka Discord
+   - Klik kanan pada username Anda (atau user yang ingin dijadikan admin)
+   - Klik "Copy User ID" (ini adalah FIRST_ADMIN_USER_ID)
+   - *Catatan: Developer Mode harus aktif*
+
 ## 🔧 Setup Bot Permissions
 
 1. Di Discord Developer Portal, pergi ke tab "Bot"
@@ -55,12 +61,23 @@ Panduan lengkap untuk setup Discord bot dan deploy slash commands.
 Pastikan `.env` sudah terisi dengan benar:
 
 ```env
+# Database
+MONGODB_URI=your_mongodb_uri
+
+# First Admin (PENTING!)
+FIRST_ADMIN_USER_ID=your_discord_user_id
+FIRST_ADMIN_PLATFORM=discord
+FIRST_ADMIN_ROLE=ketua
+
+# Discord
 DISCORD_BOT_TOKEN=your_bot_token_here
 DISCORD_CLIENT_ID=your_client_id_here
 DISCORD_GUILD_ID=your_guild_id_here
 DISCORD_CHANNEL_ID=your_channel_id_here
 DISCORD_ENABLED=true
 ```
+
+**PENTING:** Isi `FIRST_ADMIN_USER_ID` dengan Discord User ID Anda. Ini akan membuat Anda sebagai admin pertama secara otomatis saat bot start.
 
 ### Step 2: Run Deploy Script
 

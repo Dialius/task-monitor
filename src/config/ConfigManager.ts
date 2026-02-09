@@ -265,6 +265,52 @@ export class ConfigManager {
   }
 
   /**
+   * Create first admin from environment variables
+   * This is used to bootstrap the first admin user
+   */
+  async createFirstAdmin(): Promise<void> {
+    const userId = process.env.FIRST_ADMIN_USER_ID;
+    const platform = process.env.FIRST_ADMIN_PLATFORM || 'discord';
+    const role = process.env.FIRST_ADMIN_ROLE || 'ketua';
+
+    if (!userId) {
+      logger.info('No FIRST_ADMIN_USER_ID configured - skipping first admin creation');
+      return;
+    }
+
+    try {
+      // Import Admin model dynamically to avoid circular dependency
+      const Admin = (await import('../models/Admin')).default;
+
+      // Check if admin already exists
+      const existing = await Admin.findOne({ user_identifier: userId, platform });
+      
+      if (existing) {
+        logger.info(`First admin already exists: ${userId} on ${platform}`);
+        return;
+      }
+
+      // Create first admin
+      await Admin.create({
+        user_identifier: userId,
+        platform,
+        role,
+        nama: 'Admin Pertama',
+        is_active: true
+      });
+
+      logger.info(`✅ First admin created: ${userId} on ${platform} with role ${role}`);
+      console.log(`\n✅ Admin pertama berhasil dibuat!`);
+      console.log(`   User ID: ${userId}`);
+      console.log(`   Platform: ${platform}`);
+      console.log(`   Role: ${role}\n`);
+    } catch (error) {
+      logger.error('Failed to create first admin', error as Error);
+      console.error('❌ Gagal membuat admin pertama:', error);
+    }
+  }
+
+  /**
    * Clear database configuration cache
    */
   clearCache(): void {
@@ -304,6 +350,9 @@ export async function initializeConfig(): Promise<ConfigManager> {
   
   // Initialize defaults
   await manager.initializeDefaults();
+
+  // Create first admin if configured
+  await manager.createFirstAdmin();
 
   logger.info('Configuration manager initialized');
   return manager;
