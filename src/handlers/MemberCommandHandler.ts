@@ -46,9 +46,12 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
+          // Add single newline at end for spacing between tasks (except last)
+          const spacing = index < tasks.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
             inline: false
           };
         });
@@ -116,9 +119,12 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
+          // Add single newline at end for spacing between tasks (except last)
+          const spacing = index < tasks.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
             inline: false
           };
         });
@@ -177,9 +183,12 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
+          // Add single newline at end for spacing between tasks (except last)
+          const spacing = index < tasks.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
             inline: false
           };
         });
@@ -231,9 +240,12 @@ export class MemberCommandHandler {
       // For Discord, return embed data with fields
       if (platform === 'discord') {
         const fields = schedules.map((schedule, index) => {
+          // Add single newline at end for spacing between schedules (except last)
+          const spacing = index < schedules.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
-            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
             inline: false
           };
         });
@@ -285,9 +297,12 @@ export class MemberCommandHandler {
       // For Discord, return embed data with fields
       if (platform === 'discord') {
         const fields = schedules.map((schedule, index) => {
+          // Add single newline at end for spacing between schedules (except last)
+          const spacing = index < schedules.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
-            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
             inline: false
           };
         });
@@ -339,9 +354,12 @@ export class MemberCommandHandler {
       // For Discord, return embed data with fields
       if (platform === 'discord') {
         const fields = schedules.map((schedule, index) => {
+          // Add single newline at end for spacing between schedules (except last)
+          const spacing = index < schedules.length - 1 ? '\n' : '';
+          
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
-            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
             inline: false
           };
         });
@@ -442,11 +460,15 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = pikets.map(piket => {
+        const fields = pikets.map((piket, index) => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
+          
+          // Add single newline at end for spacing between days (except last)
+          const spacing = index < pikets.length - 1 ? '\n' : '';
+          
           return {
             name: piket.hari,
-            value: studentList || 'Tidak ada petugas',
+            value: `${studentList || 'Tidak ada petugas'}${spacing}`,
             inline: false
           };
         });
