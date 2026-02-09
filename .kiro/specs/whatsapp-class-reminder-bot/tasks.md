@@ -627,7 +627,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - Add command syntax and argument formats
     - Add permission requirements for each command
   
-  - [ ] 20.3 Add deployment scripts
+  - [x] 20.3 Add deployment scripts
     - Create start script with PM2 configuration
     - Create backup script for MongoDB
     - Create log cleanup script
