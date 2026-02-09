@@ -65,8 +65,11 @@ Pastikan `.env` sudah terisi dengan benar:
 MONGODB_URI=your_mongodb_uri
 
 # First Admin (PENTING!)
-FIRST_ADMIN_USER_ID=your_discord_user_id
-FIRST_ADMIN_PLATFORM=discord
+# Isi Discord ID jika menggunakan Discord
+FIRST_ADMIN_DISCORD_ID=your_discord_user_id
+# Isi WhatsApp ID jika menggunakan WhatsApp (nomor HP tanpa +)
+FIRST_ADMIN_WHATSAPP_ID=6281234567890
+# Role untuk admin pertama
 FIRST_ADMIN_ROLE=ketua
 
 # Discord
@@ -77,7 +80,11 @@ DISCORD_CHANNEL_ID=your_channel_id_here
 DISCORD_ENABLED=true
 ```
 
-**PENTING:** Isi `FIRST_ADMIN_USER_ID` dengan Discord User ID Anda. Ini akan membuat Anda sebagai admin pertama secara otomatis saat bot start.
+**PENTING:** 
+- Isi `FIRST_ADMIN_DISCORD_ID` dengan Discord User ID Anda jika menggunakan Discord
+- Isi `FIRST_ADMIN_WHATSAPP_ID` dengan nomor WhatsApp Anda jika menggunakan WhatsApp
+- Anda bisa isi keduanya jika menggunakan kedua platform
+- Bot akan otomatis membuat admin untuk platform yang dikonfigurasi saat pertama kali start
 
 ### Step 2: Run Deploy Script
 

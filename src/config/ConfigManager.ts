@@ -267,14 +267,15 @@ export class ConfigManager {
   /**
    * Create first admin from environment variables
    * This is used to bootstrap the first admin user
+   * Supports creating admin for Discord and/or WhatsApp
    */
   async createFirstAdmin(): Promise<void> {
-    const userId = process.env.FIRST_ADMIN_USER_ID;
-    const platform = process.env.FIRST_ADMIN_PLATFORM || 'discord';
+    const discordId = process.env.FIRST_ADMIN_DISCORD_ID;
+    const whatsappId = process.env.FIRST_ADMIN_WHATSAPP_ID;
     const role = process.env.FIRST_ADMIN_ROLE || 'ketua';
 
-    if (!userId) {
-      logger.info('No FIRST_ADMIN_USER_ID configured - skipping first admin creation');
+    if (!discordId && !whatsappId) {
+      logger.info('No first admin configured - skipping first admin creation');
       return;
     }
 
@@ -282,28 +283,57 @@ export class ConfigManager {
       // Import Admin model dynamically to avoid circular dependency
       const Admin = (await import('../models/Admin')).default;
 
-      // Check if admin already exists
-      const existing = await Admin.findOne({ user_identifier: userId, platform });
-      
-      if (existing) {
-        logger.info(`First admin already exists: ${userId} on ${platform}`);
-        return;
+      // Create Discord admin if configured
+      if (discordId) {
+        const existingDiscord = await Admin.findOne({ 
+          user_identifier: discordId, 
+          platform: 'discord' 
+        });
+        
+        if (existingDiscord) {
+          logger.info(`Discord admin already exists: ${discordId}`);
+        } else {
+          await Admin.create({
+            user_identifier: discordId,
+            platform: 'discord',
+            role,
+            nama: 'Admin Discord',
+            is_active: true
+          });
+
+          logger.info(`✅ Discord admin created: ${discordId} with role ${role}`);
+          console.log(`\n✅ Admin Discord berhasil dibuat!`);
+          console.log(`   User ID: ${discordId}`);
+          console.log(`   Platform: Discord`);
+          console.log(`   Role: ${role}\n`);
+        }
       }
 
-      // Create first admin
-      await Admin.create({
-        user_identifier: userId,
-        platform,
-        role,
-        nama: 'Admin Pertama',
-        is_active: true
-      });
+      // Create WhatsApp admin if configured
+      if (whatsappId) {
+        const existingWhatsApp = await Admin.findOne({ 
+          user_identifier: whatsappId, 
+          platform: 'whatsapp' 
+        });
+        
+        if (existingWhatsApp) {
+          logger.info(`WhatsApp admin already exists: ${whatsappId}`);
+        } else {
+          await Admin.create({
+            user_identifier: whatsappId,
+            platform: 'whatsapp',
+            role,
+            nama: 'Admin WhatsApp',
+            is_active: true
+          });
 
-      logger.info(`✅ First admin created: ${userId} on ${platform} with role ${role}`);
-      console.log(`\n✅ Admin pertama berhasil dibuat!`);
-      console.log(`   User ID: ${userId}`);
-      console.log(`   Platform: ${platform}`);
-      console.log(`   Role: ${role}\n`);
+          logger.info(`✅ WhatsApp admin created: ${whatsappId} with role ${role}`);
+          console.log(`\n✅ Admin WhatsApp berhasil dibuat!`);
+          console.log(`   User ID: ${whatsappId}`);
+          console.log(`   Platform: WhatsApp`);
+          console.log(`   Role: ${role}\n`);
+        }
+      }
     } catch (error) {
       logger.error('Failed to create first admin', error as Error);
       console.error('❌ Gagal membuat admin pertama:', error);
