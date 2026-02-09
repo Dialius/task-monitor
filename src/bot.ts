@@ -294,13 +294,28 @@ class MultiPlatformBot {
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color)
-          .addFields(response.embedData.fields)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed] });
+        // Add description if present
+        if (response.embedData.description) {
+          embed.setDescription(response.embedData.description);
+        }
+
+        // Add fields if present
+        if (response.embedData.fields && response.embedData.fields.length > 0) {
+          embed.addFields(response.embedData.fields);
+        }
+
+        await interaction.reply({ 
+          embeds: [embed],
+          ephemeral: response.ephemeral || false
+        });
       } else {
         // Use plain text for other commands
-        await interaction.reply(response.message);
+        await interaction.reply({
+          content: response.message,
+          ephemeral: response.ephemeral || false
+        });
       }
     });
 
@@ -323,8 +338,17 @@ class MultiPlatformBot {
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color)
-          .addFields(response.embedData.fields)
           .setTimestamp();
+
+        // Add description if present
+        if (response.embedData.description) {
+          embed.setDescription(response.embedData.description);
+        }
+
+        // Add fields if present
+        if (response.embedData.fields && response.embedData.fields.length > 0) {
+          embed.addFields(response.embedData.fields);
+        }
 
         await message.reply({ embeds: [embed] });
       } else {

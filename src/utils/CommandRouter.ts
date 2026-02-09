@@ -15,13 +15,15 @@ export interface CommandResponse {
   data?: any;
   embedData?: {
     title: string;
+    description?: string;
     color: number;
-    fields: Array<{
+    fields?: Array<{
       name: string;
       value: string;
       inline?: boolean;
     }>;
   };
+  ephemeral?: boolean; // Only visible to the user who triggered the command
 }
 
 export type CommandHandler = (

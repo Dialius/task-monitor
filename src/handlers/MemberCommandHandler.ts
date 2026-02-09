@@ -31,13 +31,14 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas aktif saat ini.'
+          message: '📝 Tidak ada tugas aktif saat ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -46,21 +47,18 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
-            name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
-            inline: false
-          };
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
         });
 
         return {
           success: true,
-          message: '', // Not used for embeds
+          message: '',
           embedData: {
             title: '📝 Daftar Tugas',
-            color: 0x3498db,
-            fields
-          }
+            description: taskLines.join('\n\n'), // Double newline for spacing
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -74,7 +72,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil daftar tugas.'
+        message: '❌ Gagal mengambil daftar tugas.',
+        ephemeral: true
       };
     }
   }
@@ -108,13 +107,14 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas untuk hari ini.'
+          message: '📝 Tidak ada tugas untuk hari ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -123,11 +123,7 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
-            name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
-            inline: false
-          };
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
         });
 
         return {
@@ -135,9 +131,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Tugas Hari Ini',
-            color: 0x3498db,
-            fields
-          }
+            description: taskLines.join('\n\n'),
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -151,7 +148,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get today tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil tugas hari ini.'
+        message: '❌ Gagal mengambil tugas hari ini.',
+        ephemeral: true
       };
     }
   }
@@ -167,13 +165,14 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas untuk minggu ini.'
+          message: '📝 Tidak ada tugas untuk minggu ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -182,11 +181,7 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
-            name: `${index + 1}. ${emoji} ${task.judul}`,
-            value: `${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``,
-            inline: false
-          };
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
         });
 
         return {
@@ -194,9 +189,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📊 Tugas Minggu Ini',
-            color: 0x3498db,
-            fields
-          }
+            description: taskLines.join('\n\n'),
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -210,7 +206,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get week tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil tugas minggu ini.'
+        message: '❌ Gagal mengambil tugas minggu ini.',
+        ephemeral: true
       };
     }
   }
@@ -226,18 +223,15 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk hari ini.'
+          message: '📅 Tidak ada jadwal untuk hari ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
-            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
-            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
-            inline: false
-          };
+        const scheduleLines = schedules.map((schedule, index) => {
+          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
         });
 
         return {
@@ -245,9 +239,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Hari Ini',
-            color: 0x3498db,
-            fields
-          }
+            description: scheduleLines.join('\n\n'),
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -261,7 +256,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get today schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal hari ini.'
+        message: '❌ Gagal mengambil jadwal hari ini.',
+        ephemeral: true
       };
     }
   }
@@ -277,18 +273,15 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk besok.'
+          message: '📅 Tidak ada jadwal untuk besok.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
-            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
-            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
-            inline: false
-          };
+        const scheduleLines = schedules.map((schedule, index) => {
+          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
         });
 
         return {
@@ -296,9 +289,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Besok',
-            color: 0x3498db,
-            fields
-          }
+            description: scheduleLines.join('\n\n'),
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -312,7 +306,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get tomorrow schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal besok.'
+        message: '❌ Gagal mengambil jadwal besok.',
+        ephemeral: true
       };
     }
   }
@@ -328,18 +323,15 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk minggu ini.'
+          message: '📅 Tidak ada jadwal untuk minggu ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
-            name: `${index + 1}. 📖 ${schedule.mata_pelajaran}`,
-            value: `⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``,
-            inline: false
-          };
+        const scheduleLines = schedules.map((schedule, index) => {
+          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
         });
 
         return {
@@ -347,9 +339,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📊 Jadwal Minggu Ini',
-            color: 0x3498db,
-            fields
-          }
+            description: scheduleLines.join('\n\n'),
+            color: 0x3498db
+          },
+          ephemeral: true
         };
       }
 
@@ -363,7 +356,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get week schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal minggu ini.'
+        message: '❌ Gagal mengambil jadwal minggu ini.',
+        ephemeral: true
       };
     }
   }
@@ -379,11 +373,12 @@ export class MemberCommandHandler {
       if (!piket) {
         return {
           success: true,
-          message: '🧹 Tidak ada jadwal piket untuk hari ini.'
+          message: '🧹 Tidak ada jadwal piket untuk hari ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
         const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
         
@@ -392,13 +387,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: `🧹 Piket ${piket.hari}`,
-            color: 0x2ecc71,
-            fields: [{
-              name: 'Petugas Piket',
-              value: studentList || 'Tidak ada petugas',
-              inline: false
-            }]
-          }
+            description: `**Petugas Piket:**\n${studentList || 'Tidak ada petugas'}`,
+            color: 0x2ecc71
+          },
+          ephemeral: true
         };
       }
 
@@ -413,7 +405,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get today piket', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal piket hari ini.'
+        message: '❌ Gagal mengambil jadwal piket hari ini.',
+        ephemeral: true
       };
     }
   }
@@ -429,19 +422,16 @@ export class MemberCommandHandler {
       if (pikets.length === 0) {
         return {
           success: true,
-          message: '🧹 Tidak ada jadwal piket untuk minggu ini.'
+          message: '🧹 Tidak ada jadwal piket untuk minggu ini.',
+          ephemeral: true
         };
       }
 
-      // For Discord, return embed data
+      // For Discord, return embed data with description
       if (platform === 'discord') {
-        const fields = pikets.map(piket => {
+        const piketLines = pikets.map(piket => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-          return {
-            name: `📅 ${piket.hari}`,
-            value: studentList || 'Tidak ada petugas',
-            inline: false
-          };
+          return `**📅 ${piket.hari}**\n${studentList || 'Tidak ada petugas'}`;
         });
 
         return {
@@ -449,9 +439,10 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '🧹 Jadwal Piket Minggu Ini',
-            color: 0x2ecc71,
-            fields
-          }
+            description: piketLines.join('\n\n'),
+            color: 0x2ecc71
+          },
+          ephemeral: true
         };
       }
 
@@ -473,7 +464,8 @@ export class MemberCommandHandler {
       logger.error('Failed to get week piket', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal piket minggu ini.'
+        message: '❌ Gagal mengambil jadwal piket minggu ini.',
+        ephemeral: true
       };
     }
   }
@@ -519,7 +511,8 @@ export class MemberCommandHandler {
 
     return {
       success: true,
-      message
+      message,
+      ephemeral: true // Only visible to user
     };
   }
 
@@ -541,13 +534,15 @@ export class MemberCommandHandler {
 
       return {
         success: true,
-        message
+        message,
+        ephemeral: true // Only visible to user
       };
     } catch (error) {
       logger.error('Failed to get status', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil status bot.'
+        message: '❌ Gagal mengambil status bot.',
+        ephemeral: true
       };
     }
   }
