@@ -40,14 +40,13 @@ export class MemberCommandHandler {
       if (platform === 'discord') {
         const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
             day: 'numeric', 
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
         });
 
         return {
@@ -55,7 +54,7 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📝 Daftar Tugas',
-            description: taskLines.join('\n\n'), // Double newline for spacing
+            description: taskLines.join('\n\n'), // Gap between tasks only
             color: 0x3498db
           },
           ephemeral: true
@@ -87,15 +86,6 @@ export class MemberCommandHandler {
     return emojiMap[tipe] || '📝';
   }
 
-  private getPriorityEmoji(prioritas: string): string {
-    const emojiMap: Record<string, string> = {
-      'urgent': '🚨',
-      'penting': '⚠️',
-      'normal': 'ℹ️'
-    };
-    return emojiMap[prioritas] || 'ℹ️';
-  }
-
   /**
    * Handle /tugas_hari_ini command
    * Requirement: 2.7
@@ -116,14 +106,13 @@ export class MemberCommandHandler {
       if (platform === 'discord') {
         const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
             day: 'numeric', 
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
         });
 
         return {
@@ -174,14 +163,13 @@ export class MemberCommandHandler {
       if (platform === 'discord') {
         const taskLines = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const priorityEmoji = this.getPriorityEmoji(task.prioritas);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
             day: 'numeric', 
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n🆔 \`${task._id}\``;
+          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
         });
 
         return {
@@ -231,7 +219,7 @@ export class MemberCommandHandler {
       // For Discord, return embed data with description
       if (platform === 'discord') {
         const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
+          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
         });
 
         return {
@@ -281,7 +269,7 @@ export class MemberCommandHandler {
       // For Discord, return embed data with description
       if (platform === 'discord') {
         const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
+          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
         });
 
         return {
@@ -331,7 +319,7 @@ export class MemberCommandHandler {
       // For Discord, return embed data with description
       if (platform === 'discord') {
         const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. 📖 ${schedule.mata_pelajaran}**\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • 🏫 ${schedule.ruangan} • 👨‍🏫 ${schedule.nama_guru}\n🆔 \`${schedule._id}\``;
+          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
         });
 
         return {
@@ -387,7 +375,7 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: `🧹 Piket ${piket.hari}`,
-            description: `**Petugas Piket:**\n${studentList || 'Tidak ada petugas'}`,
+            description: studentList || 'Tidak ada petugas',
             color: 0x2ecc71
           },
           ephemeral: true
@@ -431,7 +419,7 @@ export class MemberCommandHandler {
       if (platform === 'discord') {
         const piketLines = pikets.map(piket => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-          return `**📅 ${piket.hari}**\n${studentList || 'Tidak ada petugas'}`;
+          return `**${piket.hari}**\n${studentList || 'Tidak ada petugas'}`;
         });
 
         return {
