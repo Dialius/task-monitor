@@ -3,48 +3,12 @@
  * Requirements: 4.6, 19.1, 19.2, 19.3, 19.4
  */
 
-interface Task {
-  _id: string;
-  judul: string;
-  deskripsi: string;
-  deadline: Date;
-  mata_pelajaran: string;
-  tipe: 'individu' | 'kelompok' | 'ujian';
-  prioritas: 'urgent' | 'penting' | 'normal';
-  status: 'aktif' | 'selesai';
-}
-
-interface Schedule {
-  _id: string;
-  hari: string;
-  jam_mulai: string;
-  jam_selesai: string;
-  mata_pelajaran: string;
-  ruangan: string;
-  nama_guru: string;
-}
-
-interface Piket {
-  _id: string;
-  hari: string;
-  nama_siswa: string[];
-  nomor_wa: string[];
-}
-
-interface Announcement {
-  _id: string;
-  tanggal: Date;
-  judul: string;
-  tipe: 'acara' | 'perubahan_jadwal' | 'praktikum' | 'lainnya';
-  keterangan: string;
-}
-
 export class Formatter {
   /**
    * Format task list for display
    * Requirement: 19.2
    */
-  static formatTaskList(tasks: Task[]): string {
+  static formatTaskList(tasks: any[]): string {
     if (tasks.length === 0) {
       return '📝 Tidak ada tugas saat ini.';
     }
@@ -70,7 +34,7 @@ export class Formatter {
    * Format schedule for display
    * Requirement: 19.3, 19.4
    */
-  static formatSchedule(schedules: Schedule[]): string {
+  static formatSchedule(schedules: any[]): string {
     if (schedules.length === 0) {
       return '📅 Tidak ada jadwal untuk hari ini.';
     }
@@ -91,14 +55,14 @@ export class Formatter {
    * Format piket assignment
    * Requirement: 4.6
    */
-  static formatPiket(piket: Piket): string {
+  static formatPiket(piket: any): string {
     if (!piket || piket.nama_siswa.length === 0) {
       return '🧹 Tidak ada jadwal piket untuk hari ini.';
     }
 
     let result = `🧹 *Piket ${piket.hari}:*\n\n`;
     
-    piket.nama_siswa.forEach((nama, index) => {
+    piket.nama_siswa.forEach((nama: string, index: number) => {
       result += `${index + 1}. ${nama}\n`;
     });
 
@@ -109,7 +73,7 @@ export class Formatter {
    * Format announcement
    * Requirement: 19.7, 19.8
    */
-  static formatAnnouncement(announcement: Announcement): string {
+  static formatAnnouncement(announcement: any): string {
     const typeEmoji = this.getAnnouncementEmoji(announcement.tipe);
     const tanggal = this.formatDate(announcement.tanggal);
     

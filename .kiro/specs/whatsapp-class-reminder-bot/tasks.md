@@ -377,7 +377,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Validates: Requirements 11.4, 11.5, 12.3**
 
 - [ ] 11. Admin command handlers
-  - [ ] 11.1 Implement task management commands
+  - [x] 11.1 Implement task management commands
     - Create handleAddTugas with validation and AI enhancement
     - Create handleEditTugas with field update
     - Create handleHapusTugas with deletion
@@ -390,7 +390,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Property 69: Database failure error handling**
     - **Validates: Requirements 12.4, 12.6**
   
-  - [ ] 11.3 Implement schedule management commands
+  - [x] 11.3 Implement schedule management commands
     - Create handleAddJadwal with validation
     - Create handleEditJadwal with field update
     - Create handleHapusJadwal with soft delete
@@ -401,7 +401,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Property 68: Invalid schedule ID error handling**
     - **Validates: Requirements 12.5**
   
-  - [ ] 11.5 Implement piket and announcement commands
+  - [x] 11.5 Implement piket and announcement commands
     - Create handleSetPiket with array validation
     - Create handleEditPiket with update logic
     - Create handleAddPengumuman with validation
@@ -417,7 +417,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - _Requirements: 9.1, 9.2_
 
 - [ ] 12. Member command handlers
-  - [ ] 12.1 Implement query commands
+  - [x] 12.1 Implement query commands
     - Create handleTugas for all active tasks
     - Create handleTugasHariIni for today's tasks
     - Create handleTugasMingguIni for weekly tasks
@@ -428,7 +428,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - Create handlePiketMingguIni for weekly piket
     - _Requirements: 2.6, 2.7, 2.8, 3.5, 3.6, 3.7, 4.3, 4.4_
   
-  - [ ] 12.2 Implement utility commands
+  - [x] 12.2 Implement utility commands
     - Create handleHelp with role-based command list
     - Create handleStatus with uptime and error count
     - Add command usage examples
