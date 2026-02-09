@@ -362,4 +362,218 @@ export class AdminCommandHandler {
     };
     return emojiMap[prioritas] || 'ℹ️';
   }
+
+  /**
+   * Handle /edit_jadwal command
+   * Format: /edit_jadwal | schedule_id | field | value
+   * Requirement: 3.2
+   */
+  async handleEditJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 3) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /edit_jadwal | schedule_id | field | value\n\nField: jam_mulai, jam_selesai, mata_pelajaran, ruangan, nama_guru'
+        };
+      }
+
+      const [scheduleId, field, value] = args;
+
+      const validFields = ['jam_mulai', 'jam_selesai', 'mata_pelajaran', 'ruangan', 'nama_guru'];
+      if (!validFields.includes(field)) {
+        return {
+          success: false,
+          message: `❌ Field tidak valid! Gunakan: ${validFields.join(', ')}`
+        };
+      }
+
+      if ((field === 'jam_mulai' || field === 'jam_selesai') && !Validator.isValidTime(value)) {
+        return {
+          success: false,
+          message: '❌ Format waktu salah! Gunakan format HH:MM'
+        };
+      }
+
+      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, value);
+
+      return {
+        success: true,
+        message: `✅ Jadwal berhasil diupdate!\n\n📖 ${schedule.mata_pelajaran}\nField "${field}" diubah menjadi: ${value}`
+      };
+    } catch (error) {
+      logger.error('Failed to edit schedule', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal mengupdate jadwal. Pastikan schedule_id benar.'
+      };
+    }
+  }
+
+  /**
+   * Handle /hapus_jadwal command
+   * Format: /hapus_jadwal | schedule_id
+   * Requirement: 3.3
+   */
+  async handleHapusJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 1) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /hapus_jadwal | schedule_id'
+        };
+      }
+
+      const [scheduleId] = args;
+      await this.scheduleService.deleteSchedule(scheduleId);
+
+      return {
+        success: true,
+        message: '✅ Jadwal berhasil dihapus!'
+      };
+    } catch (error) {
+      logger.error('Failed to delete schedule', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal menghapus jadwal. Pastikan schedule_id benar.'
+      };
+    }
+  }
+
+  /**
+   * Handle /ganti_jadwal command
+   * Format: /ganti_jadwal | schedule_id | field | value | alasan
+   * Requirement: 3.4
+   */
+  async handleGantiJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 4) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /ganti_jadwal | schedule_id | field | value | alasan\n\nContoh: /ganti_jadwal | 123abc | ruangan | R.202 | Ruangan lama sedang renovasi'
+        };
+      }
+
+      const [scheduleId, field, value, alasan] = args;
+
+      // Update schedule
+      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, value);
+
+      // Create announcement
+      await this.announcementService.createAnnouncement({
+        tanggal: new Date(),
+        judul: `Perubahan Jadwal: ${schedule.mata_pelajaran}`,
+        tipe: 'perubahan_jadwal',
+        keterangan: `${field} diubah menjadi ${value}. Alasan: ${alasan}`
+      });
+
+      return {
+        success: true,
+        message: `✅ Jadwal berhasil diubah dan pengumuman dibuat!\n\n📖 ${schedule.mata_pelajaran}\n📝 ${field}: ${value}\n💬 Alasan: ${alasan}`
+      };
+    } catch (error) {
+      logger.error('Failed to change schedule', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal mengubah jadwal. Pastikan schedule_id benar.'
+      };
+    }
+  }
+
+  /**
+   * Handle /edit_piket command
+   * Format: /edit_piket | hari | nama1,nomor1 | nama2,nomor2 | ...
+   * Requirement: 4.2
+   */
+  async handleEditPiket(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    // Same as handleSetPiket (upsert logic)
+    return this.handleSetPiket(args, _userId, _platform);
+  }
+
+  /**
+   * Handle /hapus_pengumuman command
+   * Format: /hapus_pengumuman | announcement_id
+   * Requirement: 5.2
+   */
+  async handleHapusPengumuman(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 1) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /hapus_pengumuman | announcement_id'
+        };
+      }
+
+      const [announcementId] = args;
+      await this.announcementService.deleteAnnouncement(announcementId);
+
+      return {
+        success: true,
+        message: '✅ Pengumuman berhasil dihapus!'
+      };
+    } catch (error) {
+      logger.error('Failed to delete announcement', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal menghapus pengumuman. Pastikan announcement_id benar.'
+      };
+    }
+  }
+
+  /**
+   * Handle /broadcast command
+   * Format: /broadcast | pesan
+   * Requirement: 5.4
+   */
+  async handleBroadcast(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 1) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /broadcast | pesan'
+        };
+      }
+
+      const message = args.join(' | ');
+
+      return {
+        success: true,
+        message: `📢 *PENGUMUMAN*\n\n${message}`
+      };
+    } catch (error) {
+      logger.error('Failed to broadcast', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal mengirim broadcast.'
+      };
+    }
+  }
+
+  /**
+   * Handle /broadcast_urgent command
+   * Format: /broadcast_urgent | pesan
+   * Requirement: 5.5
+   */
+  async handleBroadcastUrgent(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 1) {
+        return {
+          success: false,
+          message: '❌ Format salah!\n\nGunakan: /broadcast_urgent | pesan'
+        };
+      }
+
+      const message = args.join(' | ');
+
+      return {
+        success: true,
+        message: `🚨 *PENGUMUMAN PENTING* 🚨\n\n${message}\n\n⚠️ Mohon segera dibaca!`
+      };
+    } catch (error) {
+      logger.error('Failed to broadcast urgent', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal mengirim broadcast urgent.'
+      };
+    }
+  }
 }

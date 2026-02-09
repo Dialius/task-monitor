@@ -178,8 +178,15 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('hapus_tugas', this.adminHandler.handleHapusTugas.bind(this.adminHandler));
     this.commandRouter.registerHandler('tandai_selesai', this.adminHandler.handleTandaiSelesai.bind(this.adminHandler));
     this.commandRouter.registerHandler('add_jadwal', this.adminHandler.handleAddJadwal.bind(this.adminHandler));
+    this.commandRouter.registerHandler('edit_jadwal', this.adminHandler.handleEditJadwal.bind(this.adminHandler));
+    this.commandRouter.registerHandler('hapus_jadwal', this.adminHandler.handleHapusJadwal.bind(this.adminHandler));
+    this.commandRouter.registerHandler('ganti_jadwal', this.adminHandler.handleGantiJadwal.bind(this.adminHandler));
     this.commandRouter.registerHandler('set_piket', this.adminHandler.handleSetPiket.bind(this.adminHandler));
+    this.commandRouter.registerHandler('edit_piket', this.adminHandler.handleEditPiket.bind(this.adminHandler));
     this.commandRouter.registerHandler('add_pengumuman', this.adminHandler.handleAddPengumuman.bind(this.adminHandler));
+    this.commandRouter.registerHandler('hapus_pengumuman', this.adminHandler.handleHapusPengumuman.bind(this.adminHandler));
+    this.commandRouter.registerHandler('broadcast', this.adminHandler.handleBroadcast.bind(this.adminHandler));
+    this.commandRouter.registerHandler('broadcast_urgent', this.adminHandler.handleBroadcastUrgent.bind(this.adminHandler));
 
     console.log('   → Registering member commands...');
     // Register member commands
@@ -196,8 +203,8 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('bantuan', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('status', this.memberHandler.handleStatus.bind(this.memberHandler));
 
-    console.log('   → Registered 19 commands total');
-    console.log('      • Admin commands: 7');
+    console.log('   → Registered 26 commands total');
+    console.log('      • Admin commands: 14');
     console.log('      • Member commands: 12');
   }
 
@@ -389,9 +396,19 @@ class MultiPlatformBot {
     console.log('');
     console.log('   Admin Commands:');
     console.log('   • /add_tugas - Tambah tugas');
+    console.log('   • /edit_tugas - Edit tugas');
+    console.log('   • /hapus_tugas - Hapus tugas');
+    console.log('   • /tandai_selesai - Tandai tugas selesai');
     console.log('   • /add_jadwal - Tambah jadwal');
+    console.log('   • /edit_jadwal - Edit jadwal');
+    console.log('   • /hapus_jadwal - Hapus jadwal');
+    console.log('   • /ganti_jadwal - Ganti jadwal + announcement');
     console.log('   • /set_piket - Set piket');
+    console.log('   • /edit_piket - Edit piket');
     console.log('   • /add_pengumuman - Tambah pengumuman');
+    console.log('   • /hapus_pengumuman - Hapus pengumuman');
+    console.log('   • /broadcast - Broadcast pesan');
+    console.log('   • /broadcast_urgent - Broadcast urgent');
     console.log('');
     console.log('💡 Tip: Kirim /help di chat untuk melihat semua command\n');
     
