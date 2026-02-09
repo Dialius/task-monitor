@@ -5,6 +5,7 @@
 
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
+import { initializeConfig, getConfigManager } from './config/ConfigManager';
 import { initializeLogger, getLogger } from './utils/Logger';
 import { CommandParser } from './utils/CommandParser';
 import { CommandRouter } from './utils/CommandRouter';
@@ -64,14 +65,18 @@ class MultiPlatformBot {
       this.logger.info('Initializing Multi-Platform Bot...');
 
       // Initialize logger
+      const config = getConfigManager();
       initializeLogger({
-        logDir: process.env.LOG_DIR || './logs',
-        logLevel: (process.env.LOG_LEVEL as any) || 'info',
+        logDir: config.get('logDir'),
+        logLevel: config.get('logLevel') as any,
         rotationInterval: 'daily'
       });
 
       // Connect to database
       await connectDatabase();
+
+      // Initialize configuration from database
+      await initializeConfig();
 
       // Initialize services
       await this.initializeServices();
