@@ -17,21 +17,28 @@ export interface IPengumuman extends Document {
 const PengumumanSchema = new Schema<IPengumuman>({
   tanggal: {
     type: Date,
-    required: true
+    required: [true, 'Tanggal pengumuman wajib diisi']
   },
   judul: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Judul pengumuman wajib diisi'],
+    trim: true,
+    minlength: [3, 'Judul minimal 3 karakter'],
+    maxlength: [200, 'Judul maksimal 200 karakter']
   },
   keterangan: {
     type: String,
-    required: true
+    required: [true, 'Keterangan pengumuman wajib diisi'],
+    minlength: [5, 'Keterangan minimal 5 karakter'],
+    maxlength: [2000, 'Keterangan maksimal 2000 karakter']
   },
   tipe: {
     type: String,
-    required: true,
-    enum: ['acara', 'perubahan_jadwal', 'praktikum', 'lainnya']
+    required: [true, 'Tipe pengumuman wajib dipilih'],
+    enum: {
+      values: ['acara', 'perubahan_jadwal', 'praktikum', 'lainnya'],
+      message: 'Tipe harus acara, perubahan_jadwal, praktikum, atau lainnya'
+    }
   },
   is_active: {
     type: Boolean,
@@ -45,5 +52,15 @@ const PengumumanSchema = new Schema<IPengumuman>({
 
 // Index for tanggal (Requirement 15.6)
 PengumumanSchema.index({ tanggal: 1 });
+
+// Pre-save hook for data normalization
+PengumumanSchema.pre('save', function(next) {
+  // Normalize judul: capitalize first letter
+  if (this.judul) {
+    this.judul = this.judul.charAt(0).toUpperCase() + this.judul.slice(1);
+  }
+  
+  next();
+});
 
 export default mongoose.model<IPengumuman>('Pengumuman', PengumumanSchema);

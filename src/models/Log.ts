@@ -16,13 +16,16 @@ export interface ILog extends Document {
 const LogSchema = new Schema<ILog>({
   action: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Action wajib diisi'],
+    trim: true,
+    minlength: [2, 'Action minimal 2 karakter'],
+    maxlength: [100, 'Action maksimal 100 karakter']
   },
   user_wa: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'User identifier wajib diisi'],
+    trim: true,
+    maxlength: [50, 'User identifier maksimal 50 karakter']
   },
   details: {
     type: Schema.Types.Mixed,
@@ -30,8 +33,11 @@ const LogSchema = new Schema<ILog>({
   },
   status: {
     type: String,
-    required: true,
-    enum: ['success', 'error']
+    required: [true, 'Status wajib diisi'],
+    enum: {
+      values: ['success', 'error'],
+      message: 'Status harus success atau error'
+    }
   },
   created_at: {
     type: Date,
@@ -41,5 +47,7 @@ const LogSchema = new Schema<ILog>({
 
 // Index for created_at (Requirement 15.6)
 LogSchema.index({ created_at: -1 });
+LogSchema.index({ action: 1 });
+LogSchema.index({ status: 1 });
 
 export default mongoose.model<ILog>('Log', LogSchema);

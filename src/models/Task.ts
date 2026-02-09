@@ -22,37 +22,61 @@ export interface ITask extends Document {
 const TaskSchema = new Schema<ITask>({
   judul: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Judul tugas wajib diisi'],
+    trim: true,
+    minlength: [3, 'Judul minimal 3 karakter'],
+    maxlength: [200, 'Judul maksimal 200 karakter']
   },
   deskripsi: {
     type: String,
-    required: true
+    required: [true, 'Deskripsi tugas wajib diisi'],
+    minlength: [5, 'Deskripsi minimal 5 karakter'],
+    maxlength: [2000, 'Deskripsi maksimal 2000 karakter']
   },
   deadline: {
     type: Date,
-    required: true
+    required: [true, 'Deadline wajib diisi'],
+    validate: {
+      validator: function(v: Date) {
+        // Deadline must be in the future (at least 1 hour from now)
+        const oneHourFromNow = new Date();
+        oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
+        return v >= oneHourFromNow;
+      },
+      message: 'Deadline harus minimal 1 jam dari sekarang'
+    }
   },
   mata_pelajaran: {
     type: String,
-    required: true,
-    trim: true
+    required: [true, 'Mata pelajaran wajib diisi'],
+    trim: true,
+    minlength: [2, 'Mata pelajaran minimal 2 karakter'],
+    maxlength: [100, 'Mata pelajaran maksimal 100 karakter']
   },
   tipe: {
     type: String,
-    required: true,
-    enum: ['individu', 'kelompok', 'ujian']
+    required: [true, 'Tipe tugas wajib dipilih'],
+    enum: {
+      values: ['individu', 'kelompok', 'ujian'],
+      message: 'Tipe harus individu, kelompok, atau ujian'
+    }
   },
   prioritas: {
     type: String,
-    required: true,
-    enum: ['urgent', 'penting', 'normal'],
+    required: [true, 'Prioritas wajib diisi'],
+    enum: {
+      values: ['urgent', 'penting', 'normal'],
+      message: 'Prioritas harus urgent, penting, atau normal'
+    },
     default: 'normal'
   },
   status: {
     type: String,
-    required: true,
-    enum: ['aktif', 'selesai'],
+    required: [true, 'Status wajib diisi'],
+    enum: {
+      values: ['aktif', 'selesai'],
+      message: 'Status harus aktif atau selesai'
+    },
     default: 'aktif'
   },
   notion_id: {
@@ -61,7 +85,7 @@ const TaskSchema = new Schema<ITask>({
   },
   created_by: {
     type: String,
-    required: true,
+    required: [true, 'Created by wajib diisi'],
     trim: true
   },
   created_at: {
@@ -81,6 +105,15 @@ TaskSchema.index({ status: 1 });
 // Update updated_at on save
 TaskSchema.pre('save', function(next) {
   this.updated_at = new Date();
+  
+  // Normalize mata_pelajaran: capitalize first letter
+  if (this.mata_pelajaran) {
+    this.mata_pelajaran = this.mata_pelajaran
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  
   next();
 });
 
