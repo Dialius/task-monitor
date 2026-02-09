@@ -148,7 +148,9 @@ export class ConfigManager {
     // Validate WhatsApp configuration if enabled
     if (this.config.whatsappEnabled) {
       if (!this.config.whatsappGroupId) {
-        errors.push('WHATSAPP_GROUP_ID is required when WhatsApp is enabled');
+        // Group ID optional for first connection (will be shown in console)
+        console.log('⚠️  WHATSAPP_GROUP_ID not set - bot will reply to any group');
+        console.log('   Get Group ID from console after first connection');
       }
     }
 

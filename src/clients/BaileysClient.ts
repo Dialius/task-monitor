@@ -51,7 +51,7 @@ export class BaileysClient {
 
       this.socket = makeWASocket({
         auth: state,
-        printQRInTerminal: this.config.printQRInTerminal,
+        // printQRInTerminal deprecated - handle QR manually in connection.update
         logger: {
           level: 'silent',
           error: () => {},
@@ -93,27 +93,38 @@ export class BaileysClient {
   private async handleConnectionUpdate(update: any): Promise<void> {
     const { connection, lastDisconnect, qr } = update;
 
+    // Handle QR code manually (new Baileys way)
     if (qr) {
+      console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
+      // Import qrcode-terminal dynamically
+      const QRCode = require('qrcode-terminal');
+      QRCode.generate(qr, { small: true });
+      console.log('\n');
       logger.info('QR Code generated for WhatsApp authentication');
     }
 
     if (connection === 'close') {
       this.isConnected = false;
-      const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+      const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
       logger.warn('WhatsApp connection closed', {
+        statusCode,
         shouldReconnect,
         reconnectAttempts: this.reconnectAttempts
       });
 
-      if (shouldReconnect) {
+      if (shouldReconnect && statusCode !== DisconnectReason.connectionClosed) {
         await this.handleReconnection();
-      } else {
+      } else if (statusCode === DisconnectReason.loggedOut) {
         logger.info('WhatsApp logged out, not reconnecting');
+      } else {
+        logger.info('WhatsApp connection closed normally');
       }
     } else if (connection === 'open') {
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      console.log('\n✅ WhatsApp connected successfully!\n');
       logger.info('WhatsApp connection established');
     } else if (connection === 'connecting') {
       logger.info('Connecting to WhatsApp...');
