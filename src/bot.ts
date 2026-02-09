@@ -254,12 +254,42 @@ class MultiPlatformBot {
 
     this.discordAdapter = new DiscordAdapter(this.discordClient.getClient());
 
-    // Handle text commands
+    // Handle slash commands
+    this.discordClient.onSlashCommand(async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+
+      // Extract command and arguments from slash command
+      const command = interaction.commandName;
+      const args: string[] = [];
+
+      // Get all options from the interaction
+      interaction.options.data.forEach(option => {
+        if (option.value !== undefined) {
+          args.push(String(option.value));
+        }
+      });
+
+      console.log(`📨 Discord slash command: /${command} from ${interaction.user.tag}`);
+
+      const response = await this.commandRouter.route(
+        { 
+          command, 
+          args,
+          rawMessage: `/${command} ${args.join(' | ')}`
+        },
+        interaction.user.id,
+        'discord'
+      );
+
+      await interaction.reply(response.message);
+    });
+
+    // Handle text commands (fallback)
     this.discordClient.onTextCommand(async (message) => {
       const parsed = this.commandParser.parse(message.content);
       if (!parsed) return;
 
-      console.log(`📨 Discord command: /${parsed.command} from ${message.author.tag}`);
+      console.log(`📨 Discord text command: /${parsed.command} from ${message.author.tag}`);
 
       const response = await this.commandRouter.route(
         parsed,

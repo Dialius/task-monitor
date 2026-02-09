@@ -98,6 +98,27 @@ GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-1.5-flash
 
 # Scheduler
+```
+
+### 4. Deploy Discord Slash Commands (Jika Menggunakan Discord)
+
+**PENTING:** Sebelum menjalankan bot Discord, Anda harus mendeploy slash commands terlebih dahulu:
+
+```bash
+npm run deploy-commands
+```
+
+Script ini akan:
+- Menghapus semua command lama dari server Discord
+- Mendaftarkan 25 command baru (11 member + 14 admin)
+- Menampilkan daftar command yang berhasil didaftarkan
+
+**Catatan:** Jalankan command ini setiap kali Anda:
+- Pertama kali setup bot
+- Menambah/mengubah command baru
+- Pindah ke server Discord yang berbeda
+
+### 5. Build dan Run
 TIMEZONE=Asia/Jakarta
 DAILY_REMINDER_TIME=17:00
 WEEKLY_REMINDER_DAY=5
