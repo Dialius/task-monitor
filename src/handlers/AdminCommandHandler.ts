@@ -56,10 +56,10 @@ export class AdminCommandHandler {
         };
       }
 
-      // Enhance description with AI
+      // Enhance description with AI (keep it concise and focused)
       const enhancedDesc = await this.aiService.rewriteText(
         deskripsi,
-        'Enhance this task description to be clear and motivating'
+        'Rewrite in Indonesian. Maximum 1-2 short sentences. Keep only the core task, remove any extra explanation or motivation. Be direct and concise.'
       );
 
       const task = await this.taskService.createTask({

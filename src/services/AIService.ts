@@ -95,16 +95,16 @@ export class AIService {
         messages: [
           {
             role: 'system',
-            content: `You are a helpful assistant that rewrites text to be clear, engaging, and well-formatted in Indonesian. Context: ${context}`
+            content: `You are a text editor that makes descriptions concise. ${context}. Output only the improved text, nothing else.`
           },
           {
             role: 'user',
-            content: `Rewrite this text to be more clear and engaging:\n\n${text}`
+            content: text
           }
         ],
         model: this.groqConfig.model,
-        temperature: 0.7,
-        max_tokens: 500
+        temperature: 0.3,
+        max_tokens: 100
       });
 
       clearTimeout(timeoutId);
@@ -124,7 +124,7 @@ export class AIService {
       model: this.geminiConfig.model
     });
 
-    const prompt = `You are a helpful assistant that rewrites text to be clear, engaging, and well-formatted in Indonesian. Context: ${context}\n\nRewrite this text to be more clear and engaging:\n\n${text}`;
+    const prompt = `${context}\n\nText: ${text}\n\nProvide a concise, clear version in Indonesian.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
