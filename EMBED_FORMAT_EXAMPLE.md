@@ -1,20 +1,22 @@
-# Discord Embed Format - Simple & Clean
+# Discord Embed Format - Structured & Professional
 
-## Format Baru (Setelah Perbaikan)
+## Format Baru (Dengan Label yang Jelas)
 
 ### Tugas
 ```
 📝 Daftar Tugas
 
 1. 👤 Soal Matematika Bab 5
-Matematika • Sel, 10 Feb
-Selesaikan soal integral di halaman 45-50.
-6989fc62e52dcb6f17493d50
+Mata Pelajaran: Matematika
+Deadline: Sel, 10 Feb
+Deskripsi: Selesaikan soal integral di halaman 45-50.
+ID: 6989fc62e52dcb6f17493d50
 
 2. 👥 Project Kelompok Fisika
-Fisika • Rab, 11 Feb
-Buat laporan percobaan gerak parabola.
-698a03549dda47605a31901c
+Mata Pelajaran: Fisika
+Deadline: Rab, 11 Feb
+Deskripsi: Buat laporan percobaan gerak parabola.
+ID: 698a03549dda47605a31901c
 ```
 
 ### Jadwal
@@ -22,12 +24,16 @@ Buat laporan percobaan gerak parabola.
 📅 Jadwal Hari Ini
 
 1. Matematika
-08:00-09:30 • Lab 1 • Pak Budi
-6989fc62e52dcb6f17493d50
+Waktu: 08:00-09:30
+Ruangan: Lab 1
+Guru: Pak Budi
+ID: 6989fc62e52dcb6f17493d50
 
 2. Fisika
-09:30-11:00 • Lab 2 • Bu Ani
-698a03549dda47605a31901c
+Waktu: 09:30-11:00
+Ruangan: Lab 2
+Guru: Bu Ani
+ID: 698a03549dda47605a31901c
 ```
 
 ### Piket
@@ -39,59 +45,65 @@ Buat laporan percobaan gerak parabola.
 3. Citra
 ```
 
-## Perubahan dari Format Lama
+## Keuntungan Format dengan Label
 
-### ❌ Format Lama (Terlalu Banyak Emoji)
-```
-1. 👤 Soal Matematika Bab 5
-🚨 Matematika • Sel, 10 Feb
-Selesaikan soal integral di halaman 45-50.
-🆔 6989fc62e52dcb6f17493d50
-```
+1. ✅ **Jelas & Terstruktur** - Setiap informasi punya label yang jelas
+2. ✅ **Mudah Dibaca** - Format key: value yang familiar
+3. ✅ **Professional** - Terlihat lebih rapi dan organized
+4. ✅ **Konsisten** - Semua field menggunakan format yang sama
+5. ✅ **Automatic Spacing** - Discord fields otomatis memberi jarak antar item
 
-### ✅ Format Baru (Simple & Clean)
+## Format Technical
+
+### Menggunakan Discord Fields
+Setiap tugas/jadwal adalah **field** terpisah dengan:
+- **name**: Judul (nomor + emoji + nama)
+- **value**: Detail dengan label yang jelas
+- **inline**: false (full width, tidak bersebelahan)
+
+### Label yang Digunakan
+
+**Tugas:**
+- Mata Pelajaran: [nama]
+- Deadline: [tanggal]
+- Deskripsi: [detail]
+- ID: [id]
+
+**Jadwal:**
+- Waktu: [jam mulai-jam selesai]
+- Ruangan: [nama ruangan]
+- Guru: [nama guru]
+- ID: [id]
+
+**Piket:**
+- Langsung list nama (tanpa label)
+
+## Perbandingan Format
+
+### ❌ Format Lama (Tanpa Label)
 ```
 1. 👤 Soal Matematika Bab 5
 Matematika • Sel, 10 Feb
 Selesaikan soal integral di halaman 45-50.
 6989fc62e52dcb6f17493d50
 ```
+**Masalah:** Tidak jelas mana mata pelajaran, mana deadline, mana ID
 
-## Emoji yang Dipertahankan
+### ✅ Format Baru (Dengan Label)
+```
+1. 👤 Soal Matematika Bab 5
+Mata Pelajaran: Matematika
+Deadline: Sel, 10 Feb
+Deskripsi: Selesaikan soal integral di halaman 45-50.
+ID: 6989fc62e52dcb6f17493d50
+```
+**Keuntungan:** Setiap informasi jelas dan mudah dipahami
 
-Hanya emoji yang **penting** dan **membantu identifikasi**:
+## Best Practices Discord Embed
 
-1. **Task Type** (di judul):
-   - 👤 = Tugas Individu
-   - 👥 = Tugas Kelompok
-   - 📝 = Ujian
-
-2. **Embed Title**:
-   - 📝 = Daftar Tugas
-   - 📅 = Jadwal
-   - 📊 = Minggu Ini
-   - 🧹 = Piket
-
-## Emoji yang Dihapus
-
-Emoji yang **tidak perlu** dan membuat berantakan:
-- ❌ Priority emoji (🚨⚠️ℹ️) - tidak perlu, sudah ada warna embed
-- ❌ Time emoji (⏰) - redundant
-- ❌ Room emoji (🏫) - tidak perlu
-- ❌ Teacher emoji (👨‍🏫) - tidak perlu
-- ❌ ID emoji (🆔) - tidak perlu
-- ❌ Calendar emoji (📅) di dalam list - redundant
-
-## Spacing
-
-- **Gap antar tugas**: `\n\n` (double newline)
-- **Dalam tugas**: `\n` (single newline)
-- Hasil: Tugas terpisah jelas tapi tidak terlalu jauh
-
-## Keuntungan Format Baru
-
-1. ✅ **Lebih bersih** - tidak ada emoji yang mengganggu
-2. ✅ **Mudah dibaca** - fokus ke konten, bukan emoji
-3. ✅ **Spacing pas** - tidak terlalu mepet, tidak terlalu jauh
-4. ✅ **Professional** - terlihat lebih rapi dan serius
-5. ✅ **Sesuai referensi** - mirip dengan gambar contoh yang diberikan
+Format ini mengikuti best practices Discord:
+1. Menggunakan **fields** untuk data terstruktur
+2. Label yang **jelas dan konsisten**
+3. **Automatic spacing** antar fields
+4. **Full width** fields untuk readability
+5. Maximum **25 fields** per embed (lebih dari cukup)
