@@ -62,8 +62,11 @@ class MultiPlatformBot {
    */
   async initialize(): Promise<void> {
     try {
-      this.logger.info('Initializing Multi-Platform Bot...');
-
+      console.log('\n╔════════════════════════════════════════════════════════╗');
+      console.log('║   🤖 MULTI-PLATFORM CLASS REMINDER BOT               ║');
+      console.log('╚════════════════════════════════════════════════════════╝\n');
+      
+      console.log('📋 Step 1/7: Initializing logger...');
       // Initialize logger
       const config = getConfigManager();
       initializeLogger({
@@ -71,27 +74,41 @@ class MultiPlatformBot {
         logLevel: config.get('logLevel') as any,
         rotationInterval: 'daily'
       });
+      console.log('✅ Logger initialized\n');
 
+      console.log('📋 Step 2/7: Connecting to database...');
       // Connect to database
       await connectDatabase();
+      console.log('✅ Database connected\n');
 
+      console.log('📋 Step 3/7: Loading configuration...');
       // Initialize configuration from database
       await initializeConfig();
+      console.log('✅ Configuration loaded\n');
 
+      console.log('📋 Step 4/7: Initializing services...');
       // Initialize services
       await this.initializeServices();
+      console.log('✅ Services initialized\n');
 
+      console.log('📋 Step 5/7: Setting up command system...');
       // Initialize command system
       await this.initializeCommandSystem();
+      console.log('✅ Command system ready\n');
 
+      console.log('📋 Step 6/7: Connecting to platforms...');
       // Initialize platforms
       await this.initializePlatforms();
+      console.log('✅ Platforms connected\n');
 
+      console.log('📋 Step 7/7: Starting reminder scheduler...');
       // Initialize reminder scheduler
       await this.initializeScheduler();
+      console.log('✅ Scheduler started\n');
 
       this.logger.info('Bot initialized successfully');
     } catch (error) {
+      console.error('\n❌ INITIALIZATION FAILED:', error);
       this.logger.error('Failed to initialize bot', error as Error);
       throw error;
     }
@@ -134,7 +151,7 @@ class MultiPlatformBot {
    * Initialize command system
    */
   private async initializeCommandSystem(): Promise<void> {
-    this.logger.info('Initializing command system...');
+    console.log('   → Setting up command parser...');
 
     // Initialize handlers
     this.adminHandler = new AdminCommandHandler(
@@ -154,6 +171,7 @@ class MultiPlatformBot {
     // Initialize router
     this.commandRouter = new CommandRouter(this.permissionService);
 
+    console.log('   → Registering admin commands...');
     // Register admin commands
     this.commandRouter.registerHandler('add_tugas', this.adminHandler.handleAddTugas.bind(this.adminHandler));
     this.commandRouter.registerHandler('edit_tugas', this.adminHandler.handleEditTugas.bind(this.adminHandler));
@@ -163,6 +181,7 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('set_piket', this.adminHandler.handleSetPiket.bind(this.adminHandler));
     this.commandRouter.registerHandler('add_pengumuman', this.adminHandler.handleAddPengumuman.bind(this.adminHandler));
 
+    console.log('   → Registering member commands...');
     // Register member commands
     this.commandRouter.registerHandler('tugas', this.memberHandler.handleTugas.bind(this.memberHandler));
     this.commandRouter.registerHandler('tugas_hari_ini', this.memberHandler.handleTugasHariIni.bind(this.memberHandler));
@@ -177,34 +196,46 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('bantuan', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('status', this.memberHandler.handleStatus.bind(this.memberHandler));
 
-    this.logger.info('Command system initialized');
+    console.log('   → Registered 19 commands total');
+    console.log('      • Admin commands: 7');
+    console.log('      • Member commands: 12');
   }
 
   /**
    * Initialize platforms (Discord & WhatsApp)
    */
   private async initializePlatforms(): Promise<void> {
-    this.logger.info('Initializing platforms...');
-
+    let platformCount = 0;
+    
     // Initialize Discord if enabled
     if (process.env.DISCORD_ENABLED === 'true' && process.env.DISCORD_BOT_TOKEN) {
+      console.log('   → Connecting to Discord...');
       await this.initializeDiscord();
+      platformCount++;
+    } else {
+      console.log('   → Discord: Disabled');
     }
 
     // Initialize WhatsApp if enabled
     if (process.env.WHATSAPP_ENABLED === 'true') {
+      console.log('   → Connecting to WhatsApp...');
       await this.initializeWhatsApp();
+      platformCount++;
+    } else {
+      console.log('   → WhatsApp: Disabled');
     }
 
-    this.logger.info('Platforms initialized');
+    if (platformCount === 0) {
+      throw new Error('No platform enabled! Enable at least one platform (Discord or WhatsApp) in .env');
+    }
+
+    console.log(`   → ${platformCount} platform(s) active`);
   }
 
   /**
    * Initialize Discord
    */
   private async initializeDiscord(): Promise<void> {
-    this.logger.info('Initializing Discord...');
-
     this.discordClient = new DiscordClient({
       token: process.env.DISCORD_BOT_TOKEN!,
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -221,6 +252,8 @@ class MultiPlatformBot {
       const parsed = this.commandParser.parse(message.content);
       if (!parsed) return;
 
+      console.log(`📨 Discord command: /${parsed.command} from ${message.author.tag}`);
+
       const response = await this.commandRouter.route(
         parsed,
         message.author.id,
@@ -230,20 +263,25 @@ class MultiPlatformBot {
       await message.reply(response.message);
     });
 
-    this.logger.info('Discord initialized');
+    console.log('      ✓ Discord bot online');
+    console.log(`      ✓ Server: ${process.env.DISCORD_GUILD_ID}`);
+    console.log(`      ✓ Channel: ${process.env.DISCORD_CHANNEL_ID}`);
   }
 
   /**
    * Initialize WhatsApp
    */
   private async initializeWhatsApp(): Promise<void> {
-    this.logger.info('Initializing WhatsApp...');
-
+    console.log('      → Initializing Baileys client...');
+    
     this.whatsappClient = new BaileysClient({
       authDir: './auth_info',
       printQRInTerminal: true
     });
 
+    console.log('      → Connecting to WhatsApp...');
+    console.log('      → Scan QR code with your phone if this is first time\n');
+    
     await this.whatsappClient.connect();
 
     const socket = this.whatsappClient.getSocket();
@@ -255,40 +293,57 @@ class MultiPlatformBot {
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
         if (!text) return;
 
+        // Only process commands (starting with /)
+        if (!text.startsWith('/')) return;
+
         const parsed = this.commandParser.parse(text);
         if (!parsed) return;
 
         const userId = message.key.remoteJid?.split('@')[0] || '';
+        const groupId = message.key.remoteJid || '';
+        
+        console.log(`📨 WhatsApp command: /${parsed.command} from ${userId} in ${groupId}`);
+
         const response = await this.commandRouter.route(
           parsed,
           userId,
           'whatsapp'
         );
 
-        const groupId = process.env.WHATSAPP_GROUP_ID || message.key.remoteJid!;
+        const targetGroupId = process.env.WHATSAPP_GROUP_ID || groupId;
         if (this.whatsappAdapter) {
-          await this.whatsappAdapter.sendMessage(groupId, response.message);
+          await this.whatsappAdapter.sendMessage(targetGroupId, response.message);
         }
       });
+      
+      console.log('      ✓ WhatsApp connected');
+      if (process.env.WHATSAPP_GROUP_ID) {
+        console.log(`      ✓ Target group: ${process.env.WHATSAPP_GROUP_ID}`);
+      } else {
+        console.log('      ⚠ WHATSAPP_GROUP_ID not set - will reply to any group');
+      }
+    } else {
+      throw new Error('Failed to get WhatsApp socket');
     }
-
-    this.logger.info('WhatsApp initialized');
   }
 
   /**
    * Initialize reminder scheduler
    */
   private async initializeScheduler(): Promise<void> {
-    this.logger.info('Initializing reminder scheduler...');
-
     // Use WhatsApp adapter if available, otherwise Discord
     const adapter = this.whatsappAdapter || this.discordAdapter;
     if (!adapter) {
-      this.logger.warn('No platform adapter available for scheduler');
+      console.log('   ⚠ No platform adapter available - scheduler disabled');
       return;
     }
 
     const groupId = process.env.WHATSAPP_GROUP_ID || process.env.DISCORD_CHANNEL_ID || '';
+    
+    if (!groupId) {
+      console.log('   ⚠ No group/channel ID configured - scheduler disabled');
+      return;
+    }
 
     this.reminderScheduler = new ReminderScheduler(
       this.taskService,
@@ -308,7 +363,9 @@ class MultiPlatformBot {
 
     this.reminderScheduler.initialize();
 
-    this.logger.info('Reminder scheduler initialized');
+    console.log('   → Daily recap: ' + (process.env.DAILY_REMINDER_TIME || '17:00'));
+    console.log('   → Weekly recap: Friday ' + (process.env.WEEKLY_REMINDER_TIME || '20:00'));
+    console.log('   → Timezone: ' + (process.env.TIMEZONE || 'Asia/Jakarta'));
   }
 
   /**
@@ -316,6 +373,28 @@ class MultiPlatformBot {
    */
   async start(): Promise<void> {
     await this.initialize();
+    
+    console.log('\n╔════════════════════════════════════════════════════════╗');
+    console.log('║   ✅ BOT IS RUNNING!                                  ║');
+    console.log('╚════════════════════════════════════════════════════════╝\n');
+    
+    console.log('📝 Available Commands:');
+    console.log('   Member Commands:');
+    console.log('   • /help atau /bantuan - Daftar command');
+    console.log('   • /status - Status bot');
+    console.log('   • /tugas - Semua tugas aktif');
+    console.log('   • /tugas_hari_ini - Tugas hari ini');
+    console.log('   • /jadwal - Jadwal hari ini');
+    console.log('   • /piket - Piket hari ini');
+    console.log('');
+    console.log('   Admin Commands:');
+    console.log('   • /add_tugas - Tambah tugas');
+    console.log('   • /add_jadwal - Tambah jadwal');
+    console.log('   • /set_piket - Set piket');
+    console.log('   • /add_pengumuman - Tambah pengumuman');
+    console.log('');
+    console.log('💡 Tip: Kirim /help di chat untuk melihat semua command\n');
+    
     this.logger.info('🤖 Multi-Platform Bot is running!');
   }
 

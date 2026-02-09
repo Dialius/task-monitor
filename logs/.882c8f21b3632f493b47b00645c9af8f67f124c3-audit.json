@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\task-monitor\\logs\\.882c8f21b3632f493b47b00645c9af8f67f124c3-audit.json",
+    "files": [
+        {
+            "date": 1770637983497,
+            "name": "D:\\task-monitor\\logs\\bot-2026-02-09.log",
+            "hash": "9fa858884104bd4ccd4f46a9115c6fd287b27aa486b451070d30bddd9cde54a1"
+        }
+    ],
+    "hashType": "sha256"
+}
