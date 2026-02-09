@@ -73,7 +73,7 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ Tugas berhasil ditambahkan!\n\n📝 ${task.judul}\n📚 ${task.mata_pelajaran}\n📅 Deadline: ${new Date(task.deadline).toLocaleDateString('id-ID')}\n${this.getPriorityEmoji(task.prioritas)} Prioritas: ${task.prioritas}`
+        message: `✅ Tugas berhasil ditambahkan!\n\n📝 ${task.judul}\n📚 ${task.mata_pelajaran}\n📅 Deadline: ${new Date(task.deadline).toLocaleDateString('id-ID')}\n${this.getPriorityEmoji(task.prioritas)} Prioritas: ${task.prioritas}\n🆔 ID: \`${task._id}\`\n\n💡 Gunakan ID ini untuk edit atau hapus tugas`
       };
     } catch (error) {
       logger.error('Failed to add task', error as Error);
@@ -243,7 +243,7 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ Jadwal berhasil ditambahkan!\n\n📖 ${schedule.mata_pelajaran}\n📅 ${schedule.hari}\n⏰ ${schedule.jam_mulai} - ${schedule.jam_selesai}\n🏫 ${schedule.ruangan}\n👨‍🏫 ${schedule.nama_guru}`
+        message: `✅ Jadwal berhasil ditambahkan!\n\n📖 ${schedule.mata_pelajaran}\n📅 ${schedule.hari}\n⏰ ${schedule.jam_mulai} - ${schedule.jam_selesai}\n🏫 ${schedule.ruangan}\n👨‍🏫 ${schedule.nama_guru}\n🆔 ID: \`${schedule._id}\`\n\n💡 Gunakan ID ini untuk edit atau hapus jadwal`
       };
     } catch (error) {
       logger.error('Failed to add schedule', error as Error);
@@ -340,7 +340,7 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ Pengumuman berhasil ditambahkan!\n\n📢 ${announcement.judul}\n📅 ${new Date(announcement.tanggal).toLocaleDateString('id-ID')}\n📝 ${announcement.keterangan}`
+        message: `✅ Pengumuman berhasil ditambahkan!\n\n📢 ${announcement.judul}\n📅 ${new Date(announcement.tanggal).toLocaleDateString('id-ID')}\n📝 ${announcement.keterangan}\n🆔 ID: \`${announcement._id}\`\n\n💡 Gunakan ID ini untuk hapus pengumuman`
       };
     } catch (error) {
       logger.error('Failed to add announcement', error as Error);

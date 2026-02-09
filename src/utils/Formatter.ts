@@ -24,7 +24,8 @@ export class Formatter {
       result += `   📚 ${task.mata_pelajaran}\n`;
       result += `   📅 Deadline: ${deadline}\n`;
       result += `   ${priorityEmoji} Prioritas: ${task.prioritas}\n`;
-      result += `   📄 ${task.deskripsi}\n\n`;
+      result += `   📄 ${task.deskripsi}\n`;
+      result += `   🆔 ID: \`${task._id}\`\n\n`;
     });
 
     return result;
@@ -45,7 +46,8 @@ export class Formatter {
       result += `${index + 1}. 📖 *${schedule.mata_pelajaran}*\n`;
       result += `   ⏰ ${schedule.jam_mulai} - ${schedule.jam_selesai}\n`;
       result += `   🏫 Ruangan: ${schedule.ruangan}\n`;
-      result += `   👨‍🏫 Guru: ${schedule.nama_guru}\n\n`;
+      result += `   👨‍🏫 Guru: ${schedule.nama_guru}\n`;
+      result += `   🆔 ID: \`${schedule._id}\`\n\n`;
     });
 
     return result;
@@ -80,6 +82,7 @@ export class Formatter {
     let result = `${typeEmoji} *${announcement.judul}*\n`;
     result += `📅 ${tanggal}\n`;
     result += `📝 ${announcement.keterangan}\n`;
+    result += `🆔 ID: \`${announcement._id}\`\n`;
     
     return result;
   }
