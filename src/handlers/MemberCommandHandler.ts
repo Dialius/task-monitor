@@ -38,7 +38,9 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const fields: any[] = [];
+        
+        tasks.forEach((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -46,11 +48,21 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
+          // Add task field
+          fields.push({
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between tasks (except after last task)
+          if (index < tasks.length - 1) {
+            fields.push({
+              name: '\u200B', // Zero-width space
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -108,7 +120,9 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const fields: any[] = [];
+        
+        tasks.forEach((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -116,11 +130,21 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
+          // Add task field
+          fields.push({
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between tasks (except after last task)
+          if (index < tasks.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -169,7 +193,9 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = tasks.map((task, index) => {
+        const fields: any[] = [];
+        
+        tasks.forEach((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -177,11 +203,21 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return {
+          // Add task field
+          fields.push({
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between tasks (except after last task)
+          if (index < tasks.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -230,12 +266,24 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
+        const fields: any[] = [];
+        
+        schedules.forEach((schedule, index) => {
+          // Add schedule field
+          fields.push({
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between schedules (except after last)
+          if (index < schedules.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -284,12 +332,24 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
+        const fields: any[] = [];
+        
+        schedules.forEach((schedule, index) => {
+          // Add schedule field
+          fields.push({
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between schedules (except after last)
+          if (index < schedules.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -338,12 +398,24 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = schedules.map((schedule, index) => {
-          return {
+        const fields: any[] = [];
+        
+        schedules.forEach((schedule, index) => {
+          // Add schedule field
+          fields.push({
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
             inline: false
-          };
+          });
+          
+          // Add spacing field between schedules (except after last)
+          if (index < schedules.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
@@ -442,13 +514,26 @@ export class MemberCommandHandler {
 
       // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const fields = pikets.map(piket => {
+        const fields: any[] = [];
+        
+        pikets.forEach((piket, index) => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-          return {
+          
+          // Add piket field
+          fields.push({
             name: piket.hari,
             value: studentList || 'Tidak ada petugas',
             inline: false
-          };
+          });
+          
+          // Add spacing field between days (except after last)
+          if (index < pikets.length - 1) {
+            fields.push({
+              name: '\u200B',
+              value: '\u200B',
+              inline: false
+            });
+          }
         });
 
         return {
