@@ -71,9 +71,15 @@ export class AdminCommandHandler {
         created_by: userId
       });
 
+      const deadlineFormatted = new Date(task.deadline).toLocaleDateString('id-ID', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      });
+
       return {
         success: true,
-        message: `✅ Tugas berhasil ditambahkan!\n\n📝 ${task.judul}\n📚 ${task.mata_pelajaran}\n📅 Deadline: ${new Date(task.deadline).toLocaleDateString('id-ID')}\n${this.getPriorityEmoji(task.prioritas)} Prioritas: ${task.prioritas}\n🆔 ID: \`${task._id}\`\n\n💡 Gunakan ID ini untuk edit atau hapus tugas`
+        message: `✅ *Tugas ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(task.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`\n\n💡 Gunakan ID untuk edit/hapus`
       };
     } catch (error) {
       logger.error('Failed to add task', error as Error);
@@ -243,7 +249,7 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ Jadwal berhasil ditambahkan!\n\n📖 ${schedule.mata_pelajaran}\n📅 ${schedule.hari}\n⏰ ${schedule.jam_mulai} - ${schedule.jam_selesai}\n🏫 ${schedule.ruangan}\n👨‍🏫 ${schedule.nama_guru}\n🆔 ID: \`${schedule._id}\`\n\n💡 Gunakan ID ini untuk edit atau hapus jadwal`
+        message: `✅ *Jadwal ditambahkan!*\n\n📖 ${schedule.mata_pelajaran}\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.hari} • ${schedule.ruangan}\n🆔 \`${schedule._id}\`\n\n💡 Gunakan ID untuk edit/hapus`
       };
     } catch (error) {
       logger.error('Failed to add schedule', error as Error);
@@ -338,9 +344,15 @@ export class AdminCommandHandler {
         keterangan
       });
 
+      const tanggalFormatted = new Date(announcement.tanggal).toLocaleDateString('id-ID', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      });
+
       return {
         success: true,
-        message: `✅ Pengumuman berhasil ditambahkan!\n\n📢 ${announcement.judul}\n📅 ${new Date(announcement.tanggal).toLocaleDateString('id-ID')}\n📝 ${announcement.keterangan}\n🆔 ID: \`${announcement._id}\`\n\n💡 Gunakan ID ini untuk hapus pengumuman`
+        message: `✅ *Pengumuman ditambahkan!*\n\n📢 ${announcement.judul}\n📅 ${tanggalFormatted} • ${announcement.keterangan}\n🆔 \`${announcement._id}\`\n\n💡 Gunakan ID untuk hapus`
       };
     } catch (error) {
       logger.error('Failed to add announcement', error as Error);

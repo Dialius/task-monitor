@@ -18,14 +18,16 @@ export class Formatter {
     tasks.forEach((task, index) => {
       const emoji = this.getTaskEmoji(task.tipe);
       const priorityEmoji = this.getPriorityEmoji(task.prioritas);
-      const deadline = this.formatDate(task.deadline);
+      const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      });
       
       result += `${index + 1}. ${emoji} *${task.judul}*\n`;
-      result += `   📚 ${task.mata_pelajaran}\n`;
-      result += `   📅 Deadline: ${deadline}\n`;
-      result += `   ${priorityEmoji} Prioritas: ${task.prioritas}\n`;
-      result += `   📄 ${task.deskripsi}\n`;
-      result += `   🆔 ID: \`${task._id}\`\n\n`;
+      result += `   ${priorityEmoji} ${task.mata_pelajaran} • ${deadline}\n`;
+      result += `   ${task.deskripsi}\n`;
+      result += `   🆔 \`${task._id}\`\n\n`;
     });
 
     return result;
@@ -44,10 +46,8 @@ export class Formatter {
     
     schedules.forEach((schedule, index) => {
       result += `${index + 1}. 📖 *${schedule.mata_pelajaran}*\n`;
-      result += `   ⏰ ${schedule.jam_mulai} - ${schedule.jam_selesai}\n`;
-      result += `   🏫 Ruangan: ${schedule.ruangan}\n`;
-      result += `   👨‍🏫 Guru: ${schedule.nama_guru}\n`;
-      result += `   🆔 ID: \`${schedule._id}\`\n\n`;
+      result += `   ⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n`;
+      result += `   🆔 \`${schedule._id}\`\n\n`;
     });
 
     return result;
@@ -77,12 +77,15 @@ export class Formatter {
    */
   static formatAnnouncement(announcement: any): string {
     const typeEmoji = this.getAnnouncementEmoji(announcement.tipe);
-    const tanggal = this.formatDate(announcement.tanggal);
+    const tanggal = new Date(announcement.tanggal).toLocaleDateString('id-ID', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'short' 
+    });
     
     let result = `${typeEmoji} *${announcement.judul}*\n`;
-    result += `📅 ${tanggal}\n`;
-    result += `📝 ${announcement.keterangan}\n`;
-    result += `🆔 ID: \`${announcement._id}\`\n`;
+    result += `📅 ${tanggal} • ${announcement.keterangan}\n`;
+    result += `🆔 \`${announcement._id}\`\n`;
     
     return result;
   }
