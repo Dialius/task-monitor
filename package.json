@@ -9,6 +9,7 @@
     "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:ai": "node scripts/test-ai.js",
     "deploy-commands": "node scripts/deploy-commands.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
