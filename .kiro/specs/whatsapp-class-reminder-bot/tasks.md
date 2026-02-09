@@ -292,14 +292,14 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Validates: Requirements 5.2, 5.6**
 
 - [ ] 8. AI service integration
-  - [ ] 8.1 Implement AIService class with Groq integration
+  - [x] 8.1 Implement AIService class with Groq integration
     - Set up Groq API client with API key from env
     - Create rewriteText function with 10-second timeout
     - Create formatRecap function for daily/weekly recaps
     - Add error handling and logging
     - _Requirements: 8.1, 8.4, 8.5, 8.6, 8.7_
   
-  - [ ] 8.2 Add Gemini fallback mechanism
+  - [x] 8.2 Add Gemini fallback mechanism
     - Set up Gemini API client with API key from env
     - Implement fallback logic in rewriteText
     - Implement fallback logic in formatRecap
@@ -348,7 +348,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Validates: Requirements 9.1, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8**
 
 - [ ] 10. Command parsing and routing
-  - [ ] 10.1 Implement CommandParser class
+  - [x] 10.1 Implement CommandParser class
     - Create parse function to extract command and args
     - Implement "/" prefix detection
     - Implement "|" delimiter splitting
@@ -363,7 +363,7 @@ The bot supports both Discord (using Discord.js) and WhatsApp (using Baileys) th
     - **Property 63: Command argument whitespace normalization**
     - **Validates: Requirements 11.1, 11.2, 11.3, 11.8**
   
-  - [ ] 10.3 Implement CommandRouter class
+  - [x] 10.3 Implement CommandRouter class
     - Create route function with permission checking
     - Implement handler delegation based on role
     - Add error handling for invalid commands
