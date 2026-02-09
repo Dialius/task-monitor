@@ -36,9 +36,9 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const taskLines = tasks.map((task, index) => {
+        const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -46,7 +46,11 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -54,8 +58,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📝 Daftar Tugas',
-            description: taskLines.join('\n\n'), // Gap between tasks only
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -102,9 +106,9 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const taskLines = tasks.map((task, index) => {
+        const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -112,7 +116,11 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -120,8 +128,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Tugas Hari Ini',
-            description: taskLines.join('\n\n'),
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -159,9 +167,9 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const taskLines = tasks.map((task, index) => {
+        const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
             weekday: 'short', 
@@ -169,7 +177,11 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          return `**${index + 1}. ${emoji} ${task.judul}**\n${task.mata_pelajaran} • ${deadline}\n${task.deskripsi}\n\`${task._id}\``;
+          return {
+            name: `${index + 1}. ${emoji} ${task.judul}`,
+            value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -177,8 +189,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📊 Tugas Minggu Ini',
-            description: taskLines.join('\n\n'),
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -216,10 +228,14 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. ${schedule.mata_pelajaran}`,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -227,8 +243,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Hari Ini',
-            description: scheduleLines.join('\n\n'),
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -266,10 +282,14 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. ${schedule.mata_pelajaran}`,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -277,8 +297,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Besok',
-            description: scheduleLines.join('\n\n'),
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -316,10 +336,14 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const scheduleLines = schedules.map((schedule, index) => {
-          return `**${index + 1}. ${schedule.mata_pelajaran}**\n${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.ruangan} • ${schedule.nama_guru}\n\`${schedule._id}\``;
+        const fields = schedules.map((schedule, index) => {
+          return {
+            name: `${index + 1}. ${schedule.mata_pelajaran}`,
+            value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\``,
+            inline: false
+          };
         });
 
         return {
@@ -327,8 +351,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📊 Jadwal Minggu Ini',
-            description: scheduleLines.join('\n\n'),
-            color: 0x3498db
+            color: 0x3498db,
+            fields
           },
           ephemeral: true
         };
@@ -376,7 +400,8 @@ export class MemberCommandHandler {
           embedData: {
             title: `🧹 Piket ${piket.hari}`,
             description: studentList || 'Tidak ada petugas',
-            color: 0x2ecc71
+            color: 0x2ecc71,
+            fields: []
           },
           ephemeral: true
         };
@@ -415,11 +440,15 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with description
+      // For Discord, return embed data with fields
       if (platform === 'discord') {
-        const piketLines = pikets.map(piket => {
+        const fields = pikets.map(piket => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-          return `**${piket.hari}**\n${studentList || 'Tidak ada petugas'}`;
+          return {
+            name: piket.hari,
+            value: studentList || 'Tidak ada petugas',
+            inline: false
+          };
         });
 
         return {
@@ -427,8 +456,8 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '🧹 Jadwal Piket Minggu Ini',
-            description: piketLines.join('\n\n'),
-            color: 0x2ecc71
+            color: 0x2ecc71,
+            fields
           },
           ephemeral: true
         };
