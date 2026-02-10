@@ -190,6 +190,68 @@ Menambahkan tugas baru.
 
 ---
 
+#### `/add_tugas_cepat` 🆕
+Menambahkan tugas dengan bahasa natural (tanpa format strict).
+
+**Format:**
+```
+/add_tugas_cepat <deskripsi natural>
+```
+
+**Contoh:**
+```
+/add_tugas_cepat Besok ada tugas matematika halaman 45-50 deadline jam 10
+/add_tugas_cepat Ujian fisika minggu depan, bawa kalkulator
+/add_tugas_cepat Tugas kelompok bahasa indonesia, bikin puisi, deadline 15 februari
+```
+
+**Flow:**
+1. Bot akan parse input dengan AI
+2. Bot menampilkan preview hasil parsing
+3. User konfirmasi dengan:
+   - `ya` - Simpan tugas
+   - `edit [field] [value]` - Edit field tertentu
+   - `batal` - Cancel
+
+**Contoh Konfirmasi:**
+```
+🤖 Saya deteksi informasi berikut:
+
+📝 Judul: Tugas Matematika
+📚 Mata Pelajaran: Matematika
+📄 Deskripsi: Halaman 45-50
+📅 Deadline: Selasa, 11 Februari 2026, 10:00
+👤 Tipe: Individu
+🟢 Prioritas: Normal
+
+Apakah sudah benar?
+• Ketik ya untuk simpan
+• Ketik edit [field] [value] untuk ubah
+• Ketik batal untuk cancel
+
+Contoh edit:
+• edit prioritas urgent
+• edit deadline 2026-02-15 10:00
+• edit tipe kelompok
+
+⏱️ Konfirmasi akan expired dalam 60 detik
+```
+
+**Edit Field:**
+```
+edit prioritas urgent
+```
+
+**Output:**
+```
+✅ prioritas berhasil diubah!
+
+🤖 Saya deteksi informasi berikut:
+[... preview updated ...]
+```
+
+---
+
 #### `/edit_tugas`
 Mengedit tugas yang sudah ada.
 

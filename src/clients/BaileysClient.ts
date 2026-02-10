@@ -41,6 +41,8 @@ export class BaileysClient {
   private maxReconnectAttempts: number = 5;
   private shouldReconnect: boolean = true;
   private messageHandlerRegistered: boolean = false;
+  private connectionReplacedCount: number = 0;
+  private maxConnectionReplacedCount: number = 3;
 
   constructor(config: BaileysConfig) {
     this.config = config;
@@ -131,7 +133,19 @@ export class BaileysClient {
       if (statusCode === DisconnectReason.loggedOut) {
         console.log('\n❌ WhatsApp logged out - please scan QR code again\n');
         logger.info('WhatsApp logged out, clearing session');
-        this.shouldReconnect = false;
+        
+        // Clear session files and reconnect with fresh QR
+        await this.clearSession();
+        
+        // Reset reconnect attempts and reconnect
+        this.reconnectAttempts = 0;
+        this.shouldReconnect = true;
+        
+        console.log('🔄 Reconnecting with fresh session...\n');
+        setTimeout(async () => {
+          await this.connect();
+        }, 2000);
+        return;
       } else if (statusCode === DisconnectReason.restartRequired) {
         console.log('\n🔄 WhatsApp restart required - restarting...\n');
         // Don't increment reconnect attempts for restart
@@ -148,6 +162,35 @@ export class BaileysClient {
       } else if (statusCode === DisconnectReason.timedOut) {
         console.log('\n⏱️  WhatsApp connection timed out\n');
         await this.handleReconnection();
+      } else if (statusCode === 440) {
+        // connectionReplaced - Another WhatsApp Web/Bot is using the same number
+        this.connectionReplacedCount++;
+        
+        console.log(`\n⚠️  Connection replaced (${this.connectionReplacedCount}/${this.maxConnectionReplacedCount})\n`);
+        console.log('💡 Possible causes:');
+        console.log('   • Another bot instance is running with the same number');
+        console.log('   • WhatsApp Web is open in another browser');
+        console.log('   • Multiple devices connected to the same account\n');
+        
+        if (this.connectionReplacedCount >= this.maxConnectionReplacedCount) {
+          console.log('❌ Too many connectionReplaced errors - stopping reconnection\n');
+          console.log('🔧 Solutions:');
+          console.log('   1. Close all other WhatsApp Web sessions');
+          console.log('   2. Stop any other bot instances using this number');
+          console.log('   3. Check WhatsApp > Linked Devices and remove unused devices');
+          console.log('   4. Restart bot after fixing the issue\n');
+          
+          this.shouldReconnect = false;
+          logger.error('Too many connectionReplaced errors, stopping reconnection');
+          return;
+        }
+        
+        // Wait longer before reconnecting (10 seconds)
+        console.log('🔄 Waiting 10 seconds before reconnecting...\n');
+        setTimeout(async () => {
+          await this.handleReconnection();
+        }, 10000);
+        return;
       } else if (statusCode === 405) {
         // Method Not Allowed - usually means client is outdated
         console.log('\n❌ WhatsApp client outdated (405) - updating...\n');
@@ -160,6 +203,7 @@ export class BaileysClient {
     } else if (connection === 'open') {
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this.connectionReplacedCount = 0; // Reset on successful connection
       this.shouldReconnect = true;
       console.log('\n✅ WhatsApp connected successfully!\n');
       logger.info('WhatsApp connection established');
@@ -362,6 +406,35 @@ export class BaileysClient {
     } catch (error) {
       logger.error('Failed to load WhatsApp session', error as Error);
       return false;
+    }
+  }
+
+  /**
+   * Clear session files (for logout/re-authentication)
+   */
+  async clearSession(): Promise<void> {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Check if auth directory exists
+      if (!fs.existsSync(this.config.authDir)) {
+        logger.info('Auth directory does not exist, nothing to clear');
+        return;
+      }
+
+      // Delete all files in auth directory
+      const files = fs.readdirSync(this.config.authDir);
+      for (const file of files) {
+        const filePath = path.join(this.config.authDir, file);
+        fs.unlinkSync(filePath);
+      }
+
+      logger.info('WhatsApp session cleared successfully');
+      console.log('✅ Session files cleared\n');
+    } catch (error) {
+      logger.error('Failed to clear WhatsApp session', error as Error);
+      console.log('⚠️  Failed to clear session files\n');
     }
   }
 }

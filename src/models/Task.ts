@@ -19,6 +19,20 @@ export interface ITask extends Document {
   created_by: string;
   created_at: Date;
   updated_at: Date;
+  
+  // Message tracking for auto-edit feature
+  sent_messages?: Array<{
+    platform: 'whatsapp' | 'discord';
+    message_id: string;
+    chat_id: string;
+    sent_at: Date;
+    last_edited?: Date;
+    edit_count: number;
+  }>;
+  
+  // Change tracking for Notion sync
+  last_synced_from_notion?: Date;
+  notion_last_edited?: Date;
 }
 
 const TaskSchema = new Schema<ITask>({
@@ -106,6 +120,41 @@ const TaskSchema = new Schema<ITask>({
   updated_at: {
     type: Date,
     default: Date.now
+  },
+  // Message tracking for auto-edit feature
+  sent_messages: [{
+    platform: {
+      type: String,
+      enum: ['whatsapp', 'discord'],
+      required: true
+    },
+    message_id: {
+      type: String,
+      required: true
+    },
+    chat_id: {
+      type: String,
+      required: true
+    },
+    sent_at: {
+      type: Date,
+      required: true,
+      default: Date.now
+    },
+    last_edited: {
+      type: Date
+    },
+    edit_count: {
+      type: Number,
+      default: 0
+    }
+  }],
+  // Change tracking for Notion sync
+  last_synced_from_notion: {
+    type: Date
+  },
+  notion_last_edited: {
+    type: Date
   }
 });
 

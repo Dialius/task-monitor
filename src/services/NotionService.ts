@@ -54,7 +54,19 @@ export class NotionService {
   }
 
   /**
-   * Sync all tasks from Notion to MongoDB
+   * Helper method to add timeout to promises
+   */
+  private withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => 
+        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  }
+
+  /**
+   * Sync all tasks from Notion to MongoDB with retry logic
    */
   async syncFromNotion(): Promise<{ synced: number; errors: number }> {
     if (!this.enabled) {
@@ -62,62 +74,89 @@ export class NotionService {
       return { synced: 0, errors: 0 };
     }
 
-    try {
-      logger.info('Starting Notion sync...');
+    const maxRetries = 3;
+    const baseDelay = 1000; // 1 second
 
-      // Query all tasks from Notion
-      const response: any = await (this.notion.databases as any).query({
-        database_id: this.databaseId,
-        filter: {
-          property: 'Status',
-          select: {
-            equals: 'Aktif'
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.info('Starting Notion sync...', { attempt, maxRetries });
+
+        // Query all tasks from Notion Database with 10 second timeout
+        // Type assertion needed as @notionhq/client v5.9.0 types are incomplete
+        const response: any = await this.withTimeout(
+          (this.notion.databases as any).query({
+            database_id: this.databaseId,
+            filter: {
+              property: 'Status',
+              select: {
+                equals: 'Aktif'
+              }
+            }
+          }),
+          10000 // 10 second timeout
+        );
+
+        let synced = 0;
+        let errors = 0;
+
+        for (const page of response.results) {
+          try {
+            const task = this.parseNotionPage(page as any);
+            
+            // Update or create in MongoDB
+            await Task.findOneAndUpdate(
+              { notion_id: task.id },
+              {
+                judul: task.judul,
+                mata_pelajaran: task.mata_pelajaran,
+                deskripsi: task.deskripsi,
+                deadline: task.deadline,
+                tipe: task.tipe,
+                prioritas: task.prioritas,
+                status: task.status,
+                link_pengumpulan: task.link_pengumpulan,
+                catatan: task.catatan,
+                created_by: task.created_by,
+                notion_id: task.id,
+                updated_at: new Date()
+              },
+              { upsert: true, new: true }
+            );
+
+            synced++;
+          } catch (error) {
+            logger.error('Failed to sync task from Notion', error as Error, {
+              pageId: (page as any).id
+            });
+            errors++;
           }
         }
-      });
 
-      let synced = 0;
-      let errors = 0;
-
-      for (const page of response.results) {
-        try {
-          const task = this.parseNotionPage(page as any);
-          
-          // Update or create in MongoDB
-          await Task.findOneAndUpdate(
-            { notion_id: task.id },
-            {
-              judul: task.judul,
-              mata_pelajaran: task.mata_pelajaran,
-              deskripsi: task.deskripsi,
-              deadline: task.deadline,
-              tipe: task.tipe,
-              prioritas: task.prioritas,
-              status: task.status,
-              link_pengumpulan: task.link_pengumpulan,
-              catatan: task.catatan,
-              created_by: task.created_by,
-              notion_id: task.id,
-              updated_at: new Date()
-            },
-            { upsert: true, new: true }
-          );
-
-          synced++;
-        } catch (error) {
-          logger.error('Failed to sync task from Notion', error as Error, {
-            pageId: (page as any).id
-          });
-          errors++;
+        logger.info('Notion sync completed', { synced, errors, total: response.results.length });
+        return { synced, errors };
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        
+        if (isLastAttempt) {
+          logger.error('Failed to sync from Notion after all retries', error as Error, { attempts: maxRetries });
+          throw error;
         }
-      }
 
-      logger.info('Notion sync completed', { synced, errors, total: response.results.length });
-      return { synced, errors };
-    } catch (error) {
-      logger.error('Failed to sync from Notion', error as Error);
-      throw error;
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        logger.warn('Notion sync failed, retrying...', { 
+          attempt, 
+          maxRetries, 
+          retryIn: `${delay}ms`,
+          error: (error as Error).message 
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
+
+    // This should never be reached due to throw in last attempt
+    return { synced: 0, errors: 0 };
   }
 
   /**
@@ -135,8 +174,11 @@ export class NotionService {
     const prioritas = this.mapPrioritas(properties.Prioritas?.select?.name);
     const status = this.mapStatus(properties.Status?.select?.name);
 
-    // Extract rich text
-    const deskripsi = properties.Deskripsi?.rich_text?.[0]?.plain_text || '';
+    // Extract rich text (support multi-line by joining all segments)
+    const deskripsi = properties.Deskripsi?.rich_text
+      ?.map((rt: any) => rt.plain_text)
+      .join('')
+      .trim() || '';
     const catatan = properties.Catatan?.rich_text?.[0]?.plain_text;
     const created_by = properties['Created By']?.rich_text?.[0]?.plain_text || 'notion';
 
@@ -421,8 +463,9 @@ export class NotionService {
     }
 
     try {
-      // Count tasks in Notion
-      const notionResponse: any = await (this.notion.databases as any).query({
+      // Count tasks in Notion Database
+      // Type assertion needed as @notionhq/client v5.9.0 types are incomplete
+      const notionResponse = await (this.notion.databases as any).query({
         database_id: this.databaseId,
         filter: {
           property: 'Status',

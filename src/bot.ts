@@ -17,6 +17,8 @@ import { AnnouncementService } from './services/AnnouncementService';
 import { AIService } from './services/AIService';
 import { NotionService } from './services/NotionService';
 import { ReminderScheduler } from './services/ReminderScheduler';
+import MessageEditService from './services/MessageEditService';
+import { ChangeDetectionService } from './services/ChangeDetectionService';
 import { AdminCommandHandler } from './handlers/AdminCommandHandler';
 import { MemberCommandHandler } from './handlers/MemberCommandHandler';
 import { DiscordClient } from './clients/DiscordClient';
@@ -44,6 +46,10 @@ class MultiPlatformBot {
   private aiService!: AIService;
   private notionService!: NotionService;
   
+  // New services for message tracking and editing
+  private messageEditService: any; // Will be imported
+  private changeDetectionService: any; // Will be imported
+  
   // Handlers
   private adminHandler!: AdminCommandHandler;
   private memberHandler!: MemberCommandHandler;
@@ -68,7 +74,7 @@ class MultiPlatformBot {
       console.log('║   🤖 MULTI-PLATFORM CLASS REMINDER BOT                ║');
       console.log('╚════════════════════════════════════════════════════════╝\n');
       
-      console.log('📋 Step 1/7: Initializing logger...');
+      console.log('📋 Step 1/8: Initializing logger...');
       // Initialize logger
       const config = getConfigManager();
       initializeLogger({
@@ -78,35 +84,40 @@ class MultiPlatformBot {
       });
       console.log('✅ Logger initialized\n');
 
-      console.log('📋 Step 2/7: Connecting to database...');
+      console.log('📋 Step 2/8: Connecting to database...');
       // Connect to database
       await connectDatabase();
       console.log('✅ Database connected\n');
 
-      console.log('📋 Step 3/7: Loading configuration...');
+      console.log('📋 Step 3/8: Loading configuration...');
       // Initialize configuration from database
       await initializeConfig();
       console.log('✅ Configuration loaded\n');
 
-      console.log('📋 Step 4/7: Initializing services...');
+      console.log('📋 Step 4/8: Initializing services...');
       // Initialize services
       await this.initializeServices();
       console.log('✅ Services initialized\n');
 
-      console.log('📋 Step 5/7: Setting up command system...');
+      console.log('📋 Step 5/8: Setting up command system...');
       // Initialize command system
       await this.initializeCommandSystem();
       console.log('✅ Command system ready\n');
 
-      console.log('📋 Step 6/7: Connecting to platforms...');
+      console.log('📋 Step 6/8: Connecting to platforms...');
       // Initialize platforms
       await this.initializePlatforms();
       console.log('✅ Platforms connected\n');
 
-      console.log('📋 Step 7/7: Starting reminder scheduler...');
+      console.log('📋 Step 7/8: Starting reminder scheduler...');
       // Initialize reminder scheduler
       await this.initializeScheduler();
       console.log('✅ Scheduler started\n');
+
+      console.log('📋 Step 8/8: Initializing message edit & change detection...');
+      // Initialize message edit service and change detection
+      await this.initializeMessageEditServices();
+      console.log('✅ Message edit services started\n');
 
       this.logger.info('Bot initialized successfully');
     } catch (error) {
@@ -171,7 +182,8 @@ class MultiPlatformBot {
     this.memberHandler = new MemberCommandHandler(
       this.taskService,
       this.scheduleService,
-      this.piketService
+      this.piketService,
+      this.notionService
     );
 
     // Initialize router
@@ -180,6 +192,7 @@ class MultiPlatformBot {
     console.log('   → Registering admin commands...');
     // Register admin commands
     this.commandRouter.registerHandler('add_tugas', this.adminHandler.handleAddTugas.bind(this.adminHandler));
+    this.commandRouter.registerHandler('add_tugas_cepat', this.adminHandler.handleAddTugasCepat.bind(this.adminHandler));
     this.commandRouter.registerHandler('edit_tugas', this.adminHandler.handleEditTugas.bind(this.adminHandler));
     this.commandRouter.registerHandler('hapus_tugas', this.adminHandler.handleHapusTugas.bind(this.adminHandler));
     this.commandRouter.registerHandler('tandai_selesai', this.adminHandler.handleTandaiSelesai.bind(this.adminHandler));
@@ -210,8 +223,8 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('bantuan', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('status', this.memberHandler.handleStatus.bind(this.memberHandler));
 
-    console.log('   → Registered 27 commands total');
-    console.log('      • Admin commands: 15');
+    console.log('   → Registered 28 commands total');
+    console.log('      • Admin commands: 16');
     console.log('      • Member commands: 12');
   }
 
@@ -391,7 +404,12 @@ class MultiPlatformBot {
     console.log('      → Connecting to WhatsApp...');
     console.log('      → Scan QR code with your phone if this is first time\n');
     
-    await this.whatsappClient.connect();
+    // Start connection (don't await - it will connect in background)
+    this.whatsappClient.connect();
+    
+    // Wait for connection to be ready
+    console.log('      → Waiting for WhatsApp connection...\n');
+    await this.waitForWhatsAppReady();
 
     const socket = this.whatsappClient.getSocket();
     if (socket) {
@@ -399,6 +417,11 @@ class MultiPlatformBot {
 
       // Register message handler for commands
       this.whatsappClient.onMessage(async (message) => {
+        // Skip messages from bot itself to prevent loops
+        if (message.key.fromMe) {
+          return;
+        }
+
         // Extract text from message
         const text = message.message?.conversation || 
                     message.message?.extendedTextMessage?.text ||
@@ -406,13 +429,42 @@ class MultiPlatformBot {
         
         if (!text) return;
 
-        // Parse command
-        const parsed = this.commandParser.parse(text);
-        if (!parsed) return;
-
         // Get sender ID (use participant for groups/channels, otherwise remoteJid)
         const senderId = message.key.participant || message.key.remoteJid || '';
         const chatId = message.key.remoteJid || '';
+
+        // Parse command
+        const parsed = this.commandParser.parse(text);
+        
+        // If not a command, check if user has pending confirmation
+        if (!parsed) {
+          // Check if this is a confirmation response (ya/edit/batal)
+          const ConfirmationService = (await import('./services/ConfirmationService')).default;
+          
+          if (ConfirmationService.hasPendingConfirmation(senderId)) {
+            // Treat as confirmation response to add_tugas_cepat
+            console.log(`📨 WhatsApp confirmation response: "${text}" from ${senderId}`);
+            
+            const response = await this.commandRouter.route(
+              {
+                command: 'add_tugas_cepat',
+                args: [text],
+                rawMessage: text
+              },
+              senderId,
+              'whatsapp'
+            );
+
+            // Send response
+            if (this.whatsappAdapter) {
+              await this.whatsappAdapter.sendMessage(
+                chatId,
+                response.message
+              );
+            }
+          }
+          return;
+        }
 
         console.log(`📨 WhatsApp command: /${parsed.command} from ${senderId}`);
 
@@ -444,6 +496,29 @@ class MultiPlatformBot {
     } else {
       throw new Error('Failed to get WhatsApp socket');
     }
+  }
+
+  /**
+   * Wait for WhatsApp to be ready
+   */
+  private async waitForWhatsAppReady(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const maxWait = 120000; // 2 minutes
+      const checkInterval = 500; // Check every 500ms
+      let elapsed = 0;
+
+      const interval = setInterval(() => {
+        if (this.whatsappClient?.isReady()) {
+          clearInterval(interval);
+          console.log('      ✓ WhatsApp ready!\n');
+          resolve();
+        } else if (elapsed >= maxWait) {
+          clearInterval(interval);
+          reject(new Error('WhatsApp connection timeout after 2 minutes'));
+        }
+        elapsed += checkInterval;
+      }, checkInterval);
+    });
   }
 
   /**
@@ -487,6 +562,33 @@ class MultiPlatformBot {
     console.log('   → Weekly recap (Fri): 16:00 - Tugas minggu depan');
     console.log('   → Monday recap (Sun): 16:00 - Tugas hari Senin');
     console.log('   → Timezone: ' + (process.env.TIMEZONE || 'Asia/Jakarta'));
+  }
+
+  /**
+   * Initialize message edit services and change detection
+   */
+  private async initializeMessageEditServices(): Promise<void> {
+    try {
+      // Get WhatsApp socket and Discord client
+      const whatsappSocket = this.whatsappClient?.getSocket();
+      const discordClient = this.discordClient?.getClient();
+
+      // Initialize MessageEditService with clients
+      this.messageEditService = MessageEditService;
+      this.messageEditService.initialize(whatsappSocket, discordClient);
+
+      console.log('   → Message edit service initialized');
+
+      // Initialize ChangeDetectionService with NotionService
+      this.changeDetectionService = new ChangeDetectionService(this.notionService);
+      this.changeDetectionService.start();
+
+      console.log('   → Change detection cron started (runs every 1 hour)');
+      console.log('   → Auto-edit messages when tasks are updated in Notion');
+    } catch (error) {
+      this.logger.error('Failed to initialize message edit services', error as Error);
+      console.log('   ⚠ Message edit services disabled due to error');
+    }
   }
 
   /**
@@ -537,6 +639,10 @@ class MultiPlatformBot {
 
     if (this.reminderScheduler) {
       this.reminderScheduler.stop();
+    }
+
+    if (this.changeDetectionService) {
+      this.changeDetectionService.stop();
     }
 
     if (this.discordClient) {

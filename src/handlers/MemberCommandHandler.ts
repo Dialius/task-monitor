@@ -8,7 +8,9 @@ import { Platform, UserRole } from '../services/PermissionService';
 import { TaskService } from '../services/TaskService';
 import { ScheduleService } from '../services/ScheduleService';
 import { PiketService } from '../services/PiketService';
+import { NotionService } from '../services/NotionService';
 import { Formatter } from '../utils/Formatter';
+import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from '../utils/TextFormatter';
 import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
@@ -17,7 +19,8 @@ export class MemberCommandHandler {
   constructor(
     private taskService: TaskService,
     private scheduleService: ScheduleService,
-    private piketService: PiketService
+    private piketService: PiketService,
+    private notionService: NotionService
   ) {}
 
   /**
@@ -26,12 +29,25 @@ export class MemberCommandHandler {
    */
   async handleTugas(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
+      // Auto-sync from Notion before querying
+      let syncStatus = '';
+      if (this.notionService.isEnabled()) {
+        logger.info('Auto-syncing from Notion before /tugas command');
+        try {
+          const result = await this.notionService.syncFromNotion();
+          syncStatus = `\n\n🔄 Synced from Notion: ${result.synced} tasks`;
+        } catch (syncError) {
+          logger.warn('Notion sync failed, using cached data from MongoDB', syncError as Error);
+          syncStatus = '\n\n⚠️ Using cached data (Notion sync failed)';
+        }
+      }
+
       const tasks = await this.taskService.getTasks();
       
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas aktif saat ini.',
+          message: `📝 Tidak ada tugas aktif saat ini.${syncStatus}`,
           ephemeral: true
         };
       }
@@ -46,7 +62,6 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          // Add single newline at end for spacing between tasks (except last)
           const spacing = index < tasks.length - 1 ? '\n' : '';
           
           return {
@@ -58,7 +73,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: '',
+          message: syncStatus,
           embedData: {
             title: '📝 Daftar Tugas',
             color: 0x3498db,
@@ -68,11 +83,11 @@ export class MemberCommandHandler {
         };
       }
 
-      // For WhatsApp, return plain text
-      const message = Formatter.formatTaskList(tasks);
+      // For WhatsApp, use reminder format
+      const message = this.formatTasksLikeReminder(tasks, 'Semua Tugas Aktif');
       return {
         success: true,
-        message
+        message: message + syncStatus
       };
     } catch (error) {
       logger.error('Failed to get tasks', error as Error);
@@ -99,12 +114,25 @@ export class MemberCommandHandler {
    */
   async handleTugasHariIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
+      // Auto-sync from Notion before querying
+      let syncStatus = '';
+      if (this.notionService.isEnabled()) {
+        logger.info('Auto-syncing from Notion before /tugas_hari_ini command');
+        try {
+          const result = await this.notionService.syncFromNotion();
+          syncStatus = `\n\n🔄 Synced from Notion: ${result.synced} tasks`;
+        } catch (syncError) {
+          logger.warn('Notion sync failed, using cached data from MongoDB', syncError as Error);
+          syncStatus = '\n\n⚠️ Using cached data (Notion sync failed)';
+        }
+      }
+
       const tasks = await this.taskService.getTasksForToday();
       
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas untuk hari ini.',
+          message: `📝 Tidak ada tugas untuk hari ini.${syncStatus}`,
           ephemeral: true
         };
       }
@@ -119,7 +147,6 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          // Add single newline at end for spacing between tasks (except last)
           const spacing = index < tasks.length - 1 ? '\n' : '';
           
           return {
@@ -131,7 +158,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: '',
+          message: syncStatus,
           embedData: {
             title: '📅 Tugas Hari Ini',
             color: 0x3498db,
@@ -141,11 +168,18 @@ export class MemberCommandHandler {
         };
       }
 
-      // For WhatsApp, return plain text
-      const message = Formatter.formatTaskList(tasks);
+      // For WhatsApp, use reminder format
+      const today = new Date();
+      const dayName = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][today.getDay()];
+      const dateNum = today.getDate();
+      const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
+      const year = today.getFullYear();
+      const fullDate = `${dayName}, ${dateNum} ${monthName} ${year}`;
+      
+      const message = this.formatTasksLikeReminder(tasks, `Hari Ini | ${fullDate}`);
       return {
         success: true,
-        message: `📅 *Tugas Hari Ini*\n\n${message}`
+        message: message + syncStatus
       };
     } catch (error) {
       logger.error('Failed to get today tasks', error as Error);
@@ -163,12 +197,25 @@ export class MemberCommandHandler {
    */
   async handleTugasMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
+      // Auto-sync from Notion before querying
+      let syncStatus = '';
+      if (this.notionService.isEnabled()) {
+        logger.info('Auto-syncing from Notion before /tugas_minggu_ini command');
+        try {
+          const result = await this.notionService.syncFromNotion();
+          syncStatus = `\n\n🔄 Synced from Notion: ${result.synced} tasks`;
+        } catch (syncError) {
+          logger.warn('Notion sync failed, using cached data from MongoDB', syncError as Error);
+          syncStatus = '\n\n⚠️ Using cached data (Notion sync failed)';
+        }
+      }
+
       const tasks = await this.taskService.getTasksForWeek();
       
       if (tasks.length === 0) {
         return {
           success: true,
-          message: '📝 Tidak ada tugas untuk minggu ini.',
+          message: `📝 Tidak ada tugas untuk minggu ini.${syncStatus}`,
           ephemeral: true
         };
       }
@@ -183,7 +230,6 @@ export class MemberCommandHandler {
             month: 'short' 
           });
           
-          // Add single newline at end for spacing between tasks (except last)
           const spacing = index < tasks.length - 1 ? '\n' : '';
           
           return {
@@ -195,7 +241,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: '',
+          message: syncStatus,
           embedData: {
             title: '📊 Tugas Minggu Ini',
             color: 0x3498db,
@@ -205,11 +251,16 @@ export class MemberCommandHandler {
         };
       }
 
-      // For WhatsApp, return plain text
-      const message = Formatter.formatTaskList(tasks);
+      // For WhatsApp, use reminder format
+      const today = new Date();
+      const weekNumber = Math.ceil((today.getDate() + new Date(today.getFullYear(), today.getMonth(), 1).getDay()) / 7);
+      const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
+      const year = today.getFullYear();
+      
+      const message = this.formatTasksLikeReminder(tasks, `Minggu ke-${weekNumber} | ${monthName} ${year}`);
       return {
         success: true,
-        message: `📊 *Tugas Minggu Ini*\n\n${message}`
+        message: message + syncStatus
       };
     } catch (error) {
       logger.error('Failed to get week tasks', error as Error);
@@ -565,11 +616,28 @@ export class MemberCommandHandler {
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
 
-      const message = `🤖 *Status Bot*\n\n` +
+      let message = `🤖 *Status Bot*\n\n` +
         `✅ Bot aktif\n` +
         `⏱️ Uptime: ${hours}h ${minutes}m\n` +
         `📊 Platform: Multi-platform (Discord + WhatsApp)\n` +
-        `🔧 Version: 1.0.0`;
+        `🔧 Version: 1.0.0\n\n`;
+
+      // Check Notion status
+      if (this.notionService.isEnabled()) {
+        try {
+          const stats = await this.notionService.getSyncStats();
+          message += `📝 *Notion Status:*\n`;
+          message += `✅ Connected\n`;
+          message += `📊 Tasks in Notion: ${stats.notionTasks}\n`;
+          message += `💾 Tasks in MongoDB: ${stats.mongoTasks}\n`;
+        } catch (error) {
+          message += `📝 *Notion Status:*\n`;
+          message += `⚠️ Connection issue\n`;
+        }
+      } else {
+        message += `📝 *Notion Status:*\n`;
+        message += `❌ Disabled\n`;
+      }
 
       return {
         success: true,
@@ -584,5 +652,101 @@ export class MemberCommandHandler {
         ephemeral: true
       };
     }
+  }
+
+  /**
+   * Format tasks like reminder format
+   */
+  private formatTasksLikeReminder(tasks: any[], title: string): string {
+    // Header with Unicode bold
+    let message = formatHeader('INFO TUGAS', '🌟') + '\n\n';
+    message += formatHeader(title, '📅') + '\n\n';
+    message += `🌈 ${toItalic('Halo halo teman-teman XI PPLG 3!')}\n`;
+    message += `${toItalic('Nih admin bawain update tugas terbaru')} 💪\n\n`;
+    message += 'Yuk, disimak baik-baik 👇\n\n';
+    message += '━━━━━━━━━━━━━━━━━━\n';
+    message += formatSectionTitle('DAFTAR TUGAS', '🗓') + '\n';
+    message += '━━━━━━━━━━━━━━━━━━\n\n';
+    
+    // Group tasks by mata pelajaran
+    const grouped = new Map<string, any[]>();
+    for (const task of tasks) {
+      const mapel = task.mata_pelajaran || 'Lainnya';
+      if (!grouped.has(mapel)) {
+        grouped.set(mapel, []);
+      }
+      grouped.get(mapel)!.push(task);
+    }
+    
+    // Format each mata pelajaran
+    for (const [mapel, mapelTasks] of grouped) {
+      const emoji = this.getMapelEmoji(mapel);
+      
+      message += formatSubject(mapel, emoji) + '\n';
+      message += formatLabel('Tugas:', '📌') + '\n';
+      
+      // List tasks
+      for (let i = 0; i < mapelTasks.length; i++) {
+        const task = mapelTasks[i];
+        const bullet = `${i + 1}️⃣`;
+        message += `${bullet} ${task.deskripsi}\n`;
+      }
+      
+      // Add submission link if exists
+      const taskWithLink = mapelTasks.find((t: any) => t.link_pengumpulan);
+      if (taskWithLink && taskWithLink.link_pengumpulan) {
+        message += formatLabel('Link Pengumpulan:', '📥') + `\n${taskWithLink.link_pengumpulan}\n`;
+      }
+      
+      // Add notes if exists
+      const taskWithNotes = mapelTasks.find((t: any) => t.catatan);
+      if (taskWithNotes && taskWithNotes.catatan) {
+        message += formatLabel('Catatan:', '⚠️') + `\n${toItalic(taskWithNotes.catatan)}\n`;
+      }
+      
+      message += '━━━━━━━━━━━━━━━━━━\n\n';
+    }
+    
+    // Footer
+    message += formatHeader('Penutup', '🌟') + '\n\n';
+    message += `${toItalic('Tetap semangat mengerjakan tugas ya, teman-teman')} 💪\n`;
+    message += `${toItalic('Terima kasih sudah membaca sampai akhir')} 🙏\n\n`;
+    message += 'Kalau ada info yang kurang atau salah ketik, silakan kabari admin.\n';
+    message += toBold('CMIIW') + ' 🤗';
+    
+    return message;
+  }
+
+  /**
+   * Get emoji for mata pelajaran
+   */
+  private getMapelEmoji(mapel: string): string {
+    const emojiMap: Record<string, string> = {
+      'PJOK': '🏃',
+      'MP 1': '💻', 'MP 2': '💻', 'MP 3': '💻', 'MP 4': '💻',
+      'MK 1': '💻', 'MK 2': '💻', 'MK 3': '💻', 'MK 4': '💻',
+      'MK-1': '💻', 'MK-2': '💻', 'MK-3': '💻', 'MK-4': '💻',
+      'Sejarah': '📚',
+      'PAI': '🕌',
+      'Matematika': '🔢',
+      'MTK': '🔢',
+      'Bahasa Indonesia': '📖',
+      'B. Indonesia': '📖',
+      'Bahasa Inggris': '🌍',
+      'B. Inggris': '🌍',
+      'Bahasa Jawa': '🎭',
+      'BK': '🧠',
+      'Fisika': '⚛️',
+      'Kimia': '🧪',
+      'KIK-A': '🧪',
+      'Biologi': '🌱',
+      'Ekonomi': '💰',
+      'Geografi': '🌏',
+      'Sosiologi': '👥',
+      'Seni Budaya': '🎨',
+      'PPKN': '🇮🇩'
+    };
+    
+    return emojiMap[mapel] || '📝';
   }
 }

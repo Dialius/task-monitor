@@ -30,20 +30,39 @@ export class CommandParser {
       return null;
     }
 
-    // Split by | delimiter for arguments
-    const parts = content.split('|').map(part => part.trim());
-    
-    // First part is the command
-    const command = parts[0].toLowerCase();
-    
-    // Rest are arguments
-    const args = parts.slice(1);
+    // Check if message contains | delimiter (structured format)
+    if (content.includes('|')) {
+      // Split by | delimiter for arguments
+      const parts = content.split('|').map(part => part.trim());
+      
+      // First part is the command
+      const command = parts[0].toLowerCase();
+      
+      // Rest are arguments
+      const args = parts.slice(1);
 
-    return {
-      command,
-      args,
-      rawMessage: message
-    };
+      return {
+        command,
+        args,
+        rawMessage: message
+      };
+    } else {
+      // Natural language format: split by space
+      const parts = content.split(/\s+/);
+      
+      // First part is the command
+      const command = parts[0].toLowerCase();
+      
+      // Rest are arguments (join back for natural language commands)
+      // For natural language commands like add_tugas_cepat, we want the full text
+      const args = parts.length > 1 ? [parts.slice(1).join(' ')] : [];
+
+      return {
+        command,
+        args,
+        rawMessage: message
+      };
+    }
   }
 
   /**

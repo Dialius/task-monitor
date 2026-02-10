@@ -11,6 +11,8 @@ import { PiketService, StudentInfo } from '../services/PiketService';
 import { AnnouncementService } from '../services/AnnouncementService';
 import { AIService } from '../services/AIService';
 import { NotionService } from '../services/NotionService';
+import { AITaskParserService } from '../services/AITaskParserService';
+import ConfirmationService from '../services/ConfirmationService';
 import { formatDailyRecap, formatWeeklyRecap } from '../utils/RecapFormatter';
 import { Validator } from '../utils/Validator';
 import { getLogger } from '../utils/Logger';
@@ -18,6 +20,8 @@ import { getLogger } from '../utils/Logger';
 const logger = getLogger();
 
 export class AdminCommandHandler {
+  private aiTaskParser: AITaskParserService;
+
   constructor(
     private taskService: TaskService,
     private scheduleService: ScheduleService,
@@ -25,7 +29,9 @@ export class AdminCommandHandler {
     private announcementService: AnnouncementService,
     private aiService: AIService,
     private notionService: NotionService
-  ) {}
+  ) {
+    this.aiTaskParser = new AITaskParserService(aiService);
+  }
 
   /**
    * Handle /add_tugas command
@@ -110,6 +116,212 @@ export class AdminCommandHandler {
         message: '❌ Gagal menambahkan tugas. Silakan coba lagi.'
       };
     }
+  }
+
+  /**
+   * Handle /add_tugas_cepat command (Natural Language)
+   * Format: /add_tugas_cepat <natural language description>
+   * Example: /add_tugas_cepat Besok ada tugas matematika halaman 45-50 deadline jam 10
+   */
+  async handleAddTugasCepat(args: string[], userId: string, platform: Platform): Promise<CommandResponse> {
+    try {
+      const input = args.join(' ');
+
+      // Check if user is responding to pending confirmation
+      if (ConfirmationService.hasPendingConfirmation(userId)) {
+        return await this.handleConfirmationResponse(input, userId, platform);
+      }
+
+      // Validate input
+      if (!input || input.length < 10) {
+        return {
+          success: false,
+          message: `❌ *Input terlalu pendek!*
+
+Gunakan: /add_tugas_cepat <deskripsi natural>
+
+*Contoh:*
+• Besok ada tugas matematika halaman 45-50 deadline jam 10
+• Ujian fisika minggu depan, bawa kalkulator
+• Tugas kelompok bahasa indonesia, bikin puisi, deadline 15 februari`
+        };
+      }
+
+      // Parse with AI
+      logger.info('Parsing natural language for add_tugas_cepat', { userId, input });
+      const parsed = await this.aiTaskParser.parseNaturalLanguage(input);
+
+      if (!parsed) {
+        return {
+          success: false,
+          message: `❌ *Maaf, saya tidak bisa memahami input kamu.*
+
+Coba format seperti ini:
+• "Besok ada tugas matematika halaman 45-50 deadline jam 10"
+• "Ujian fisika minggu depan jam 9"
+• "Tugas kelompok bahasa indonesia deadline lusa"
+
+Atau gunakan format manual:
+/add_tugas | judul | deskripsi | deadline | mata_pelajaran | tipe`
+        };
+      }
+
+      // Validate parsed task
+      const validation = this.aiTaskParser.validateParsedTask(parsed);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: `❌ *Parsing gagal:*\n\n${validation.errors.join('\n')}\n\nSilakan coba lagi dengan informasi yang lebih lengkap.`
+        };
+      }
+
+      // Store pending confirmation
+      ConfirmationService.storePendingConfirmation(userId, platform, parsed);
+
+      // Show preview and ask for confirmation
+      const previewMessage = ConfirmationService.formatPreviewMessage(parsed);
+
+      return {
+        success: true,
+        message: previewMessage
+      };
+    } catch (error) {
+      logger.error('Failed to handle add_tugas_cepat', error as Error, { userId });
+      return {
+        success: false,
+        message: '❌ Terjadi kesalahan saat memproses input. Silakan coba lagi.'
+      };
+    }
+  }
+
+  /**
+   * Handle confirmation response (ya/edit/batal)
+   */
+  private async handleConfirmationResponse(
+    input: string,
+    userId: string,
+    _platform: Platform
+  ): Promise<CommandResponse> {
+    const pending = ConfirmationService.getPendingConfirmation(userId);
+
+    if (!pending) {
+      return {
+        success: false,
+        message: '⏱️ Konfirmasi sudah expired. Silakan gunakan /add_tugas_cepat lagi.'
+      };
+    }
+
+    const inputLower = input.toLowerCase().trim();
+
+    // Handle "ya" - confirm and save
+    if (inputLower === 'ya' || inputLower === 'yes') {
+      try {
+        // Create task
+        const task = await this.taskService.createTask({
+          judul: pending.parsedTask.judul,
+          deskripsi: pending.parsedTask.deskripsi,
+          deadline: pending.parsedTask.deadline,
+          mata_pelajaran: pending.parsedTask.mata_pelajaran,
+          tipe: pending.parsedTask.tipe,
+          created_by: userId
+        });
+
+        // Update prioritas if not normal
+        if (pending.parsedTask.prioritas !== 'normal') {
+          await this.taskService.updateTask(task._id.toString(), 'prioritas', pending.parsedTask.prioritas);
+        }
+
+        // Sync to Notion if enabled
+        if (this.notionService.isEnabled()) {
+          const notionId = await this.notionService.addTaskToNotion({
+            judul: task.judul,
+            mata_pelajaran: task.mata_pelajaran,
+            deskripsi: task.deskripsi,
+            deadline: task.deadline,
+            tipe: task.tipe,
+            prioritas: pending.parsedTask.prioritas,
+            created_by: userId
+          });
+
+          if (notionId) {
+            await this.taskService.updateTask(task._id.toString(), 'notion_id', notionId);
+          }
+        }
+
+        // Remove pending confirmation
+        ConfirmationService.removePendingConfirmation(userId);
+
+        const deadlineFormatted = new Date(task.deadline).toLocaleDateString('id-ID', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short'
+        });
+
+        return {
+          success: true,
+          message: `✅ *Tugas berhasil ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(pending.parsedTask.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`
+        };
+      } catch (error) {
+        logger.error('Failed to create task from confirmation', error as Error, { userId });
+        ConfirmationService.removePendingConfirmation(userId);
+        return {
+          success: false,
+          message: '❌ Gagal menyimpan tugas. Silakan coba lagi.'
+        };
+      }
+    }
+
+    // Handle "batal" - cancel
+    if (inputLower === 'batal' || inputLower === 'cancel') {
+      ConfirmationService.removePendingConfirmation(userId);
+      return {
+        success: true,
+        message: '❌ Pembuatan tugas dibatalkan.'
+      };
+    }
+
+    // Handle "edit [field] [value]" - edit field
+    const editParsed = ConfirmationService.parseEditCommand(input);
+    if (editParsed) {
+      const result = ConfirmationService.applyEdit(
+        pending.parsedTask,
+        editParsed.field,
+        editParsed.value
+      );
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message
+        };
+      }
+
+      // Update pending confirmation with edited task
+      ConfirmationService.updatePendingField(userId, editParsed.field as any, (result.updatedTask as any)[editParsed.field]);
+
+      // Show updated preview
+      const updatedPending = ConfirmationService.getPendingConfirmation(userId);
+      if (updatedPending) {
+        const previewMessage = ConfirmationService.formatPreviewMessage(updatedPending.parsedTask);
+        return {
+          success: true,
+          message: `${result.message}\n\n${previewMessage}`
+        };
+      }
+    }
+
+    // Invalid response
+    return {
+      success: false,
+      message: `❌ *Respon tidak dikenali.*
+
+Ketik:
+• *ya* untuk simpan
+• *edit [field] [value]* untuk ubah
+• *batal* untuk cancel
+
+Contoh: edit prioritas urgent`
+    };
   }
 
   /**
@@ -624,6 +836,17 @@ export class AdminCommandHandler {
           success: false,
           message: '❌ Tipe tidak valid!\n\nGunakan: /test_reminder | daily/weekly/monday\n\nContoh:\n• /test_reminder | daily\n• /test_reminder | weekly\n• /test_reminder | monday'
         };
+      }
+
+      // Auto-sync from Notion before generating reminder
+      if (this.notionService.isEnabled()) {
+        logger.info('Auto-syncing from Notion before /test_reminder command');
+        try {
+          await this.notionService.syncFromNotion();
+        } catch (syncError) {
+          logger.warn('Notion sync failed, using cached data from MongoDB', syncError as Error);
+          // Continue with cached data - don't fail the command
+        }
       }
 
       // Get tasks from database
