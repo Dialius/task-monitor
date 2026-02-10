@@ -1,22 +1,25 @@
 /**
  * Baileys (WhatsApp) Client Wrapper
  * Requirements: 10.1, 10.2, 10.3, 10.6
+ * Updated for Baileys 7.x
  */
 
 import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
   WASocket,
-  WAMessage
+  WAMessage,
+  fetchLatestBaileysVersion
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import { getLogger } from '../utils/Logger';
+import QRCode from 'qrcode-terminal';
 
 const logger = getLogger();
 
 export interface BaileysConfig {
   authDir: string;
-  printQRInTerminal: boolean;
+  printQRInTerminal: boolean; // kept for compatibility but not used
 }
 
 export interface ConnectionState {
@@ -36,6 +39,8 @@ export class BaileysClient {
   private isConnected: boolean = false;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
+  private shouldReconnect: boolean = true;
+  private messageHandlerRegistered: boolean = false;
 
   constructor(config: BaileysConfig) {
     this.config = config;
@@ -48,10 +53,15 @@ export class BaileysClient {
   async connect(): Promise<void> {
     try {
       const { state, saveCreds } = await useMultiFileAuthState(this.config.authDir);
+      
+      // Fetch latest Baileys version for compatibility
+      const { version } = await fetchLatestBaileysVersion();
 
       this.socket = makeWASocket({
+        version,
         auth: state,
         // printQRInTerminal deprecated - handle QR manually in connection.update
+        printQRInTerminal: false,
         logger: {
           level: 'silent',
           error: () => {},
@@ -68,7 +78,13 @@ export class BaileysClient {
             trace: () => {},
             child: () => ({} as any)
           })
-        }
+        },
+        // Mark as unavailable to receive notifications
+        markOnlineOnConnect: false,
+        // Browser config
+        browser: ['Multi-Platform Bot', 'Chrome', '1.0.0'],
+        // Sync full history
+        syncFullHistory: false
       });
 
       // Save credentials on update
@@ -96,37 +112,64 @@ export class BaileysClient {
     // Handle QR code manually (new Baileys way)
     if (qr) {
       console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
-      // Import qrcode-terminal dynamically
-      const QRCode = require('qrcode-terminal');
       QRCode.generate(qr, { small: true });
-      console.log('\n');
+      console.log('\n⏳ Menunggu scan QR code...\n');
       logger.info('QR Code generated for WhatsApp authentication');
     }
 
     if (connection === 'close') {
       this.isConnected = false;
       const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
+      
       logger.warn('WhatsApp connection closed', {
         statusCode,
-        shouldReconnect,
+        reason: DisconnectReason[statusCode] || 'Unknown',
         reconnectAttempts: this.reconnectAttempts
       });
 
-      if (shouldReconnect && statusCode !== DisconnectReason.connectionClosed) {
+      // Check if should reconnect
+      if (statusCode === DisconnectReason.loggedOut) {
+        console.log('\n❌ WhatsApp logged out - please scan QR code again\n');
+        logger.info('WhatsApp logged out, clearing session');
+        this.shouldReconnect = false;
+      } else if (statusCode === DisconnectReason.restartRequired) {
+        console.log('\n🔄 WhatsApp restart required - restarting...\n');
+        // Don't increment reconnect attempts for restart
+        setTimeout(async () => {
+          await this.connect();
+        }, 1000);
+        return; // Exit early to avoid double reconnection
+      } else if (statusCode === DisconnectReason.connectionClosed) {
+        console.log('\n⚠️  WhatsApp connection closed normally\n');
         await this.handleReconnection();
-      } else if (statusCode === DisconnectReason.loggedOut) {
-        logger.info('WhatsApp logged out, not reconnecting');
+      } else if (statusCode === DisconnectReason.connectionLost) {
+        console.log('\n⚠️  WhatsApp connection lost\n');
+        await this.handleReconnection();
+      } else if (statusCode === DisconnectReason.timedOut) {
+        console.log('\n⏱️  WhatsApp connection timed out\n');
+        await this.handleReconnection();
+      } else if (statusCode === 405) {
+        // Method Not Allowed - usually means client is outdated
+        console.log('\n❌ WhatsApp client outdated (405) - updating...\n');
+        this.reconnectAttempts = 0; // Reset attempts
+        await this.handleReconnection();
       } else {
-        logger.info('WhatsApp connection closed normally');
+        // Unknown error - try to reconnect
+        await this.handleReconnection();
       }
     } else if (connection === 'open') {
       this.isConnected = true;
       this.reconnectAttempts = 0;
+      this.shouldReconnect = true;
       console.log('\n✅ WhatsApp connected successfully!\n');
       logger.info('WhatsApp connection established');
+      
+      // Log phone number if available
+      if (this.socket?.user) {
+        console.log(`📱 Connected as: ${this.socket.user.id}\n`);
+      }
     } else if (connection === 'connecting') {
+      console.log('🔄 Connecting to WhatsApp...');
       logger.info('Connecting to WhatsApp...');
     }
   }
@@ -136,16 +179,23 @@ export class BaileysClient {
    * Requirement: 10.4, 10.5
    */
   private async handleReconnection(): Promise<void> {
+    if (!this.shouldReconnect) {
+      logger.info('Reconnection disabled');
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      logger.error('Max reconnection attempts reached, generating new QR code');
-      this.reconnectAttempts = 0;
-      await this.connect(); // Generate new QR code
+      console.log('\n❌ Max reconnection attempts reached\n');
+      console.log('💡 Tip: Restart bot to try again with fresh session\n');
+      logger.error('Max reconnection attempts reached');
+      this.shouldReconnect = false;
       return;
     }
 
     this.reconnectAttempts++;
-    const delay = Math.pow(2, this.reconnectAttempts - 1) * 1000; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+    const delay = Math.min(Math.pow(2, this.reconnectAttempts - 1) * 1000, 30000); // Max 30s
 
+    console.log(`🔄 Reconnecting in ${delay/1000}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...\n`);
     logger.info(`Reconnecting to WhatsApp in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(async () => {
@@ -158,6 +208,7 @@ export class BaileysClient {
    */
   async disconnect(): Promise<void> {
     if (this.socket) {
+      this.shouldReconnect = false;
       await this.socket.logout();
       this.socket = null;
       this.isConnected = false;
@@ -217,14 +268,49 @@ export class BaileysClient {
       throw new Error('WhatsApp client not connected');
     }
 
-    this.socket.ev.on('messages.upsert', async ({ messages }) => {
-      for (const message of messages) {
-        // Only process new messages (not from history)
-        if (message.key.fromMe || !message.message) continue;
+    // Prevent multiple handler registrations
+    if (this.messageHandlerRegistered) {
+      console.log('⚠️  Message handler already registered, skipping...\n');
+      return;
+    }
 
+    console.log('📝 Registering message handler - waiting for messages...\n');
+    this.messageHandlerRegistered = true;
+    
+    this.socket.ev.on('messages.upsert', async ({ messages, type }) => {
+      console.log(`\n🔔 messages.upsert event received (type: ${type})`);
+      console.log(`   Total messages: ${messages.length}`);
+      
+      // Check if testing mode is enabled (allows messages from self)
+      const testingMode = process.env.WHATSAPP_TESTING_MODE === 'true';
+      if (testingMode) {
+        console.log(`   ⚠️  TESTING MODE: Messages from self will be processed`);
+      }
+      
+      for (const message of messages) {
+        console.log(`\n   Message details:`);
+        console.log(`   - From me: ${message.key.fromMe}`);
+        console.log(`   - Has message: ${!!message.message}`);
+        console.log(`   - Remote JID: ${message.key.remoteJid}`);
+        console.log(`   - Message type: ${type}`);
+        
+        // Skip messages from self (unless testing mode)
+        if (message.key.fromMe && !testingMode) {
+          console.log(`   ⚠️  Skipped: Message from me (set WHATSAPP_TESTING_MODE=true to allow)`);
+          continue;
+        }
+        
+        if (!message.message) {
+          console.log(`   ⚠️  Skipped: No message content`);
+          continue;
+        }
+
+        console.log(`   ✅ Processing message...`);
+        
         try {
           handler(message);
         } catch (error) {
+          console.error(`   ❌ Error in handler:`, error);
           logger.error('Error handling WhatsApp message', error as Error, {
             messageId: message.key.id
           });

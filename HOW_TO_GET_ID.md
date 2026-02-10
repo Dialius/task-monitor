@@ -1,214 +1,112 @@
-# Cara Mendapatkan ID untuk Edit/Hapus
+# Cara Mendapatkan ID untuk Bot
 
-Panduan lengkap untuk mendapatkan ID tugas, jadwal, dan pengumuman.
+## 📱 WhatsApp Group/Channel ID
 
-## 📋 Kenapa Perlu ID?
+### Metode 1: Dari Console Log (Paling Mudah)
+1. Jalankan bot dengan `npm start`
+2. Tunggu sampai bot connect (QR code sudah di-scan)
+3. Kirim pesan apapun (misalnya "test") di grup/channel WhatsApp
+4. Lihat console log, akan muncul seperti ini:
+   ```
+   📩 WhatsApp message received:
+      From: 120363123456789012@g.us
+   ```
+5. Copy ID tersebut (contoh: `120363123456789012@g.us`)
+6. Paste ke `.env` file:
+   ```
+   WHATSAPP_GROUP_ID=120363123456789012@g.us
+   ```
 
-Untuk edit atau hapus data (tugas, jadwal, pengumuman), Anda perlu ID unik dari data tersebut. ID ini seperti nomor identitas yang membedakan satu data dengan data lainnya.
+### Metode 2: Dari Command /status
+1. Pastikan bot sudah connect
+2. Kirim `/status` di grup/channel WhatsApp
+3. Bot akan reply dengan informasi termasuk Group ID
+4. Copy Group ID tersebut ke `.env` file
 
-## 🔍 Cara Mendapatkan ID
+### Format ID WhatsApp:
+- **Grup**: `120363123456789012@g.us` (angka panjang + @g.us)
+- **Channel/Saluran**: `120363123456789012@newsletter` (angka panjang + @newsletter)
+- **Personal Chat**: `628123456789@s.whatsapp.net` (nomor HP + @s.whatsapp.net)
 
-### 1. Dari Command List
+## 💬 Discord IDs
 
-Setiap kali Anda melihat daftar tugas/jadwal/pengumuman, ID akan ditampilkan.
+### Discord Server ID (Guild ID)
+1. Aktifkan Developer Mode:
+   - Settings → Advanced → Developer Mode (ON)
+2. Klik kanan server → Copy Server ID
+3. Paste ke `.env`:
+   ```
+   DISCORD_GUILD_ID=1234567890123456789
+   ```
 
-#### Untuk Tugas:
-```
-/tugas
-```
+### Discord Channel ID
+1. Aktifkan Developer Mode (lihat di atas)
+2. Klik kanan channel → Copy Channel ID
+3. Paste ke `.env`:
+   ```
+   DISCORD_CHANNEL_ID=1234567890123456789
+   ```
 
-Output:
-```
-📝 Daftar Tugas:
+### Discord User ID
+1. Aktifkan Developer Mode (lihat di atas)
+2. Klik kanan user → Copy User ID
+3. Paste ke `.env` untuk admin:
+   ```
+   FIRST_ADMIN_DISCORD_ID=1234567890123456789
+   ```
 
-1. 👤 Essay Sejarah
-   📚 Sejarah
-   📅 Deadline: Sabtu, 15 Februari 2026
-   🚨 Prioritas: urgent
-   📄 Tulis essay tentang kemerdekaan Indonesia
-   🆔 ID: `67a1b2c3d4e5f6789012345`  ← INI ID-NYA!
-```
+## 👤 WhatsApp User ID (Nomor HP)
 
-#### Untuk Jadwal:
-```
-/jadwal
-```
+### Format:
+- Nomor HP tanpa `+` dan tanpa spasi
+- Contoh: `628123456789` (untuk +62 812-3456-789)
 
-Output:
-```
-📅 Jadwal Pelajaran:
+### Cara dapat:
+1. Buka WhatsApp Web
+2. Klik profil user
+3. Lihat nomor HP
+4. Hapus `+` dan spasi
+5. Paste ke `.env`:
+   ```
+   FIRST_ADMIN_WHATSAPP_ID=628123456789
+   ```
 
-1. 📖 Matematika
-   ⏰ 08:00 - 09:30
-   🏫 Ruangan: R.101
-   👨‍🏫 Guru: Pak Budi
-   🆔 ID: `67a1b2c3d4e5f6789012346`  ← INI ID-NYA!
-```
+## 🔧 Tips
 
-#### Untuk Pengumuman:
-```
-/tugas
-```
-(Pengumuman akan muncul di recap atau bisa ditambahkan command khusus)
-
-### 2. Dari Response Saat Tambah Data
-
-Setiap kali Anda menambah tugas/jadwal/pengumuman, ID akan langsung ditampilkan.
-
-#### Contoh Add Tugas:
-```
-/add_tugas
-  judul: Essay Sejarah
-  deskripsi: Tulis essay tentang kemerdekaan
-  deadline: 2026-02-15
-  mata_pelajaran: Sejarah
-  tipe: individu
-```
-
-Response:
-```
-✅ Tugas berhasil ditambahkan!
-
-📝 Essay Sejarah
-📚 Sejarah
-📅 Deadline: 15/02/2026
-🚨 Prioritas: urgent
-🆔 ID: `67a1b2c3d4e5f6789012345`  ← INI ID-NYA!
-
-💡 Gunakan ID ini untuk edit atau hapus tugas
-```
-
-## 📝 Cara Menggunakan ID
-
-### Edit Tugas
-```
-/edit_tugas
-  task_id: 67a1b2c3d4e5f6789012345
-  field: deadline
-  value: 2026-02-20
+### Restart Bot Setelah Update .env
+Setelah mengubah `.env` file, restart bot:
+```bash
+# Ctrl+C untuk stop bot
+npm start
 ```
 
-### Hapus Tugas
+### Cek Konfigurasi
+Bot akan menampilkan konfigurasi saat start:
 ```
-/hapus_tugas
-  task_id: 67a1b2c3d4e5f6789012345
-```
+✅ BOT IS RUNNING!
 
-### Tandai Selesai
-```
-/tandai_selesai
-  task_id: 67a1b2c3d4e5f6789012345
-```
+📝 Available Commands:
+   ...
 
-### Edit Jadwal
-```
-/edit_jadwal
-  schedule_id: 67a1b2c3d4e5f6789012346
-  field: ruangan
-  value: R.202
+💡 Tip: Kirim /help di chat untuk melihat semua command
 ```
 
-### Hapus Jadwal
-```
-/hapus_jadwal
-  schedule_id: 67a1b2c3d4e5f6789012346
-```
+### Troubleshooting
 
-### Hapus Pengumuman
-```
-/hapus_pengumuman
-  announcement_id: 67a1b2c3d4e5f6789012347
-```
+**Bot tidak reply di WhatsApp:**
+1. Pastikan `WHATSAPP_ENABLED=true` di `.env`
+2. Pastikan `WHATSAPP_GROUP_ID` sudah diisi dengan benar
+3. Pastikan bot sudah connect (lihat console log)
+4. Coba kirim command dengan `/` prefix (contoh: `/status`)
 
-## 💡 Tips
+**Bot tidak reply di Discord:**
+1. Pastikan `DISCORD_ENABLED=true` di `.env`
+2. Pastikan semua Discord ID sudah benar
+3. Pastikan bot sudah di-invite ke server
+4. Pastikan bot punya permission untuk read/send messages
+5. Deploy slash commands dulu: `npm run deploy-commands`
 
-### 1. Copy ID dengan Benar
-- ID ditampilkan dalam format monospace: `67a1b2c3d4e5f6789012345`
-- Di Discord, Anda bisa klik dan copy langsung
-- Pastikan copy seluruh ID (24 karakter)
-
-### 2. ID Bersifat Unik
-- Setiap tugas/jadwal/pengumuman punya ID berbeda
-- ID tidak akan berubah setelah dibuat
-- ID tidak bisa ditebak atau dibuat manual
-
-### 3. Simpan ID Penting
-- Jika ada tugas yang sering di-edit, simpan ID-nya
-- Bisa di-note di tempat lain untuk referensi cepat
-
-### 4. ID Case-Sensitive
-- Huruf besar dan kecil berbeda
-- Copy paste lebih aman daripada ketik manual
-
-## ❓ Troubleshooting
-
-### "Task ID tidak ditemukan"
-- Pastikan ID yang di-copy benar dan lengkap
-- Cek apakah tugas sudah dihapus sebelumnya
-- Coba lihat daftar tugas lagi dengan `/tugas`
-
-### "Invalid ID format"
-- ID harus 24 karakter
-- Hanya boleh huruf (a-f) dan angka (0-9)
-- Tidak boleh ada spasi atau karakter khusus
-
-### ID tidak muncul di output
-- Pastikan bot sudah di-update ke versi terbaru
-- Restart bot jika perlu
-- Cek apakah command berhasil dijalankan
-
-## 🔗 Command Terkait
-
-- `/tugas` - Lihat semua tugas dengan ID
-- `/tugas_hari_ini` - Tugas hari ini dengan ID
-- `/tugas_minggu_ini` - Tugas minggu ini dengan ID
-- `/jadwal` - Jadwal hari ini dengan ID
-- `/jadwal_minggu_ini` - Jadwal minggu ini dengan ID
-
-## 📚 Contoh Workflow
-
-### Workflow 1: Tambah dan Edit Tugas
-```
-1. Tambah tugas:
-   /add_tugas | Essay | Tulis essay | 2026-02-15 | Sejarah | individu
-   
-2. Bot reply dengan ID:
-   🆔 ID: `67a1b2c3d4e5f6789012345`
-   
-3. Copy ID tersebut
-
-4. Edit deadline:
-   /edit_tugas | 67a1b2c3d4e5f6789012345 | deadline | 2026-02-20
-```
-
-### Workflow 2: Lihat Daftar dan Hapus
-```
-1. Lihat daftar tugas:
-   /tugas
-   
-2. Cari tugas yang ingin dihapus, copy ID-nya:
-   🆔 ID: `67a1b2c3d4e5f6789012345`
-   
-3. Hapus tugas:
-   /hapus_tugas | 67a1b2c3d4e5f6789012345
-```
-
-### Workflow 3: Tandai Selesai
-```
-1. Lihat tugas hari ini:
-   /tugas_hari_ini
-   
-2. Copy ID tugas yang sudah selesai:
-   🆔 ID: `67a1b2c3d4e5f6789012345`
-   
-3. Tandai selesai:
-   /tandai_selesai | 67a1b2c3d4e5f6789012345
-```
-
-## 🎓 Best Practices
-
-1. **Selalu cek daftar dulu** sebelum edit/hapus
-2. **Copy paste ID** jangan ketik manual
-3. **Verifikasi ID** sebelum hapus (tidak bisa undo!)
-4. **Gunakan command list** untuk melihat semua ID
-5. **Simpan ID penting** untuk referensi cepat
+**Permission denied:**
+1. Pastikan user ID sudah terdaftar sebagai admin
+2. Cek role admin di database
+3. Gunakan command member dulu untuk test (contoh: `/status`, `/help`)

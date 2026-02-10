@@ -391,32 +391,67 @@ class MultiPlatformBot {
       this.whatsappAdapter = new WhatsAppAdapter(socket);
 
       // Handle messages
+      console.log('      → Registering WhatsApp message handler...');
       this.whatsappClient.onMessage(async (message) => {
-        const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
-        if (!text) return;
+        try {
+          // Log all incoming messages for debugging
+          console.log('\n📩 WhatsApp message received:');
+          console.log('   From:', message.key.remoteJid);
+          console.log('   Message Key:', JSON.stringify(message.key, null, 2));
+          
+          const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
+          console.log('   Text:', text || '(no text)');
+          
+          if (!text) {
+            console.log('   ⚠️  Skipped: No text content\n');
+            return;
+          }
 
-        // Only process commands (starting with /)
-        if (!text.startsWith('/')) return;
+          // Only process commands (starting with /)
+          if (!text.startsWith('/')) {
+            console.log('   ⚠️  Skipped: Not a command (no / prefix)\n');
+            return;
+          }
 
-        const parsed = this.commandParser.parse(text);
-        if (!parsed) return;
+          const parsed = this.commandParser.parse(text);
+          if (!parsed) {
+            console.log('   ⚠️  Skipped: Failed to parse command\n');
+            return;
+          }
 
-        const userId = message.key.remoteJid?.split('@')[0] || '';
-        const groupId = message.key.remoteJid || '';
-        
-        console.log(`📨 WhatsApp command: /${parsed.command} from ${userId} in ${groupId}`);
+          const userId = message.key.remoteJid?.split('@')[0] || '';
+          const groupId = message.key.remoteJid || '';
+          
+          console.log(`\n📨 Processing WhatsApp command:`);
+          console.log(`   Command: /${parsed.command}`);
+          console.log(`   User ID: ${userId}`);
+          console.log(`   Group ID: ${groupId}`);
+          console.log(`   Args:`, parsed.args);
 
-        const response = await this.commandRouter.route(
-          parsed,
-          userId,
-          'whatsapp'
-        );
+          const response = await this.commandRouter.route(
+            parsed,
+            userId,
+            'whatsapp'
+          );
 
-        const targetGroupId = process.env.WHATSAPP_GROUP_ID || groupId;
-        if (this.whatsappAdapter) {
-          await this.whatsappAdapter.sendMessage(targetGroupId, response.message);
+          console.log(`   Response: ${response.message.substring(0, 100)}...`);
+
+          const targetGroupId = process.env.WHATSAPP_GROUP_ID || groupId;
+          console.log(`   Sending to: ${targetGroupId}\n`);
+          
+          if (this.whatsappAdapter) {
+            await this.whatsappAdapter.sendMessage(targetGroupId, response.message);
+            console.log('   ✅ Message sent successfully\n');
+          } else {
+            console.log('   ❌ WhatsApp adapter not available\n');
+          }
+        } catch (error) {
+          console.error('   ❌ Error handling WhatsApp message:', error);
+          this.logger.error('Error handling WhatsApp message', error as Error);
         }
       });
+      
+      console.log('      ✓ Message handler registered');
       
       console.log('      ✓ WhatsApp connected');
       if (process.env.WHATSAPP_GROUP_ID) {
