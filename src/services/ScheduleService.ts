@@ -199,4 +199,14 @@ export class ScheduleService {
 
     return this.getSchedulesByDay(dayName);
   }
+
+  /**
+   * Get schedule for specific date
+   */
+  async getScheduleForDate(date: Date): Promise<IJadwal[]> {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const dayName = days[date.getDay()];
+
+    return this.getSchedulesByDay(dayName);
+  }
 }

@@ -15,6 +15,7 @@ import { ScheduleService } from './services/ScheduleService';
 import { PiketService } from './services/PiketService';
 import { AnnouncementService } from './services/AnnouncementService';
 import { AIService } from './services/AIService';
+import { NotionService } from './services/NotionService';
 import { ReminderScheduler } from './services/ReminderScheduler';
 import { AdminCommandHandler } from './handlers/AdminCommandHandler';
 import { MemberCommandHandler } from './handlers/MemberCommandHandler';
@@ -41,6 +42,7 @@ class MultiPlatformBot {
   private piketService!: PiketService;
   private announcementService!: AnnouncementService;
   private aiService!: AIService;
+  private notionService!: NotionService;
   
   // Handlers
   private adminHandler!: AdminCommandHandler;
@@ -144,6 +146,9 @@ class MultiPlatformBot {
       }
     );
 
+    // Notion service
+    this.notionService = new NotionService();
+
     this.logger.info('Services initialized');
   }
 
@@ -159,7 +164,8 @@ class MultiPlatformBot {
       this.scheduleService,
       this.piketService,
       this.announcementService,
-      this.aiService
+      this.aiService,
+      this.notionService
     );
 
     this.memberHandler = new MemberCommandHandler(
@@ -187,6 +193,7 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('hapus_pengumuman', this.adminHandler.handleHapusPengumuman.bind(this.adminHandler));
     this.commandRouter.registerHandler('broadcast', this.adminHandler.handleBroadcast.bind(this.adminHandler));
     this.commandRouter.registerHandler('broadcast_urgent', this.adminHandler.handleBroadcastUrgent.bind(this.adminHandler));
+    this.commandRouter.registerHandler('test_reminder', this.adminHandler.handleTestReminder.bind(this.adminHandler));
 
     console.log('   → Registering member commands...');
     // Register member commands
@@ -203,8 +210,8 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('bantuan', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('status', this.memberHandler.handleStatus.bind(this.memberHandler));
 
-    console.log('   → Registered 26 commands total');
-    console.log('      • Admin commands: 14');
+    console.log('   → Registered 27 commands total');
+    console.log('      • Admin commands: 15');
     console.log('      • Member commands: 12');
   }
 
@@ -390,74 +397,49 @@ class MultiPlatformBot {
     if (socket) {
       this.whatsappAdapter = new WhatsAppAdapter(socket);
 
-      // Handle messages
-      console.log('      → Registering WhatsApp message handler...');
+      // Register message handler for commands
       this.whatsappClient.onMessage(async (message) => {
-        try {
-          // Log all incoming messages for debugging
-          console.log('\n📩 WhatsApp message received:');
-          console.log('   From:', message.key.remoteJid);
-          console.log('   Message Key:', JSON.stringify(message.key, null, 2));
-          
-          const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
-          console.log('   Text:', text || '(no text)');
-          
-          if (!text) {
-            console.log('   ⚠️  Skipped: No text content\n');
-            return;
-          }
+        // Extract text from message
+        const text = message.message?.conversation || 
+                    message.message?.extendedTextMessage?.text ||
+                    '';
+        
+        if (!text) return;
 
-          // Only process commands (starting with /)
-          if (!text.startsWith('/')) {
-            console.log('   ⚠️  Skipped: Not a command (no / prefix)\n');
-            return;
-          }
+        // Parse command
+        const parsed = this.commandParser.parse(text);
+        if (!parsed) return;
 
-          const parsed = this.commandParser.parse(text);
-          if (!parsed) {
-            console.log('   ⚠️  Skipped: Failed to parse command\n');
-            return;
-          }
+        // Get sender ID (use participant for groups/channels, otherwise remoteJid)
+        const senderId = message.key.participant || message.key.remoteJid || '';
+        const chatId = message.key.remoteJid || '';
 
-          const userId = message.key.remoteJid?.split('@')[0] || '';
-          const groupId = message.key.remoteJid || '';
-          
-          console.log(`\n📨 Processing WhatsApp command:`);
-          console.log(`   Command: /${parsed.command}`);
-          console.log(`   User ID: ${userId}`);
-          console.log(`   Group ID: ${groupId}`);
-          console.log(`   Args:`, parsed.args);
+        console.log(`📨 WhatsApp command: /${parsed.command} from ${senderId}`);
 
-          const response = await this.commandRouter.route(
-            parsed,
-            userId,
-            'whatsapp'
+        // Route command
+        const response = await this.commandRouter.route(
+          parsed,
+          senderId,
+          'whatsapp'
+        );
+
+        // Send response
+        if (this.whatsappAdapter) {
+          await this.whatsappAdapter.sendMessage(
+            chatId,
+            response.message
           );
-
-          console.log(`   Response: ${response.message.substring(0, 100)}...`);
-
-          const targetGroupId = process.env.WHATSAPP_GROUP_ID || groupId;
-          console.log(`   Sending to: ${targetGroupId}\n`);
-          
-          if (this.whatsappAdapter) {
-            await this.whatsappAdapter.sendMessage(targetGroupId, response.message);
-            console.log('   ✅ Message sent successfully\n');
-          } else {
-            console.log('   ❌ WhatsApp adapter not available\n');
-          }
-        } catch (error) {
-          console.error('   ❌ Error handling WhatsApp message:', error);
-          this.logger.error('Error handling WhatsApp message', error as Error);
         }
       });
-      
-      console.log('      ✓ Message handler registered');
-      
+
       console.log('      ✓ WhatsApp connected');
+      console.log('      ✓ Commands enabled - bot can add tasks');
+      console.log('      ✓ Reminders enabled - auto sync from Notion');
+      
       if (process.env.WHATSAPP_GROUP_ID) {
-        console.log(`      ✓ Target group: ${process.env.WHATSAPP_GROUP_ID}`);
+        console.log(`      ✓ Target channel: ${process.env.WHATSAPP_GROUP_ID}`);
       } else {
-        console.log('      ⚠ WHATSAPP_GROUP_ID not set - will reply to any group');
+        console.log('      ⚠ WHATSAPP_GROUP_ID not set');
       }
     } else {
       throw new Error('Failed to get WhatsApp socket');
@@ -495,13 +477,15 @@ class MultiPlatformBot {
         weeklyReminderDay: parseInt(process.env.WEEKLY_REMINDER_DAY || '5'),
         weeklyReminderTime: process.env.WEEKLY_REMINDER_TIME || '20:00',
         timezone: process.env.TIMEZONE || 'Asia/Jakarta'
-      }
+      },
+      this.notionService
     );
 
     this.reminderScheduler.initialize();
 
-    console.log('   → Daily recap: ' + (process.env.DAILY_REMINDER_TIME || '17:00'));
-    console.log('   → Weekly recap: Friday ' + (process.env.WEEKLY_REMINDER_TIME || '20:00'));
+    console.log('   → Daily recap (Mon-Thu): 16:00 - Tugas besok');
+    console.log('   → Weekly recap (Fri): 16:00 - Tugas minggu depan');
+    console.log('   → Monday recap (Sun): 16:00 - Tugas hari Senin');
     console.log('   → Timezone: ' + (process.env.TIMEZONE || 'Asia/Jakarta'));
   }
 

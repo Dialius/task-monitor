@@ -229,6 +229,24 @@ export class TaskService {
   }
 
   /**
+   * Get tasks for specific date
+   */
+  async getTasksForDate(date: Date): Promise<ITask[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.getTasks({
+      deadline: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    });
+  }
+
+  /**
    * Get task by ID
    */
   async getTaskById(taskId: string): Promise<ITask | null> {

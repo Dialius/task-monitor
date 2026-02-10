@@ -13,6 +13,8 @@ export interface ITask extends Document {
   tipe: 'individu' | 'kelompok' | 'ujian';
   prioritas: 'urgent' | 'penting' | 'normal';
   status: 'aktif' | 'selesai';
+  link_pengumpulan?: string;
+  catatan?: string;
   notion_id?: string;
   created_by: string;
   created_at: Date;
@@ -78,6 +80,15 @@ const TaskSchema = new Schema<ITask>({
       message: 'Status harus aktif atau selesai'
     },
     default: 'aktif'
+  },
+  link_pengumpulan: {
+    type: String,
+    trim: true
+  },
+  catatan: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Catatan maksimal 1000 karakter']
   },
   notion_id: {
     type: String,

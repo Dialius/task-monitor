@@ -12,6 +12,7 @@
     "test:ai": "node scripts/test-ai.js",
     "test:ai-enhancement": "node scripts/test-ai-enhancement.js",
     "test:formatter": "node scripts/test-formatter-output.js",
+    "test:notion": "node scripts/test-notion.js",
     "seed": "node scripts/seed-dummy-data.js",
     "deploy-commands": "node scripts/deploy-commands.js",
     "pm2:start": "pm2 start ecosystem.config.js",
@@ -35,6 +36,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hapi/boom": "^10.0.1",
+    "@notionhq/client": "^5.9.0",
     "@whiskeysockets/baileys": "^7.0.0-rc.9",
     "discord.js": "^14.25.1",
     "dotenv": "^16.6.1",

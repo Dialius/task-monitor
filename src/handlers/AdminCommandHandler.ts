@@ -10,6 +10,8 @@ import { ScheduleService } from '../services/ScheduleService';
 import { PiketService, StudentInfo } from '../services/PiketService';
 import { AnnouncementService } from '../services/AnnouncementService';
 import { AIService } from '../services/AIService';
+import { NotionService } from '../services/NotionService';
+import { formatDailyRecap, formatWeeklyRecap } from '../utils/RecapFormatter';
 import { Validator } from '../utils/Validator';
 import { getLogger } from '../utils/Logger';
 
@@ -21,7 +23,8 @@ export class AdminCommandHandler {
     private scheduleService: ScheduleService,
     private piketService: PiketService,
     private announcementService: AnnouncementService,
-    private aiService: AIService
+    private aiService: AIService,
+    private notionService: NotionService
   ) {}
 
   /**
@@ -71,6 +74,25 @@ export class AdminCommandHandler {
         created_by: userId
       });
 
+      // Sync to Notion if enabled
+      if (this.notionService.isEnabled()) {
+        const notionId = await this.notionService.addTaskToNotion({
+          judul: task.judul,
+          mata_pelajaran: task.mata_pelajaran,
+          deskripsi: task.deskripsi,
+          deadline: task.deadline,
+          tipe: task.tipe,
+          prioritas: task.prioritas,
+          created_by: userId
+        });
+
+        if (notionId) {
+          // Update MongoDB task with Notion ID
+          await this.taskService.updateTask(task._id.toString(), 'notion_id', notionId);
+          logger.info('Task synced to Notion', { taskId: task._id, notionId });
+        }
+      }
+
       const deadlineFormatted = new Date(task.deadline).toLocaleDateString('id-ID', { 
         weekday: 'short', 
         day: 'numeric', 
@@ -79,7 +101,7 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ *Tugas ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(task.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`\n\n💡 Gunakan ID untuk edit/hapus`
+        message: `✅ *Tugas ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(task.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`\n\n💡 Gunakan ID untuk edit/hapus${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`
       };
     } catch (error) {
       logger.error('Failed to add task', error as Error);
@@ -585,6 +607,124 @@ export class AdminCommandHandler {
       return {
         success: false,
         message: '❌ Gagal mengirim broadcast urgent.'
+      };
+    }
+  }
+
+  /**
+   * Handle /test_reminder command - Test reminder output
+   * Format: /test_reminder | type (daily/weekly/monday)
+   */
+  async handleTestReminder(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      const type = args[0]?.toLowerCase() || 'daily';
+
+      if (!['daily', 'weekly', 'monday'].includes(type)) {
+        return {
+          success: false,
+          message: '❌ Tipe tidak valid!\n\nGunakan: /test_reminder | daily/weekly/monday\n\nContoh:\n• /test_reminder | daily\n• /test_reminder | weekly\n• /test_reminder | monday'
+        };
+      }
+
+      // Get tasks from database
+      const tasks = await this.taskService.getTasks();
+
+      if (tasks.length === 0) {
+        return {
+          success: false,
+          message: '❌ Tidak ada tugas di database!\n\n💡 Tambah tugas dulu dengan /add_tugas'
+        };
+      }
+
+      let message: string;
+
+      if (type === 'daily') {
+        // Get tomorrow's date
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Filter tasks for tomorrow
+        const tomorrowTasks = tasks.filter(task => {
+          const taskDate = new Date(task.deadline);
+          return taskDate.toDateString() === tomorrow.toDateString();
+        });
+
+        if (tomorrowTasks.length === 0) {
+          message = formatDailyRecap({ date: tomorrow, tasks: [], schedules: [] });
+          message += '\n\n⚠️ Tidak ada tugas untuk besok di database';
+        } else {
+          message = formatDailyRecap({ date: tomorrow, tasks: tomorrowTasks, schedules: [] });
+        }
+      } else if (type === 'weekly') {
+        // Get next week's tasks
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(nextWeek.getDate() + 7);
+
+        const weekTasks = tasks.filter(task => {
+          const taskDate = new Date(task.deadline);
+          return taskDate >= today && taskDate <= nextWeek;
+        });
+
+        // Group tasks by day
+        const tasksByDay = new Map<string, any[]>();
+        weekTasks.forEach(task => {
+          const taskDate = new Date(task.deadline);
+          const dayKey = taskDate.toISOString().split('T')[0];
+          if (!tasksByDay.has(dayKey)) {
+            tasksByDay.set(dayKey, []);
+          }
+          tasksByDay.get(dayKey)!.push(task);
+        });
+
+        const weekNumber = Math.ceil(today.getDate() / 7);
+        const month = today.toLocaleDateString('id-ID', { month: 'short' });
+
+        if (weekTasks.length === 0) {
+          message = formatWeeklyRecap({ 
+            weekNumber, 
+            month, 
+            year: today.getFullYear(), 
+            tasksByDay 
+          });
+          message += '\n\n⚠️ Tidak ada tugas untuk minggu depan di database';
+        } else {
+          message = formatWeeklyRecap({ 
+            weekNumber, 
+            month, 
+            year: today.getFullYear(), 
+            tasksByDay 
+          });
+        }
+      } else { // monday
+        // Get next Monday's tasks
+        const today = new Date();
+        const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
+        const nextMonday = new Date(today);
+        nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
+
+        const mondayTasks = tasks.filter(task => {
+          const taskDate = new Date(task.deadline);
+          return taskDate.toDateString() === nextMonday.toDateString();
+        });
+
+        if (mondayTasks.length === 0) {
+          message = formatDailyRecap({ date: nextMonday, tasks: [], schedules: [] });
+          message += '\n\n⚠️ Tidak ada tugas untuk hari Senin di database';
+        } else {
+          message = formatDailyRecap({ date: nextMonday, tasks: mondayTasks, schedules: [] });
+        }
+      }
+
+      return {
+        success: true,
+        message: `🧪 *TEST REMINDER OUTPUT*\n\nTipe: ${type.toUpperCase()}\nTotal tugas di DB: ${tasks.length}\n\n━━━━━━━━━━━━━━━━━━\n\n${message}\n\n━━━━━━━━━━━━━━━━━━\n\n✅ Preview berhasil!\n💡 Ini adalah preview format reminder yang akan dikirim otomatis.`
+      };
+    } catch (error) {
+      logger.error('Failed to test reminder', error as Error);
+      return {
+        success: false,
+        message: '❌ Gagal generate test reminder. Silakan coba lagi.'
       };
     }
   }

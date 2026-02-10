@@ -133,6 +133,9 @@ export class PermissionService {
   /**
    * Check if user has admin role
    * Requirement: 1.2
+   * 
+   * For WhatsApp channels/groups: All admins are allowed
+   * For Discord: Check database
    */
   async isAdmin(userIdentifier: string, platform: Platform): Promise<boolean> {
     const key = this.getCacheKey(userIdentifier, platform);
@@ -151,6 +154,16 @@ export class PermissionService {
         });
         return true;
       }
+      
+      // For WhatsApp: Allow all users (assume they are admins if in channel)
+      // This is because WhatsApp channels don't have easy admin detection
+      if (platform === 'whatsapp') {
+        logger.info('WhatsApp user not in database, allowing as admin', {
+          userIdentifier
+        });
+        return true;
+      }
+      
       return false;
     }
 
@@ -160,6 +173,9 @@ export class PermissionService {
   /**
    * Get user role
    * Requirement: 1.2
+   * 
+   * For WhatsApp: Default to 'ketua' if not in database
+   * For Discord: Check database or return null
    */
   async getUserRole(userIdentifier: string, platform: Platform): Promise<UserRole | null> {
     const key = this.getCacheKey(userIdentifier, platform);
@@ -187,6 +203,15 @@ export class PermissionService {
           nama: member.nama
         });
         return 'member';
+      }
+
+      // For WhatsApp: Default to 'ketua' (full access)
+      // This allows all channel members to use all commands
+      if (platform === 'whatsapp') {
+        logger.info('WhatsApp user not in database, defaulting to ketua role', {
+          userIdentifier
+        });
+        return 'ketua';
       }
 
       return null;

@@ -1,6 +1,12 @@
 /**
  * Reminder Scheduler
  * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
+ * 
+ * Schedule:
+ * - Senin-Kamis: 16:00 (tugas besok)
+ * - Jumat: 16:00 (tugas minggu depan - Senin s/d Jumat)
+ * - Minggu: 16:00 (tugas hari Senin)
+ * - Sabtu: Tidak ada reminder
  */
 
 import cron from 'node-cron';
@@ -8,9 +14,17 @@ import { TaskService } from './TaskService';
 import { ScheduleService } from './ScheduleService';
 import { PiketService } from './PiketService';
 import { AnnouncementService } from './AnnouncementService';
-import { AIService, RecapData } from './AIService';
+import { AIService } from './AIService';
+import { NotionService } from './NotionService';
 import { PlatformAdapter } from '../adapters/PlatformAdapter';
 import { getLogger } from '../utils/Logger';
+import { 
+  formatDailyRecap, 
+  formatWeeklyRecap, 
+  getWeekOfMonth,
+  DailyRecapData,
+  WeeklyRecapData
+} from '../utils/RecapFormatter';
 
 const logger = getLogger();
 
@@ -28,26 +42,35 @@ export interface SchedulerConfig {
 export class ReminderScheduler {
   private dailyJob: cron.ScheduledTask | null = null;
   private weeklyJob: cron.ScheduledTask | null = null;
+  private sundayJob: cron.ScheduledTask | null = null;
 
   constructor(
     private taskService: TaskService,
     private scheduleService: ScheduleService,
-    private piketService: PiketService,
-    private announcementService: AnnouncementService,
-    private aiService: AIService,
+    _piketService: PiketService, // Reserved for future use
+    _announcementService: AnnouncementService, // Reserved for future use
+    _aiService: AIService, // Reserved for future use
     private platformAdapter: PlatformAdapter,
-    private config: SchedulerConfig
+    private config: SchedulerConfig,
+    private notionService: NotionService
   ) {}
 
   /**
    * Initialize cron jobs
    * Requirement: 6.1, 7.1
+   * 
+   * Schedule:
+   * - Senin-Kamis (1-4): 16:00 - Daily recap (tugas besok)
+   * - Jumat (5): 16:00 - Weekly recap (tugas minggu depan Senin-Jumat)
+   * - Minggu (0): 16:00 - Monday recap (tugas hari Senin)
+   * - Sabtu (6): Tidak ada reminder
    */
   initialize(): void {
     try {
-      // Setup daily reminder
-      const [dailyHour, dailyMinute] = this.config.dailyReminderTime.split(':');
-      const dailyCron = `${dailyMinute} ${dailyHour} * * *`;
+      // Setup daily reminder (Senin-Kamis jam 16:00)
+      // Cron: minute hour * * day-of-week
+      // Day: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis
+      const dailyCron = '0 16 * * 1-4'; // 16:00 Senin-Kamis
 
       this.dailyJob = cron.schedule(dailyCron, async () => {
         await this.sendDailyRecap();
@@ -55,14 +78,13 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Daily reminder scheduled', {
-        time: this.config.dailyReminderTime,
+      logger.info('Daily reminder scheduled (Mon-Thu 16:00)', {
+        cron: dailyCron,
         timezone: this.config.timezone
       });
 
-      // Setup weekly reminder
-      const [weeklyHour, weeklyMinute] = this.config.weeklyReminderTime.split(':');
-      const weeklyCron = `${weeklyMinute} ${weeklyHour} * * ${this.config.weeklyReminderDay}`;
+      // Setup weekly reminder (Jumat jam 16:00)
+      const weeklyCron = '0 16 * * 5'; // 16:00 Jumat
 
       this.weeklyJob = cron.schedule(weeklyCron, async () => {
         await this.sendWeeklyRecap();
@@ -70,9 +92,22 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Weekly reminder scheduled', {
-        day: this.config.weeklyReminderDay,
-        time: this.config.weeklyReminderTime,
+      logger.info('Weekly reminder scheduled (Fri 16:00)', {
+        cron: weeklyCron,
+        timezone: this.config.timezone
+      });
+
+      // Setup Sunday reminder (Minggu jam 16:00 - untuk tugas Senin)
+      const sundayCron = '0 16 * * 0'; // 16:00 Minggu
+
+      this.sundayJob = cron.schedule(sundayCron, async () => {
+        await this.sendMondayRecap();
+      }, {
+        timezone: this.config.timezone
+      });
+
+      logger.info('Sunday reminder scheduled (Sun 16:00 - Monday tasks)', {
+        cron: sundayCron,
         timezone: this.config.timezone
       });
     } catch (error) {
@@ -88,6 +123,13 @@ export class ReminderScheduler {
   async sendDailyRecap(): Promise<void> {
     try {
       logger.info('Generating daily recap');
+
+      // Sync from Notion first
+      if (this.notionService.isEnabled()) {
+        logger.info('Syncing tasks from Notion...');
+        const syncResult = await this.notionService.syncFromNotion();
+        logger.info('Notion sync completed', syncResult);
+      }
 
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -110,6 +152,13 @@ export class ReminderScheduler {
     try {
       logger.info('Generating weekly recap');
 
+      // Sync from Notion first
+      if (this.notionService.isEnabled()) {
+        logger.info('Syncing tasks from Notion...');
+        const syncResult = await this.notionService.syncFromNotion();
+        logger.info('Notion sync completed', syncResult);
+      }
+
       const today = new Date();
       const recap = await this.buildWeeklyRecap(today);
 
@@ -122,31 +171,44 @@ export class ReminderScheduler {
   }
 
   /**
+   * Generate and send Monday recap (sent on Sunday)
+   */
+  async sendMondayRecap(): Promise<void> {
+    try {
+      logger.info('Generating Monday recap (sent on Sunday)');
+
+      // Get next Monday (tomorrow from Sunday)
+      const monday = new Date();
+      monday.setDate(monday.getDate() + 1);
+
+      const recap = await this.buildDailyRecap(monday);
+
+      await this.platformAdapter.sendMessage(this.config.groupId, recap);
+
+      logger.info('Monday recap sent successfully');
+    } catch (error) {
+      logger.error('Failed to send Monday recap', error as Error);
+    }
+  }
+
+  /**
    * Build daily recap message
    * Requirement: 6.3, 6.4, 6.5, 6.6, 6.7, 6.8
    */
-  async buildDailyRecap(_date: Date): Promise<string> {
+  async buildDailyRecap(date: Date): Promise<string> {
     try {
-      // Get tomorrow's data
-      const schedules = await this.scheduleService.getTomorrowSchedule();
-      const tasks = await this.taskService.getTasksForToday();
-      const piket = await this.piketService.getTomorrowPiket();
-      const announcements = await this.announcementService.getTomorrowAnnouncements();
+      // Get tomorrow's tasks
+      const tasks = await this.taskService.getTasksForDate(date);
+      const schedules = await this.scheduleService.getScheduleForDate(date);
 
-      // Check if there's any data
-      if (schedules.length === 0 && tasks.length === 0 && !piket && announcements.length === 0) {
-        return '📅 *Recap Harian*\n\nTidak ada jadwal, tugas, atau pengumuman untuk besok. Enjoy your day! 🎉';
-      }
-
-      const recapData: RecapData = {
+      const recapData: DailyRecapData = {
+        date,
         tasks,
-        schedules,
-        piket: piket ? [piket] : [],
-        announcements
+        schedules
       };
 
-      // Format with AI
-      const formatted = await this.aiService.formatRecap(recapData, 'daily');
+      // Format using custom formatter
+      const formatted = formatDailyRecap(recapData);
 
       return formatted;
     } catch (error) {
@@ -159,34 +221,37 @@ export class ReminderScheduler {
    * Build weekly recap message
    * Requirement: 7.3, 7.4, 7.5, 7.6, 7.7
    */
-  async buildWeeklyRecap(_startDate: Date): Promise<string> {
+  async buildWeeklyRecap(startDate: Date): Promise<string> {
     try {
-      // Get next week's data
-      const tasks = await this.taskService.getTasksForWeek();
-      const announcements = await this.announcementService.getWeekAnnouncements();
+      // Get next week's tasks (Senin-Jumat)
+      const nextMonday = this.getNextMonday(startDate);
+      const tasksByDay = new Map<string, any[]>();
 
-      // Calculate statistics
-      const statistics = {
-        totalTasks: tasks.length,
-        tasksByType: this.groupBy(tasks, 'tipe'),
-        tasksByPriority: this.groupBy(tasks, 'prioritas')
-      };
-
-      // Check if there's any data
-      if (tasks.length === 0 && announcements.length === 0) {
-        return '📊 *Recap Mingguan*\n\nTidak ada tugas atau pengumuman untuk minggu depan. Have a great week! 🎉';
+      // Get tasks for each day (Senin-Jumat)
+      const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+      
+      for (let i = 0; i < 5; i++) {
+        const date = new Date(nextMonday);
+        date.setDate(date.getDate() + i);
+        
+        const tasks = await this.taskService.getTasksForDate(date);
+        tasksByDay.set(days[i], tasks);
       }
 
-      const recapData: RecapData = {
-        tasks,
-        schedules: [],
-        piket: [],
-        announcements,
-        statistics
+      const weekNumber = getWeekOfMonth(nextMonday);
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const month = monthNames[nextMonday.getMonth()];
+      const year = nextMonday.getFullYear();
+
+      const recapData: WeeklyRecapData = {
+        weekNumber,
+        month,
+        year,
+        tasksByDay
       };
 
-      // Format with AI
-      const formatted = await this.aiService.formatRecap(recapData, 'weekly');
+      // Format using custom formatter
+      const formatted = formatWeeklyRecap(recapData);
 
       return formatted;
     } catch (error) {
@@ -196,14 +261,18 @@ export class ReminderScheduler {
   }
 
   /**
-   * Helper: Group array by field
+   * Get next Monday from given date
    */
-  private groupBy(array: any[], field: string): Record<string, number> {
-    return array.reduce((acc, item) => {
-      const key = item[field];
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {});
+  private getNextMonday(date: Date): Date {
+    const result = new Date(date);
+    const day = result.getDay();
+    
+    // If today is Friday (5), next Monday is 3 days away
+    // If today is other day, calculate days until next Monday
+    const daysUntilMonday = day === 5 ? 3 : (8 - day) % 7;
+    
+    result.setDate(result.getDate() + daysUntilMonday);
+    return result;
   }
 
   /**
@@ -218,6 +287,11 @@ export class ReminderScheduler {
     if (this.weeklyJob) {
       this.weeklyJob.stop();
       logger.info('Weekly reminder stopped');
+    }
+
+    if (this.sundayJob) {
+      this.sundayJob.stop();
+      logger.info('Sunday reminder stopped');
     }
   }
 }
