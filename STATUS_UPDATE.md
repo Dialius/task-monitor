@@ -39,16 +39,23 @@ Database Notion (`3030a8e24bf6807bb826d8667d0764b0`) tidak memiliki properties s
 
 | Property Name | Type | Options (untuk Select) |
 |--------------|------|------------------------|
-| Judul | Title | - |
-| Mata Pelajaran | Select | Matematika, Fisika, Kimia, Biologi, Bahasa Indonesia, Bahasa Inggris, Sejarah, Geografi, Ekonomi, Sosiologi, PJOK, Seni Budaya, Prakarya, PKN, Agama, MP/MK, Lainnya |
-| Deskripsi | Rich Text | - |
-| Deadline | Date | - |
-| Tipe | Select | Tugas, PR, Proyek, Ujian, Kuis, Presentasi, Laporan, Lainnya |
-| Prioritas | Select | urgent, tinggi, normal, rendah |
-| Status | Select | aktif, selesai, dibatalkan |
-| Link Pengumpulan | URL | - |
-| Catatan | Rich Text | - |
-| Created By | Rich Text | - |
+| Judul | **Title** | - |
+| Mata Pelajaran | **Select** | Matematika, Fisika, Kimia, Biologi, Bahasa Indonesia, Bahasa Inggris, Sejarah, Geografi, Ekonomi, Sosiologi, PJOK, Seni Budaya, Prakarya, PKN, Agama, MP/MK, Lainnya |
+| Deskripsi | **Text** | - |
+| Deadline | **Date** | - |
+| Tipe | **Select** | Tugas, PR, Proyek, Ujian, Kuis, Presentasi, Laporan, Lainnya |
+| Prioritas | **Select** | urgent, tinggi, normal, rendah |
+| Status | **Select** | aktif, selesai, dibatalkan |
+| Link Pengumpulan | **URL** | - |
+| Catatan | **Text** | - |
+| Created By | **Text** | - |
+
+**Catatan Type:**
+- **Title** = Property utama yang jadi judul page (hanya 1 per database)
+- **Text** = Rich text untuk teks panjang dengan formatting
+- **Select** = Dropdown dengan 1 pilihan (single select)
+- **Date** = Tanggal dengan/tanpa waktu
+- **URL** = Link/URL yang bisa diklik
 
 3. Setelah selesai, test dengan command:
 ```
@@ -142,3 +149,36 @@ Setelah fix Notion properties, test dengan:
 1. Add properties to Notion database (5 minutes)
 2. Test `/add_tugas` command
 3. Done! 🎉
+
+---
+
+## 📚 Referensi: Notion API Property Types
+
+Berdasarkan [dokumentasi resmi Notion API](https://developers.notion.com/reference/property-object), property types yang valid:
+
+### Yang Digunakan Bot:
+- **title** - Property utama (hanya 1 per database)
+- **rich_text** - Teks dengan formatting (di UI: "Text")
+- **select** - Dropdown 1 pilihan
+- **date** - Tanggal dengan/tanpa waktu
+- **url** - Link yang bisa diklik
+
+### Property Types Lain yang Tersedia:
+- **multi_select** - Dropdown multiple pilihan
+- **number** - Angka dengan format (currency, percent, dll)
+- **checkbox** - True/false
+- **email** - Email address
+- **phone_number** - Nomor telepon
+- **people** - Mention user Notion
+- **files** - Upload file
+- **formula** - Kalkulasi otomatis
+- **relation** - Link ke database lain
+- **rollup** - Aggregate dari relation
+- **created_time** - Timestamp otomatis
+- **created_by** - User pembuat
+- **last_edited_time** - Timestamp edit terakhir
+- **last_edited_by** - User edit terakhir
+- **status** - Status dengan grouping
+
+**Referensi:** [Notion API Property Object](https://developers.notion.com/reference/property-object)  
+Content rephrased for compliance with licensing restrictions.

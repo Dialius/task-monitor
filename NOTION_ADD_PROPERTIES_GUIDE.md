@@ -17,14 +17,14 @@ Menambahkan properties yang dibutuhkan bot ke database Notion yang sudah ada.
 
 Klik tombol **"+ Add a property"** atau **"+ New property"** di header tabel.
 
-#### Property 1: Judul (Title)
+#### Property 1: Judul (Title) ⭐
 - **Name:** `Judul`
-- **Type:** `Title`
+- **Type:** `Title` (ini adalah property utama, hanya 1 per database)
 - Klik "Create"
 
 #### Property 2: Mata Pelajaran (Select)
 - **Name:** `Mata Pelajaran`
-- **Type:** `Select`
+- **Type:** `Select` (dropdown dengan 1 pilihan)
 - **Options:** Tambahkan satu per satu:
   - Matematika
   - Fisika
@@ -44,13 +44,14 @@ Klik tombol **"+ Add a property"** atau **"+ New property"** di header tabel.
   - MP/MK
   - Lainnya
 
-#### Property 3: Deskripsi (Rich Text)
+#### Property 3: Deskripsi (Text)
 - **Name:** `Deskripsi`
-- **Type:** `Text`
+- **Type:** `Text` (di Notion UI mungkin tertulis "Text" atau "Rich text")
+- Ini untuk teks panjang dengan formatting
 
 #### Property 4: Deadline (Date)
 - **Name:** `Deadline`
-- **Type:** `Date`
+- **Type:** `Date` (tanggal dengan/tanpa waktu)
 
 #### Property 5: Tipe (Select)
 - **Name:** `Tipe`
@@ -84,15 +85,15 @@ Klik tombol **"+ Add a property"** atau **"+ New property"** di header tabel.
 
 #### Property 8: Link Pengumpulan (URL)
 - **Name:** `Link Pengumpulan`
-- **Type:** `URL`
+- **Type:** `URL` (link yang bisa diklik)
 
-#### Property 9: Catatan (Rich Text)
+#### Property 9: Catatan (Text)
 - **Name:** `Catatan`
-- **Type:** `Text`
+- **Type:** `Text` (di Notion UI mungkin tertulis "Text" atau "Rich text")
 
-#### Property 10: Created By (Rich Text)
+#### Property 10: Created By (Text)
 - **Name:** `Created By`
-- **Type:** `Text`
+- **Type:** `Text` (di Notion UI mungkin tertulis "Text" atau "Rich text")
 
 ### 3. Verifikasi Properties
 
@@ -209,3 +210,65 @@ Urutan yang recommended:
 Setelah semua properties ditambahkan, bot akan otomatis sync tugas ke Notion setiap kali ada command `/add_tugas`.
 
 Cek di Notion untuk melihat tugas yang ditambahkan dari bot!
+
+---
+
+## 📚 Penjelasan Property Types di Notion
+
+Berdasarkan [dokumentasi resmi Notion API](https://developers.notion.com/reference/property-object), berikut adalah property types yang tersedia:
+
+### Property Types yang Digunakan Bot:
+
+1. **Title** - Property utama yang jadi judul page
+   - Hanya boleh 1 Title property per database
+   - Otomatis jadi nama page saat dibuka
+   - Di UI Notion: "Title"
+
+2. **Text** (Rich Text) - Teks dengan formatting
+   - Bisa bold, italic, link, dll
+   - Untuk deskripsi panjang
+   - Di UI Notion: "Text" atau "Rich text"
+
+3. **Select** - Dropdown dengan 1 pilihan
+   - User hanya bisa pilih 1 option
+   - Bisa custom warna per option
+   - Di UI Notion: "Select"
+
+4. **Date** - Tanggal dengan/tanpa waktu
+   - Bisa date only atau date + time
+   - Bisa date range (start - end)
+   - Di UI Notion: "Date"
+
+5. **URL** - Link yang bisa diklik
+   - Otomatis jadi hyperlink
+   - Validasi format URL
+   - Di UI Notion: "URL"
+
+### Property Types Lain yang Tersedia (tidak dipakai bot):
+
+- **Multi-select** - Dropdown dengan multiple pilihan
+- **Number** - Angka dengan berbagai format (currency, percent, dll)
+- **Checkbox** - True/false checkbox
+- **Email** - Email address
+- **Phone** - Nomor telepon
+- **People** - Mention user Notion
+- **Files** - Upload file atau link file
+- **Formula** - Kalkulasi otomatis
+- **Relation** - Link ke database lain
+- **Rollup** - Aggregate data dari relation
+- **Created time** - Timestamp otomatis saat dibuat
+- **Created by** - User yang buat page
+- **Last edited time** - Timestamp terakhir edit
+- **Last edited by** - User terakhir edit
+- **Status** - Status dengan grouping (seperti Kanban)
+
+### Perbedaan Select vs Multi-select:
+
+- **Select**: User pilih 1 option saja (contoh: Prioritas = "urgent")
+- **Multi-select**: User bisa pilih banyak option (contoh: Tags = ["penting", "deadline-dekat", "kelompok"])
+
+Bot menggunakan **Select** karena setiap tugas hanya punya 1 mata pelajaran, 1 prioritas, 1 status, dll.
+
+### Referensi:
+- [Notion API Property Object Reference](https://developers.notion.com/reference/property-object)
+- Content rephrased for compliance with licensing restrictions
