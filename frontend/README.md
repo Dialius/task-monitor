@@ -2,6 +2,8 @@
 
 Dashboard web untuk monitoring dan kontrol bot Task Monitor. Dibangun dengan React 19, TypeScript, Vite, dan Tailwind CSS.
 
+🚀 **Auto-Deploy Enabled** - Push to GitHub = Auto-deploy to Hostinger!
+
 ## 🚀 Tech Stack
 
 - **React 19** - UI library
