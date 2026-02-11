@@ -6,6 +6,8 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
+import { Server as SocketIOServer } from 'socket.io';
+import { SocketIOTransport } from '../api/transports/winston-socketio.transport';
 
 export interface LoggerConfig {
   logDir: string;
@@ -16,6 +18,7 @@ export interface LoggerConfig {
 export class Logger {
   private logger: winston.Logger;
   private config: LoggerConfig;
+  private socketTransport?: SocketIOTransport;
 
   constructor(config: LoggerConfig) {
     this.config = config;
@@ -143,6 +146,42 @@ export class Logger {
   async rotateLogs(): Promise<void> {
     // Winston daily rotate file handles rotation automatically
     this.logger.info('Log rotation check completed');
+  }
+
+  /**
+   * Add Socket.io transport for real-time logging
+   */
+  addSocketIOTransport(io: SocketIOServer): void {
+    if (this.socketTransport) {
+      this.logger.warn('Socket.io transport already added');
+      console.log('   ⚠ Socket.io transport already exists');
+      return;
+    }
+
+    console.log('   → Adding Socket.io transport to Winston logger...');
+    
+    this.socketTransport = new SocketIOTransport({
+      io,
+      room: 'logs',
+      level: this.config.logLevel
+    });
+
+    this.logger.add(this.socketTransport);
+    console.log('   ✓ Socket.io transport added successfully');
+    console.log('   ✓ Logs will be streamed to dashboard in real-time');
+    
+    // Test log to verify it works
+    this.logger.info('Real-time logging initialized - this message should appear in dashboard');
+  }
+
+  /**
+   * Get buffered logs from Socket.io transport
+   */
+  getBufferedLogs(): any[] {
+    if (!this.socketTransport) {
+      return [];
+    }
+    return this.socketTransport.getBufferedLogs();
   }
 }
 

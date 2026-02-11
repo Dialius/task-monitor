@@ -25,6 +25,7 @@ import { DiscordClient } from './clients/DiscordClient';
 import { BaileysClient } from './clients/BaileysClient';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
+import { BotMonitorService } from './api/services/bot-monitor.service';
 
 // Load environment variables
 dotenv.config();
@@ -422,6 +423,12 @@ class MultiPlatformBot {
           return;
         }
 
+        // Update message count
+        BotMonitorService.updateState({
+          messageCount: (BotMonitorService.getState().messageCount || 0) + 1,
+          lastActivity: new Date()
+        });
+
         // Extract text from message
         const text = message.message?.conversation || 
                     message.message?.extendedTextMessage?.text ||
@@ -444,6 +451,11 @@ class MultiPlatformBot {
           if (ConfirmationService.hasPendingConfirmation(senderId)) {
             // Treat as confirmation response to add_tugas_cepat
             console.log(`📨 WhatsApp confirmation response: "${text}" from ${senderId}`);
+            
+            // Update command count
+            BotMonitorService.updateState({
+              commandCount: (BotMonitorService.getState().commandCount || 0) + 1
+            });
             
             const response = await this.commandRouter.route(
               {
@@ -468,6 +480,11 @@ class MultiPlatformBot {
 
         console.log(`📨 WhatsApp command: /${parsed.command} from ${senderId}`);
 
+        // Update command count
+        BotMonitorService.updateState({
+          commandCount: (BotMonitorService.getState().commandCount || 0) + 1
+        });
+
         // Route command
         const response = await this.commandRouter.route(
           parsed,
@@ -487,6 +504,12 @@ class MultiPlatformBot {
       console.log('      ✓ WhatsApp connected');
       console.log('      ✓ Commands enabled - bot can add tasks');
       console.log('      ✓ Reminders enabled - auto sync from Notion');
+      
+      // Update bot monitor status
+      BotMonitorService.updateState({
+        whatsappConnected: true,
+        lastActivity: new Date()
+      });
       
       if (process.env.WHATSAPP_GROUP_ID) {
         console.log(`      ✓ Target channel: ${process.env.WHATSAPP_GROUP_ID}`);
@@ -632,74 +655,49 @@ class MultiPlatformBot {
   }
 
   /**
+  /**
    * Stop bot
    */
   async stop(): Promise<void> {
     this.logger.info('Stopping bot...');
+    
+    try {
+      // Stop scheduler
+      if (this.reminderScheduler) {
+        this.reminderScheduler.stop();
+      }
 
-    if (this.reminderScheduler) {
-      this.reminderScheduler.stop();
+      // Stop change detection
+      if (this.changeDetectionService) {
+        this.changeDetectionService.stop();
+      }
+
+      // Disconnect clients
+      if (this.whatsappClient) {
+        await this.whatsappClient.disconnect();
+      }
+
+      if (this.discordClient) {
+        await this.discordClient.disconnect();
+      }
+
+      // Update monitor state
+      BotMonitorService.updateState({
+        whatsappConnected: false,
+        discordConnected: false
+      });
+
+      this.logger.info('Bot stopped successfully');
+      console.log('\n✅ Bot stopped successfully\n');
+    } catch (error) {
+      this.logger.error('Error stopping bot', error as Error);
+      throw error;
     }
-
-    if (this.changeDetectionService) {
-      this.changeDetectionService.stop();
-    }
-
-    if (this.discordClient) {
-      await this.discordClient.disconnect();
-    }
-
-    if (this.whatsappClient) {
-      await this.whatsappClient.disconnect();
-    }
-
-    this.logger.info('Bot stopped');
   }
 }
 
-// Create and start bot
-const bot = new MultiPlatformBot();
-const logger = getLogger();
+// Export class for use by BotManagerService
+export { MultiPlatformBot };
 
-// Global error handlers (Requirement 17.1: 12.7)
-process.on('uncaughtException', (error: Error) => {
-  logger.error('Uncaught Exception - Bot will continue operation', error);
-  console.error('❌ Uncaught Exception:', error);
-  // Log but don't exit - bot should continue operation
-});
-
-process.on('unhandledRejection', (reason: any) => {
-  const errorMessage = reason instanceof Error ? reason.message : String(reason);
-  const errorStack = reason instanceof Error ? reason.stack : undefined;
-  
-  logger.error('Unhandled Promise Rejection - Bot will continue operation', 
-    new Error(`Unhandled Rejection: ${errorMessage}`)
-  );
-  
-  console.error('❌ Unhandled Rejection:', reason);
-  if (errorStack) {
-    console.error('Stack:', errorStack);
-  }
-  // Log but don't exit - bot should continue operation
-});
-
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\nReceived SIGINT, shutting down gracefully...');
-  await bot.stop();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('\nReceived SIGTERM, shutting down gracefully...');
-  await bot.stop();
-  process.exit(0);
-});
-
-// Start bot
-bot.start().catch((error) => {
-  console.error('Failed to start bot:', error);
-  process.exit(1);
-});
-
-export default bot;
+// Note: Bot will NOT start automatically
+// Use dashboard or BotManagerService to start/stop bot
