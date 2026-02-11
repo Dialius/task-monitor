@@ -47,20 +47,27 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
 
     // Validate input
     if (!username || !password) {
+      logger.warn('Login attempt with missing credentials');
       res.status(400).json({ error: 'Username and password required' });
       return;
     }
 
+    logger.info(`Login attempt for user: ${username}`);
+
     // Find user
     const user = await User.findOne({ username });
     if (!user) {
+      logger.warn(`Login failed: User not found - ${username}`);
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 
+    logger.info(`User found: ${username}, checking password...`);
+
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      logger.warn(`Login failed: Invalid password for user - ${username}`);
       res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
@@ -69,7 +76,7 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
     const token = generateToken(user._id.toString(), user.username, user.role);
     const refreshToken = generateRefreshToken(user._id.toString());
 
-    logger.info(`User logged in: ${username}`);
+    logger.info(`User logged in successfully: ${username}`);
 
     res.json({
       token,
@@ -81,8 +88,12 @@ export const login = async (req: AuthRequest, res: Response): Promise<void> => {
       }
     });
   } catch (error: any) {
-    logger.error('Login error', error);
-    res.status(500).json({ error: 'Login failed' });
+    logger.error('Login error:', error);
+    logger.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Login failed',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
