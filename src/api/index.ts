@@ -9,6 +9,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { getLogger } from '../utils/Logger';
+import mongoose from 'mongoose';
 
 // Routes
 import authRoutes from './routes/auth.routes';
@@ -133,6 +134,23 @@ export class APIServer {
    * Start API server
    */
   async start(): Promise<void> {
+    // Connect to MongoDB first
+    try {
+      const mongoUri = process.env.MONGODB_URI;
+      if (!mongoUri) {
+        throw new Error('MONGODB_URI not found in environment variables');
+      }
+
+      console.log('   → Connecting to MongoDB...');
+      await mongoose.connect(mongoUri);
+      logger.info('MongoDB connected successfully');
+      console.log('   ✓ MongoDB connected');
+    } catch (error) {
+      logger.error('MongoDB connection failed', error as Error);
+      console.error('   ✗ MongoDB connection failed:', error);
+      throw error;
+    }
+
     return new Promise((resolve) => {
       this.httpServer.listen(this.port, async () => {
         logger.info(`API server started on port ${this.port}`);
