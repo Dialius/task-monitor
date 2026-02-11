@@ -23,6 +23,9 @@ import { setupWebSocket } from './websocket';
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
 
+// Bootstrap
+import { createDefaultDashboardUser } from './utils/bootstrap';
+
 const logger = getLogger();
 
 export class APIServer {
@@ -131,10 +134,14 @@ export class APIServer {
    */
   async start(): Promise<void> {
     return new Promise((resolve) => {
-      this.httpServer.listen(this.port, () => {
+      this.httpServer.listen(this.port, async () => {
         logger.info(`API server started on port ${this.port}`);
         console.log(`   ✓ API server: http://localhost:${this.port}`);
         console.log(`   ✓ WebSocket server: ws://localhost:${this.port}`);
+        
+        // Create default dashboard user if none exists
+        await createDefaultDashboardUser();
+        
         resolve();
       });
     });
