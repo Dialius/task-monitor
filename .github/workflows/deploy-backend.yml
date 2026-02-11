@@ -42,6 +42,17 @@ jobs:
           command_timeout: 30m
           timeout: 30m
           script: |
+            # Load NVM (Node Version Manager)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            # Use Node.js 20
+            nvm use 20 || nvm use default
+            
+            # Verify Node.js and npm are available
+            echo "📦 Node.js version: $(node -v)"
+            echo "📦 npm version: $(npm -v)"
+            
             # Navigate to backend directory
             cd /home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html/api
             
@@ -52,6 +63,10 @@ jobs:
             # Install dependencies
             echo "📦 Installing dependencies..."
             npm install --production
+            
+            # Install TypeScript type definitions (needed for build)
+            echo "📦 Installing type definitions..."
+            npm install --save-dev @types/express @types/jsonwebtoken @types/bcrypt @types/node @types/cors typescript
             
             # Build backend
             echo "🔨 Building backend..."
@@ -67,7 +82,7 @@ jobs:
             
             # Set permissions
             chmod -R 755 dist
-            find dist -type f -exec chmod 644 {} \;
+            find dist -type f -exec chmod 644 {} \; 2>/dev/null || true
             
             # Restart PM2 process
             echo "🔄 Restarting bot..."
