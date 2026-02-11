@@ -161,7 +161,22 @@ npm start
 npm run dev
 ```
 
-### 7. WhatsApp Authentication (Jika Menggunakan WhatsApp)
+```
+
+### 7. Deployment (Hostinger)
+
+Project ini telah dikonfigurasi untuk deployment otomatis di Hostinger.
+
+**PENTING:**
+Default `npm run build` di root folder sekarang akan **membangun Frontend (Dashboard)**.
+Ini disesuaikan agar Hostinger App Platform dapat mendeteksi dan membangun website dashboard secara otomatis.
+
+**Build Commands:**
+- `npm run build`: Build Frontend (Dashboard) -> Digunakan Hostinger
+- `npm run build:backend`: Build Backend (Bot & API)
+- `npm run build:frontend`: Sama dengan `npm run build`
+
+### 8. WhatsApp Authentication (Jika Menggunakan WhatsApp)
 
 Saat pertama kali menjalankan bot dengan WhatsApp enabled:
 1. QR code akan muncul di terminal
