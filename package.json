@@ -7,6 +7,8 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "build": "tsc",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:ai": "node scripts/test-ai.js",
