@@ -1,0 +1,63 @@
+name: Test Build (No Deploy)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Test Backend Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📥 Install dependencies
+        run: npm ci
+
+      - name: 🔨 Build backend
+        run: npm run build:backend
+
+      - name: ✅ Backend build successful
+        run: echo "Backend built successfully!"
+
+  test-frontend:
+    name: Test Frontend Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🚀 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📥 Install frontend dependencies
+        working-directory: ./frontend
+        run: npm install
+
+      - name: 🔨 Build frontend
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: https://rosybrown-horse-106773.hostingersite.com/api
+          VITE_WS_URL: wss://rosybrown-horse-106773.hostingersite.com
+        run: npm run build
+
+      - name: ✅ Frontend build successful
+        run: echo "Frontend built successfully!"
