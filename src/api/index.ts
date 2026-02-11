@@ -56,6 +56,9 @@ export class APIServer {
    * Setup Express middleware
    */
   private setupMiddleware(): void {
+    // Trust proxy - required for running behind PHP proxy/reverse proxy
+    this.app.set('trust proxy', true);
+
     // CORS
     this.app.use(cors({
       origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'],
