@@ -1,10 +1,26 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { copyFileSync } from 'fs'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'copy-files',
+      closeBundle() {
+        // Copy .htaccess and _redirects to dist for deployment
+        try {
+          copyFileSync('.htaccess', 'dist/.htaccess')
+          copyFileSync('_redirects', 'dist/_redirects')
+          console.log('✓ Copied .htaccess and _redirects to dist/')
+        } catch (err) {
+          console.warn('⚠ Could not copy deployment files:', err)
+        }
+      }
+    }
+  ],
   
   // Build configuration
   build: {
