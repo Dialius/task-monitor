@@ -2,8 +2,9 @@ name: Deploy Frontend to Hostinger
 
 on:
   push:
-    branches:
+    branches: 
       - main
+      - master
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
@@ -35,16 +36,57 @@ jobs:
           VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
         run: npm run build
 
-      - name: 📂 Deploy to Hostinger via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - name: 📂 Deploy to Hostinger via SSH
+        uses: appleboy/ssh-action@master
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./frontend/dist/
-          server-dir: /public_html/
-          dangerous-clean-slate: true
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 30m
+          timeout: 30m
+          script: |
+            cd /home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html
+            
+            # Backup existing files
+            if [ -d "backup" ]; then
+              rm -rf backup.old
+              mv backup backup.old
+            fi
+            mkdir -p backup
+            cp -r * backup/ 2>/dev/null || true
+            
+            # Remove old files (except backup)
+            find . -maxdepth 1 ! -name 'backup' ! -name 'backup.old' ! -name '.' ! -name '..' -exec rm -rf {} + 2>/dev/null || true
+            
+            echo "✅ Old files cleaned"
+            
+      - name: 📤 Upload build files via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "frontend/dist/*"
+          target: "/home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html/"
+          strip_components: 2
+          
+      - name: 🔧 Set permissions
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html
+            
+            # Set permissions
+            chmod -R 755 .
+            find . -type f -exec chmod 644 {} \;
+            
+            echo "✅ Permissions set"
+            echo "📊 Deployment completed!"
+            echo "Files deployed:"
+            ls -lh

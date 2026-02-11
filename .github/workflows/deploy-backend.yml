@@ -2,8 +2,9 @@ name: Deploy Backend to Hostinger
 
 on:
   push:
-    branches:
+    branches: 
       - main
+      - master
     paths:
       - 'src/**'
       - 'package.json'
@@ -32,16 +33,47 @@ jobs:
         run: npm run build:backend
 
       - name: 📂 Deploy to Hostinger via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
+          command_timeout: 30m
+          timeout: 30m
           script: |
-            cd ~/public_html/api
-            git pull origin main
+            # Navigate to backend directory
+            cd /home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html/api
+            
+            # Pull latest code (try main first, fallback to master)
+            echo "📥 Pulling latest code..."
+            git pull origin main || git pull origin master
+            
+            # Install dependencies
+            echo "📦 Installing dependencies..."
             npm install --production
+            
+            # Build backend
+            echo "🔨 Building backend..."
             npm run build:backend
+            
+            # Ensure auth_info directory exists
+            mkdir -p auth_info
+            chmod 755 auth_info
+            
+            # Ensure logs directory exists
+            mkdir -p logs
+            chmod 755 logs
+            
+            # Set permissions
+            chmod -R 755 dist
+            find dist -type f -exec chmod 644 {} \;
+            
+            # Restart PM2 process
+            echo "🔄 Restarting bot..."
             pm2 restart task-monitor-bot || pm2 start dist/index.js --name task-monitor-bot
             pm2 save
+            
+            echo "✅ Backend deployment completed!"
+            echo "📊 PM2 Status:"
+            pm2 status

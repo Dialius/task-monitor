@@ -6,69 +6,56 @@ Untuk auto-deploy work, Anda perlu tambahkan secrets di GitHub repository.
 
 ### 1. Buka Repository Settings
 
-1. Buka repository di GitHub
+1. Buka repository di GitHub: https://github.com/Dialius/task-monitor
 2. Klik **Settings** (tab paling kanan)
 3. Sidebar kiri → **Secrets and variables** → **Actions**
 4. Klik **New repository secret**
 
 ---
 
-## 🔐 Secrets untuk Frontend Deploy (FTP)
+## 🔐 Secrets untuk Deploy (SSH)
 
-### FTP_SERVER
-- **Name:** `FTP_SERVER`
-- **Value:** `ftp.yourdomain.com` atau IP FTP server Hostinger
-- **Cara dapat:** Hostinger Panel → File Manager → FTP Accounts
+Berdasarkan info SSH Anda:
 
-### FTP_USERNAME
-- **Name:** `FTP_USERNAME`
-- **Value:** Username FTP Anda (biasanya: `u909490256` atau email)
-- **Cara dapat:** Hostinger Panel → File Manager → FTP Accounts
+### SSH_HOST
+- **Name:** `SSH_HOST`
+- **Value:** `153.92.9.187`
+- **Keterangan:** IP server Hostinger Anda
 
-### FTP_PASSWORD
-- **Name:** `FTP_PASSWORD`
-- **Value:** Password FTP Anda
-- **Cara dapat:** Hostinger Panel → File Manager → FTP Accounts → Reset password jika lupa
+### SSH_USERNAME
+- **Name:** `SSH_USERNAME`
+- **Value:** `u909490256`
+- **Keterangan:** Username SSH Anda
+
+### SSH_PASSWORD
+- **Name:** `SSH_PASSWORD`
+- **Value:** `[password SSH Anda]`
+- **Keterangan:** Password yang Anda pakai untuk SSH login
+
+### SSH_PORT
+- **Name:** `SSH_PORT`
+- **Value:** `65002`
+- **Keterangan:** Port SSH Hostinger
+
+---
+
+## 🔐 Secrets untuk Frontend Environment
 
 ### VITE_API_URL
 - **Name:** `VITE_API_URL`
-- **Value:** `https://api.yourdomain.com` atau `http://localhost:3001` (untuk testing)
+- **Value:** `https://rosybrown-horse-106773.hostingersite.com/api` (atau subdomain jika ada)
 - **Keterangan:** URL backend API
 
 ### VITE_WS_URL
 - **Name:** `VITE_WS_URL`
-- **Value:** `https://api.yourdomain.com` atau `http://localhost:3001`
+- **Value:** `https://rosybrown-horse-106773.hostingersite.com` (atau subdomain jika ada)
 - **Keterangan:** URL WebSocket server
-
----
-
-## 🔐 Secrets untuk Backend Deploy (SSH)
-
-### SSH_HOST
-- **Name:** `SSH_HOST`
-- **Value:** `yourdomain.com` atau IP server
-- **Cara dapat:** Hostinger Panel → Advanced → SSH Access
-
-### SSH_USERNAME
-- **Name:** `SSH_USERNAME`
-- **Value:** Username SSH (biasanya: `u909490256`)
-- **Cara dapat:** Hostinger Panel → Advanced → SSH Access
-
-### SSH_PASSWORD
-- **Name:** `SSH_PASSWORD`
-- **Value:** Password SSH Anda
-- **Cara dapat:** Hostinger Panel → Advanced → SSH Access
-
-### SSH_PORT
-- **Name:** `SSH_PORT`
-- **Value:** `65002` (default Hostinger) atau port SSH Anda
-- **Cara dapat:** Hostinger Panel → Advanced → SSH Access
 
 ---
 
 ## 📝 Cara Tambah Secret
 
-1. **Buka GitHub Repository**
+1. **Buka GitHub Repository:** https://github.com/Dialius/task-monitor
 2. **Settings** → **Secrets and variables** → **Actions**
 3. **New repository secret**
 4. Masukkan **Name** dan **Value**
@@ -77,67 +64,70 @@ Untuk auto-deploy work, Anda perlu tambahkan secrets di GitHub repository.
 
 ---
 
-## 🎯 Cara Dapat Info FTP dari Hostinger
-
-### Step 1: Login Hostinger Panel
-https://hpanel.hostinger.com
-
-### Step 2: Buka File Manager
-Sidebar → **File Manager**
-
-### Step 3: Klik FTP Accounts
-Di bagian atas File Manager, ada button **FTP Accounts**
-
-### Step 4: Copy Info
-```
-FTP Server: ftp.yourdomain.com
-Username: u909490256@yourdomain.com
-Password: (klik Change Password jika lupa)
-Port: 21
-```
-
----
-
-## 🎯 Cara Dapat Info SSH dari Hostinger
-
-### Step 1: Login Hostinger Panel
-https://hpanel.hostinger.com
-
-### Step 2: Buka Advanced
-Sidebar → **Advanced**
-
-### Step 3: Klik SSH Access
-Di menu Advanced, pilih **SSH Access**
-
-### Step 4: Enable SSH (jika belum)
-Klik **Enable SSH Access**
-
-### Step 5: Copy Info
-```
-SSH Host: yourdomain.com
-Username: u909490256
-Password: (sama dengan Hostinger panel password)
-Port: 65002
-```
-
----
-
 ## ✅ Checklist Secrets
 
 Pastikan semua secrets ini sudah ditambahkan:
 
-### Frontend Deploy:
-- [ ] FTP_SERVER
-- [ ] FTP_USERNAME
-- [ ] FTP_PASSWORD
-- [ ] VITE_API_URL
-- [ ] VITE_WS_URL
+- [ ] SSH_HOST = `153.92.9.187`
+- [ ] SSH_USERNAME = `u909490256`
+- [ ] SSH_PASSWORD = `[your password]`
+- [ ] SSH_PORT = `65002`
+- [ ] VITE_API_URL = `https://rosybrown-horse-106773.hostingersite.com/api`
+- [ ] VITE_WS_URL = `https://rosybrown-horse-106773.hostingersite.com`
 
-### Backend Deploy:
-- [ ] SSH_HOST
-- [ ] SSH_USERNAME
-- [ ] SSH_PASSWORD
-- [ ] SSH_PORT
+---
+
+## 🎯 Path Structure di Hostinger
+
+Berdasarkan SSH info Anda:
+
+```
+/home/u909490256/domains/
+├── jastiphype.shop/                                    (project lain)
+└── rosybrown-horse-106773.hostingersite.com/          (project ini)
+    ├── DO_NOT_UPLOAD_HERE/
+    └── public_html/                                    (frontend)
+        └── api/                                        (backend - perlu dibuat)
+```
+
+---
+
+## 🔧 Setup Backend Directory
+
+Sebelum auto-deploy work, Anda perlu setup backend directory dulu:
+
+```bash
+# SSH ke Hostinger
+ssh -p 65002 u909490256@153.92.9.187
+
+# Navigate ke domain
+cd /home/u909490256/domains/rosybrown-horse-106773.hostingersite.com/public_html
+
+# Create API directory
+mkdir -p api
+cd api
+
+# Clone repository
+git clone https://github.com/Dialius/task-monitor.git .
+
+# Install dependencies
+npm install --production
+
+# Build
+npm run build:backend
+
+# Create .env file
+nano .env
+# Paste your environment variables (MongoDB, Discord, WhatsApp, Notion, dll)
+
+# Install PM2 globally
+npm install -g pm2
+
+# Start bot
+pm2 start dist/index.js --name task-monitor-bot
+pm2 save
+pm2 startup
+```
 
 ---
 
@@ -145,78 +135,75 @@ Pastikan semua secrets ini sudah ditambahkan:
 
 ### Test Frontend Deploy:
 
-1. Edit file di folder `frontend/` (contoh: `frontend/README.md`)
-2. Commit dan push:
-   ```bash
-   git add .
-   git commit -m "Test: Frontend auto-deploy"
-   git push
-   ```
-3. Buka GitHub → **Actions** tab
-4. Lihat workflow "Deploy Frontend to Hostinger" running
-5. Tunggu sampai selesai (hijau ✅)
-6. Buka domain Anda, perubahan harus muncul
+```bash
+# Edit file frontend
+echo "# Test" >> frontend/README.md
+
+# Commit dan push
+git add .
+git commit -m "Test: Frontend auto-deploy"
+git push
+```
+
+Buka GitHub → **Actions** → Lihat workflow "Deploy Frontend to Hostinger" running
 
 ### Test Backend Deploy:
 
-1. Edit file di folder `src/` (contoh: `src/bot.ts`)
-2. Commit dan push:
-   ```bash
-   git add .
-   git commit -m "Test: Backend auto-deploy"
-   git push
-   ```
-3. Buka GitHub → **Actions** tab
-4. Lihat workflow "Deploy Backend to Hostinger" running
-5. Tunggu sampai selesai (hijau ✅)
-6. SSH ke server dan check: `pm2 status`
+```bash
+# Edit file backend
+echo "// Test" >> src/bot.ts
+
+# Commit dan push
+git add .
+git commit -m "Test: Backend auto-deploy"
+git push
+```
+
+Buka GitHub → **Actions** → Lihat workflow "Deploy Backend to Hostinger" running
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Workflow Failed: "FTP connection failed"
-
-**Penyebab:** FTP credentials salah atau FTP tidak enabled.
-
-**Solusi:**
-1. Check FTP_SERVER, FTP_USERNAME, FTP_PASSWORD benar
-2. Enable FTP di Hostinger Panel
-3. Test FTP connection dengan FileZilla
-
 ### Workflow Failed: "SSH connection failed"
 
-**Penyebab:** SSH credentials salah atau SSH tidak enabled.
+**Check:**
+1. SSH_HOST = `153.92.9.187` ✓
+2. SSH_USERNAME = `u909490256` ✓
+3. SSH_PASSWORD benar?
+4. SSH_PORT = `65002` ✓
 
-**Solusi:**
-1. Check SSH_HOST, SSH_USERNAME, SSH_PASSWORD, SSH_PORT benar
-2. Enable SSH di Hostinger Panel
-3. Test SSH: `ssh u909490256@yourdomain.com -p 65002`
+**Test SSH manually:**
+```bash
+ssh -p 65002 u909490256@153.92.9.187
+```
 
-### Workflow Success tapi Changes Tidak Muncul
+### Backend Deploy Failed: "Directory not found"
 
-**Penyebab:** Cache browser atau CDN.
+**Penyebab:** Backend directory belum dibuat.
 
-**Solusi:**
-1. Hard refresh: Ctrl+Shift+R (Windows) atau Cmd+Shift+R (Mac)
-2. Clear browser cache
-3. Check di incognito mode
+**Solusi:** Setup backend directory dulu (lihat section "Setup Backend Directory" di atas)
+
+### Frontend Deploy Success tapi Blank Page
+
+**Check:**
+1. Browser console (F12) untuk error
+2. VITE_API_URL dan VITE_WS_URL benar?
+3. Backend running? Check: `pm2 status`
 
 ---
 
 ## 📚 Resources
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [FTP Deploy Action](https://github.com/SamKirkland/FTP-Deploy-Action)
 - [SSH Action](https://github.com/appleboy/ssh-action)
-- [Hostinger FTP Guide](https://support.hostinger.com/en/articles/1583245-how-to-upload-files-using-ftp)
-- [Hostinger SSH Guide](https://support.hostinger.com/en/articles/1583227-how-to-use-ssh)
+- [SCP Action](https://github.com/appleboy/scp-action)
 
 ---
 
 ## 🎉 Setelah Setup
 
-Setiap kali push ke branch `main`:
+Setiap kali push ke branch `main` atau `master`:
 - ✅ Frontend auto-deploy jika ada perubahan di folder `frontend/`
 - ✅ Backend auto-deploy jika ada perubahan di folder `src/`
 - ✅ Tidak perlu manual upload lagi!
