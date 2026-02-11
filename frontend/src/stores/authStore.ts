@@ -51,7 +51,28 @@ export const useAuthStore = create<AuthState>((set) => ({
         error: null,
       });
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      // Detailed error message for debugging
+      let errorMessage = 'Login failed';
+      
+      if (error.response) {
+        // Server responded with error
+        errorMessage = error.response?.data?.error || error.response?.data?.message || `Server error: ${error.response.status}`;
+      } else if (error.request) {
+        // Request made but no response
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else {
+        // Something else happened
+        errorMessage = error.message || 'Unknown error occurred';
+      }
+
+      // Add full error details for debugging
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        request: error.request ? 'Request sent but no response' : 'No request sent'
+      });
+
       set({
         user: null,
         token: null,

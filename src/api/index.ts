@@ -146,6 +146,16 @@ export class APIServer {
 
       console.log('   → Connecting to MongoDB...');
       await mongoose.connect(mongoUri);
+      
+      // Wait for connection to be fully ready
+      await new Promise<void>((resolve) => {
+        if (mongoose.connection.readyState === 1) {
+          resolve();
+        } else {
+          mongoose.connection.once('connected', () => resolve());
+        }
+      });
+      
       logger.info('MongoDB connected successfully');
       console.log('   ✓ MongoDB connected');
     } catch (error) {
