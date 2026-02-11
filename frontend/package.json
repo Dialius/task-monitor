@@ -21,6 +21,7 @@
     "@xterm/xterm": "^6.0.0",
     "axios": "^1.13.5",
     "lucide-react": "^0.563.0",
+    "multi-platform-class-reminder-bot": "file:..",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.1",
