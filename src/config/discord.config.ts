@@ -196,7 +196,7 @@ export const discordConfig: DiscordConfig = {
       },
       {
         text: 'lo-fi sambil belajar',
-        dynamic: false,
+        dynamic: true,
         type: 2 as 2
       },
       {
@@ -225,7 +225,7 @@ export const discordConfig: DiscordConfig = {
       },
       {
         text: 'siapa cepat dia lulus',
-        dynamic: false,
+        dynamic: true,
         type: 5 as 5
       },
       {
