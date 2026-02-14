@@ -17,15 +17,23 @@ import { getLogger } from '../utils/Logger';
 const logger = getLogger();
 
 // Type augmentation for Notion Client to fix TypeScript errors
-// The query method exists in runtime but not in type definitions
-interface NotionDatabases {
+// Notion SDK v5+ uses API version 2025-09-03 with dataSources.query
+interface NotionDataSources {
   query: (args: any) => Promise<any>;
+  retrieve: (args: any) => Promise<any>;
+  create: (args: any) => Promise<any>;
+  update: (args: any) => Promise<any>;
+  listTemplates: (args: any) => Promise<any>;
+}
+
+interface NotionDatabases {
   retrieve: (args: any) => Promise<any>;
   create: (args: any) => Promise<any>;
   update: (args: any) => Promise<any>;
 }
 
 interface NotionClientWithQuery extends Client {
+  dataSources: NotionDataSources;
   databases: NotionDatabases;
 }
 
@@ -49,6 +57,7 @@ export interface NotionTask {
 export class NotionService {
   private notion!: NotionClientWithQuery;
   private databaseId!: string;
+  private dataSourceId!: string; // Store the data source ID
   private enabled: boolean;
   
   // Configuration for retry logic
@@ -68,60 +77,81 @@ export class NotionService {
     const apiKey = process.env.NOTION_API_KEY;
     const databaseId = process.env.NOTION_DATABASE_ID;
 
+    console.log('🔍 Notion Service Initialization Debug:');
+    console.log(`   NOTION_ENABLED env: "${process.env.NOTION_ENABLED}"`);
+    console.log(`   enabled (parsed): ${enabled}`);
+    console.log(`   Has API Key: ${!!apiKey}`);
+    console.log(`   Has Database ID: ${!!databaseId}`);
+
     // Check if explicitly disabled
     if (!enabled) {
       this.enabled = false;
       logger.info('Notion service disabled via NOTION_ENABLED flag');
+      console.log('❌ Notion service disabled via NOTION_ENABLED flag');
       return;
     }
 
     // Check if credentials are provided
-    this.enabled = !!(apiKey && databaseId);
-
-    if (this.enabled) {
-      try {
-        this.notion = new Client({ 
-          auth: apiKey,
-          // Increase timeout for slow connections
-          timeoutMs: this.TIMEOUT_MS
-        }) as NotionClientWithQuery;
-        this.databaseId = databaseId!;
-        
-        // Verify client is properly initialized
-        if (!this.notion || !this.notion.databases) {
-          logger.warn('Notion client not properly initialized - disabling Notion service');
-          this.enabled = false;
-          return;
-        }
-        
-        // Verify query method exists
-        if (typeof this.notion.databases.query !== 'function') {
-          logger.warn('Notion databases.query method is not available - disabling Notion service', {
-            databasesType: typeof this.notion.databases,
-            queryType: typeof (this.notion.databases as any).query,
-            availableMethods: Object.keys(this.notion.databases)
-          });
-          this.enabled = false;
-          return;
-        }
-        
-        logger.info('Notion service initialized with robust error handling', { 
-          databaseId,
-          maxRetries: this.MAX_RETRIES,
-          timeout: `${this.TIMEOUT_MS}ms`,
-          clientInitialized: !!this.notion,
-          databasesAvailable: !!this.notion.databases,
-          queryMethodAvailable: typeof this.notion.databases.query === 'function'
-        });
-      } catch (error) {
-        logger.error('Failed to initialize Notion client - disabling Notion service', error as Error);
-        this.enabled = false;
-      }
-    } else {
+    if (!apiKey || !databaseId) {
+      this.enabled = false;
       logger.warn('Notion service disabled - missing API key or database ID', {
         hasApiKey: !!apiKey,
         hasDatabaseId: !!databaseId
       });
+      console.log('❌ Notion service disabled - missing credentials');
+      console.log(`   Has API Key: ${!!apiKey}`);
+      console.log(`   Has Database ID: ${!!databaseId}`);
+      return;
+    }
+
+    // Try to initialize Notion client
+    try {
+      this.notion = new Client({ 
+        auth: apiKey,
+        // Increase timeout for slow connections
+        timeoutMs: this.TIMEOUT_MS
+      }) as NotionClientWithQuery;
+      
+      // Format database ID to UUID format (8-4-4-4-12)
+      this.databaseId = this.formatDatabaseId(databaseId!);
+      
+      console.log(`   Formatted Database ID: ${this.databaseId}`);
+      
+      // Verify client is properly initialized
+      if (!this.notion || !this.notion.databases) {
+        logger.warn('Notion client not properly initialized - disabling Notion service');
+        console.log('❌ Notion client not properly initialized');
+        this.enabled = false;
+        return;
+      }
+      
+      // Verify dataSources API exists (for API v2025-09-03)
+      if (!this.notion.dataSources || typeof this.notion.dataSources.query !== 'function') {
+        logger.warn('Notion dataSources.query method is not available - disabling Notion service');
+        console.log('❌ Notion dataSources.query method not available');
+        this.enabled = false;
+        return;
+      }
+      
+      // All checks passed - enable Notion
+      this.enabled = true;
+      
+      logger.info('Notion service initialized successfully', { 
+        databaseId: this.databaseId,
+        maxRetries: this.MAX_RETRIES,
+        timeout: `${this.TIMEOUT_MS}ms`,
+        clientInitialized: !!this.notion,
+        dataSourcesAvailable: !!this.notion.dataSources
+      });
+      
+      console.log('✅ Notion service enabled successfully!');
+      console.log(`   Database ID: ${databaseId}`);
+      console.log(`   Max Retries: ${this.MAX_RETRIES}`);
+      console.log(`   Timeout: ${this.TIMEOUT_MS}ms`);
+    } catch (error) {
+      logger.error('Failed to initialize Notion client - disabling Notion service', error as Error);
+      console.log('❌ Failed to initialize Notion client:', error);
+      this.enabled = false;
     }
   }
 
@@ -130,6 +160,63 @@ export class NotionService {
    */
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /**
+   * Format database ID to UUID format with dashes (8-4-4-4-12)
+   * Notion requires UUIDs in this format for API calls
+   */
+  private formatDatabaseId(id: string): string {
+    // Remove any existing dashes
+    const clean = id.replace(/-/g, '');
+    
+    // Check if it's a valid 32-character hex string
+    if (clean.length !== 32 || !/^[0-9a-f]+$/i.test(clean)) {
+      logger.warn('Invalid database ID format', { id });
+      return id; // Return as-is if invalid
+    }
+    
+    // Format as UUID: 8-4-4-4-12
+    return `${clean.slice(0, 8)}-${clean.slice(8, 12)}-${clean.slice(12, 16)}-${clean.slice(16, 20)}-${clean.slice(20)}`;
+  }
+
+  /**
+   * Get data source ID from database ID
+   * In Notion API v2025-09-03, databases contain data sources
+   * For legacy databases, there's one default data source
+   */
+  private async getDataSourceId(): Promise<string> {
+    if (this.dataSourceId) {
+      return this.dataSourceId;
+    }
+
+    try {
+      logger.debug('Fetching data source ID from database...', { databaseId: this.databaseId });
+      
+      const database: any = await this.executeWithRetry(
+        async () => {
+          return await this.notion.databases.retrieve({
+            database_id: this.databaseId
+          });
+        },
+        'Retrieve database for data source ID'
+      );
+
+      // Get the first data source (for legacy databases, there's only one)
+      if (database.data_sources && database.data_sources.length > 0) {
+        this.dataSourceId = database.data_sources[0].id;
+        logger.info('Data source ID retrieved successfully', { 
+          databaseId: this.databaseId,
+          dataSourceId: this.dataSourceId 
+        });
+        return this.dataSourceId;
+      }
+
+      throw new Error('No data sources found in database');
+    } catch (error) {
+      logger.error('Failed to get data source ID', error as Error, { databaseId: this.databaseId });
+      throw error;
+    }
   }
 
   /**
@@ -322,19 +409,22 @@ export class NotionService {
     try {
       logger.info('Starting Notion sync with robust error handling...');
 
-      // Query all tasks from Notion Database with retry logic
+      // Get data source ID first (required for API v2025-09-03)
+      const dataSourceId = await this.getDataSourceId();
+
+      // Query all tasks from Notion Data Source with retry logic
       const response: any = await this.executeWithRetry(
         async () => {
           // Verify notion client is available
           if (!this.notion) {
             throw new Error('Notion client is not initialized');
           }
-          if (!this.notion.databases) {
-            throw new Error('Notion databases API is not available');
+          if (!this.notion.dataSources) {
+            throw new Error('Notion dataSources API is not available');
           }
           
-          return await this.notion.databases.query({
-            database_id: this.databaseId,
+          return await this.notion.dataSources.query({
+            data_source_id: dataSourceId,
             filter: {
               property: 'Status',
               select: {
@@ -345,7 +435,7 @@ export class NotionService {
             page_size: 100
           });
         },
-        'Notion database query'
+        'Notion data source query'
       );
 
       let synced = 0;
@@ -733,19 +823,22 @@ export class NotionService {
     }
 
     try {
-      // Count tasks in Notion Database with retry logic
+      // Get data source ID first
+      const dataSourceId = await this.getDataSourceId();
+
+      // Count tasks in Notion Data Source with retry logic
       const notionResponse = await this.executeWithRetry(
         async () => {
           // Verify notion client is available
           if (!this.notion) {
             throw new Error('Notion client is not initialized');
           }
-          if (!this.notion.databases) {
-            throw new Error('Notion databases API is not available');
+          if (!this.notion.dataSources) {
+            throw new Error('Notion dataSources API is not available');
           }
           
-          return await this.notion.databases.query({
-            database_id: this.databaseId,
+          return await this.notion.dataSources.query({
+            data_source_id: dataSourceId,
             filter: {
               property: 'Status',
               select: {
