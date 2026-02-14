@@ -16,6 +16,19 @@ import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
 
+// Type augmentation for Notion Client to fix TypeScript errors
+// The query method exists in runtime but not in type definitions
+interface NotionDatabases {
+  query: (args: any) => Promise<any>;
+  retrieve: (args: any) => Promise<any>;
+  create: (args: any) => Promise<any>;
+  update: (args: any) => Promise<any>;
+}
+
+interface NotionClientWithQuery extends Client {
+  databases: NotionDatabases;
+}
+
 export interface NotionTask {
   id: string;
   judul: string;
@@ -34,7 +47,7 @@ export interface NotionTask {
  * Notion Service for syncing tasks with robust error handling
  */
 export class NotionService {
-  private notion!: Client;
+  private notion!: NotionClientWithQuery;
   private databaseId!: string;
   private enabled: boolean;
   
@@ -57,19 +70,42 @@ export class NotionService {
     this.enabled = !!(apiKey && databaseId);
 
     if (this.enabled) {
-      this.notion = new Client({ 
-        auth: apiKey,
-        // Increase timeout for slow connections
-        timeoutMs: this.TIMEOUT_MS
-      });
-      this.databaseId = databaseId!;
-      logger.info('Notion service initialized with robust error handling', { 
-        databaseId,
-        maxRetries: this.MAX_RETRIES,
-        timeout: `${this.TIMEOUT_MS}ms`
-      });
+      try {
+        this.notion = new Client({ 
+          auth: apiKey,
+          // Increase timeout for slow connections
+          timeoutMs: this.TIMEOUT_MS
+        }) as NotionClientWithQuery;
+        this.databaseId = databaseId!;
+        
+        // Verify client is properly initialized
+        if (!this.notion || !this.notion.databases) {
+          throw new Error('Notion client not properly initialized');
+        }
+        
+        // Verify query method exists
+        if (typeof this.notion.databases.query !== 'function') {
+          throw new Error('Notion databases.query method is not available');
+        }
+        
+        logger.info('Notion service initialized with robust error handling', { 
+          databaseId,
+          maxRetries: this.MAX_RETRIES,
+          timeout: `${this.TIMEOUT_MS}ms`,
+          clientInitialized: !!this.notion,
+          databasesAvailable: !!this.notion.databases,
+          queryMethodAvailable: typeof this.notion.databases.query === 'function'
+        });
+      } catch (error) {
+        logger.error('Failed to initialize Notion client', error as Error);
+        this.enabled = false;
+        throw error;
+      }
     } else {
-      logger.warn('Notion service disabled - missing API key or database ID');
+      logger.warn('Notion service disabled - missing API key or database ID', {
+        hasApiKey: !!apiKey,
+        hasDatabaseId: !!databaseId
+      });
     }
   }
 
@@ -273,7 +309,15 @@ export class NotionService {
       // Query all tasks from Notion Database with retry logic
       const response: any = await this.executeWithRetry(
         async () => {
-          return await (this.notion.databases as any).query({
+          // Verify notion client is available
+          if (!this.notion) {
+            throw new Error('Notion client is not initialized');
+          }
+          if (!this.notion.databases) {
+            throw new Error('Notion databases API is not available');
+          }
+          
+          return await this.notion.databases.query({
             database_id: this.databaseId,
             filter: {
               property: 'Status',
@@ -676,7 +720,15 @@ export class NotionService {
       // Count tasks in Notion Database with retry logic
       const notionResponse = await this.executeWithRetry(
         async () => {
-          return await (this.notion.databases as any).query({
+          // Verify notion client is available
+          if (!this.notion) {
+            throw new Error('Notion client is not initialized');
+          }
+          if (!this.notion.databases) {
+            throw new Error('Notion databases API is not available');
+          }
+          
+          return await this.notion.databases.query({
             database_id: this.databaseId,
             filter: {
               property: 'Status',

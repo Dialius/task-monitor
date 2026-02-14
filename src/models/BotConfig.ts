@@ -16,7 +16,7 @@ const BotConfigSchema = new Schema<IBotConfig>({
   key: {
     type: String,
     required: [true, 'Config key wajib diisi'],
-    unique: true,
+    // unique: true removed - defined in index below to avoid duplicate
     trim: true,
     minlength: [2, 'Config key minimal 2 karakter'],
     maxlength: [100, 'Config key maksimal 100 karakter'],

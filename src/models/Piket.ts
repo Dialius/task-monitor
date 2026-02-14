@@ -17,7 +17,7 @@ const PiketSchema = new Schema<IPiket>({
   hari: {
     type: String,
     required: [true, 'Hari wajib dipilih'],
-    unique: true,
+    // unique: true removed - defined in index below to avoid duplicate
     trim: true,
     enum: {
       values: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'],
