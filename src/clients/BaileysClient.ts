@@ -119,10 +119,26 @@ export class BaileysClient {
         // Use pairing code instead of QR (better for Railway/server deployment)
         if (this.socket && !this.socket.authState.creds.registered) {
           console.log('\n📱 PAIRING CODE MODE\n');
-          console.log('🔢 Requesting pairing code for:', this.config.phoneNumber);
+          
+          // Clean phone number - remove any non-digit characters
+          let cleanNumber = this.config.phoneNumber.replace(/\D/g, '');
+          
+          // Ensure it starts with country code (62 for Indonesia)
+          if (!cleanNumber.startsWith('62')) {
+            if (cleanNumber.startsWith('0')) {
+              // Convert 08xxx to 628xxx
+              cleanNumber = '62' + cleanNumber.substring(1);
+            } else if (cleanNumber.startsWith('8')) {
+              // Convert 8xxx to 628xxx
+              cleanNumber = '62' + cleanNumber;
+            }
+          }
+          
+          console.log('🔢 Requesting pairing code for:', cleanNumber);
+          console.log('   (Original input:', this.config.phoneNumber + ')');
           
           try {
-            const code = await this.socket.requestPairingCode(this.config.phoneNumber);
+            const code = await this.socket.requestPairingCode(cleanNumber);
             console.log('\n╔════════════════════════════════════════╗');
             console.log('║  PAIRING CODE (8 DIGIT)               ║');
             console.log('╠════════════════════════════════════════╣');
@@ -135,11 +151,20 @@ export class BaileysClient {
             console.log('   4. Tap "Link a Device"');
             console.log('   5. Tap "Link with phone number instead"');
             console.log(`   6. Masukkan kode: ${code}\n`);
+            console.log('⚠️  PENTING:');
+            console.log(`   - Pastikan nomor HP yang kamu gunakan: ${cleanNumber}`);
+            console.log('   - Kode berlaku 60 detik, masukkan segera!');
+            console.log('   - Jika salah, tunggu kode baru di logs\n');
             console.log('⏳ Menunggu pairing...\n');
             
-            logger.info('Pairing code generated', { phoneNumber: this.config.phoneNumber, code });
+            logger.info('Pairing code generated', { phoneNumber: cleanNumber, code });
           } catch (error) {
             console.error('❌ Failed to request pairing code:', error);
+            console.error('   Error details:', (error as Error).message);
+            console.log('\n💡 Troubleshooting:');
+            console.log('   1. Pastikan nomor format: 628xxx (tanpa + atau spasi)');
+            console.log('   2. Pastikan nomor aktif dan terdaftar di WhatsApp');
+            console.log('   3. Coba restart deployment untuk kode baru\n');
             logger.error('Failed to request pairing code', error as Error);
           }
         }
