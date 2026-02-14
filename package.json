@@ -33,6 +33,10 @@
   ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hapi/boom": "^10.0.1",
