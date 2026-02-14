@@ -89,9 +89,18 @@ export class TaskMonitorService {
   async generateEmbed(stats: TaskStatistics): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle('⋅•⋅☾ **Task Monitor** ☽⋅•⋅')
-      .setColor(0x99AAB5) // Discord gray color
-      .setTimestamp()
-      .setFooter({ text: 'Made by VinTheGreat' });
+      .setColor(0x99AAB5); // Discord gray color
+
+    // Get server name
+    const guild = this.client.guilds.cache.first();
+    const serverName = guild ? guild.name : 'Unknown Server';
+    
+    // Set footer with icon and server name
+    const footerIcon = this.configManager.getFooterIcon();
+    embed.setFooter({ 
+      text: `Made by VinTheGreat • ${serverName}`,
+      iconURL: footerIcon
+    });
 
     // Field 1: Status Tugas
     const onlineEmoji = this.configManager.getEmoji('online');

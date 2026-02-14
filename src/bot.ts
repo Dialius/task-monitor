@@ -343,9 +343,17 @@ class MultiPlatformBot {
         const { EmbedBuilder } = await import('discord.js');
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
-          .setColor(response.embedData.color)
-          .setTimestamp()
-          .setFooter({ text: 'Made by VinTheGreat' });
+          .setColor(response.embedData.color);
+
+        // Get server name and footer icon
+        const guild = interaction.guild;
+        const serverName = guild ? guild.name : 'Unknown Server';
+        const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
+        
+        embed.setFooter({ 
+          text: `Made by VinTheGreat • ${serverName}`,
+          iconURL: footerIcon
+        });
 
         // Add description if present
         if (response.embedData.description) {
@@ -391,9 +399,17 @@ class MultiPlatformBot {
         const { EmbedBuilder } = await import('discord.js');
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
-          .setColor(response.embedData.color)
-          .setTimestamp()
-          .setFooter({ text: 'Made by VinTheGreat' });
+          .setColor(response.embedData.color);
+
+        // Get server name and footer icon
+        const guild = message.guild;
+        const serverName = guild ? guild.name : 'Unknown Server';
+        const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
+        
+        embed.setFooter({ 
+          text: `Made by VinTheGreat • ${serverName}`,
+          iconURL: footerIcon
+        });
 
         // Add description if present
         if (response.embedData.description) {

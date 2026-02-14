@@ -92,7 +92,7 @@ export class ButtonInteractionHandler {
       }
 
       // Format response embed
-      const embed = this.formatTaskListEmbed(title, tasks);
+      const embed = this.formatTaskListEmbed(title, tasks, interaction);
 
       // Edit loading message with response
       await this.loadingManager.editWithResponse(interaction, embed);
@@ -218,12 +218,21 @@ export class ButtonInteractionHandler {
    * Format task list embed
    * Requirement: 3.5, 3.7, 3.8
    */
-  formatTaskListEmbed(title: string, tasks: ITask[]): EmbedBuilder {
+  formatTaskListEmbed(title: string, tasks: ITask[], interaction: ButtonInteraction): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(`⋅•⋅☾ **${title}** ☽⋅•⋅`)
-      .setColor(0x99AAB5) // Discord gray color
-      .setTimestamp()
-      .setFooter({ text: 'Made by VinTheGreat' });
+      .setColor(0x99AAB5); // Discord gray color
+
+    // Get server name from interaction
+    const guild = interaction.guild;
+    const serverName = guild ? guild.name : 'Unknown Server';
+    
+    // Set footer with icon and server name
+    const footerIcon = this.configManager.getFooterIcon();
+    embed.setFooter({ 
+      text: `Made by VinTheGreat • ${serverName}`,
+      iconURL: footerIcon
+    });
 
     if (tasks.length === 0) {
       embed.setDescription('No tasks found for this period.');
