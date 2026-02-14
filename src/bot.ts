@@ -344,7 +344,8 @@ class MultiPlatformBot {
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color)
-          .setTimestamp();
+          .setTimestamp()
+          .setFooter({ text: 'Made by VinTheGreat' });
 
         // Add description if present
         if (response.embedData.description) {
@@ -391,7 +392,8 @@ class MultiPlatformBot {
         const embed = new EmbedBuilder()
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color)
-          .setTimestamp();
+          .setTimestamp()
+          .setFooter({ text: 'Made by VinTheGreat' });
 
         // Add description if present
         if (response.embedData.description) {

@@ -106,13 +106,12 @@ export class MemberCommandHandler {
 
           return {
             success: true,
-            message: syncStatus,
+            message: '',
             embedData: {
               title: '📝 Daftar Tugas',
-              color: 0x3498db,
+              color: 0x99AAB5,
               fields
-            },
-            ephemeral: true
+            }
           };
         }
 
@@ -152,8 +151,12 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: `📝 Tidak ada tugas aktif saat ini.${syncStatus}`,
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📝 Daftar Tugas',
+            description: 'Tidak ada tugas aktif saat ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -181,7 +184,7 @@ export class MemberCommandHandler {
           message: syncStatus,
           embedData: {
             title: '📝 Daftar Tugas',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
           },
           ephemeral: true
@@ -198,8 +201,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil daftar tugas.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil daftar tugas.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -237,8 +244,12 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: `📝 Tidak ada tugas untuk hari ini.${syncStatus}`,
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📅 Tugas Hari Ini',
+            description: 'Tidak ada tugas untuk hari ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -263,13 +274,12 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: syncStatus,
+          message: '',
           embedData: {
             title: '📅 Tugas Hari Ini',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -290,8 +300,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get today tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil tugas hari ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil tugas hari ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -320,8 +334,12 @@ export class MemberCommandHandler {
       if (tasks.length === 0) {
         return {
           success: true,
-          message: `📝 Tidak ada tugas untuk minggu ini.${syncStatus}`,
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📊 Tugas Minggu Ini',
+            description: 'Tidak ada tugas untuk minggu ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -346,13 +364,12 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: syncStatus,
+          message: '',
           embedData: {
             title: '📊 Tugas Minggu Ini',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -371,8 +388,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get week tasks', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil tugas minggu ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil tugas minggu ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -388,8 +409,12 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk hari ini.',
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📅 Jadwal Hari Ini',
+            description: 'Tidak ada jadwal untuk hari ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -411,10 +436,9 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Hari Ini',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -428,8 +452,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get today schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal hari ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil jadwal hari ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -445,8 +473,12 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk besok.',
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📅 Jadwal Besok',
+            description: 'Tidak ada jadwal untuk besok.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -468,10 +500,9 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📅 Jadwal Besok',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -485,8 +516,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get tomorrow schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal besok.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil jadwal besok.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -502,8 +537,12 @@ export class MemberCommandHandler {
       if (schedules.length === 0) {
         return {
           success: true,
-          message: '📅 Tidak ada jadwal untuk minggu ini.',
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '📊 Jadwal Minggu Ini',
+            description: 'Tidak ada jadwal untuk minggu ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -525,10 +564,9 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '📊 Jadwal Minggu Ini',
-            color: 0x3498db,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -542,8 +580,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get week schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal minggu ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil jadwal minggu ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -559,8 +601,12 @@ export class MemberCommandHandler {
       if (!piket) {
         return {
           success: true,
-          message: '🧹 Tidak ada jadwal piket untuk hari ini.',
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '🧹 Piket Hari Ini',
+            description: 'Tidak ada jadwal piket untuk hari ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -574,10 +620,9 @@ export class MemberCommandHandler {
           embedData: {
             title: `🧹 Piket ${piket.hari}`,
             description: studentList || 'Tidak ada petugas',
-            color: 0x2ecc71,
+            color: 0x99AAB5,
             fields: []
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -592,8 +637,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get today piket', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal piket hari ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil jadwal piket hari ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -609,8 +658,12 @@ export class MemberCommandHandler {
       if (pikets.length === 0) {
         return {
           success: true,
-          message: '🧹 Tidak ada jadwal piket untuk minggu ini.',
-          ephemeral: true
+          message: '',
+          embedData: {
+            title: '🧹 Jadwal Piket Minggu Ini',
+            description: 'Tidak ada jadwal piket untuk minggu ini.',
+            color: 0x99AAB5
+          }
         };
       }
 
@@ -634,10 +687,9 @@ export class MemberCommandHandler {
           message: '',
           embedData: {
             title: '🧹 Jadwal Piket Minggu Ini',
-            color: 0x2ecc71,
+            color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
@@ -659,8 +711,12 @@ export class MemberCommandHandler {
       logger.error('Failed to get week piket', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil jadwal piket minggu ini.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil jadwal piket minggu ini.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -703,8 +759,7 @@ export class MemberCommandHandler {
 
     return {
       success: true,
-      message,
-      ephemeral: true // Only visible to user
+      message
     };
   }
 
@@ -743,15 +798,18 @@ export class MemberCommandHandler {
 
       return {
         success: true,
-        message,
-        ephemeral: true // Only visible to user
+        message
       };
     } catch (error) {
       logger.error('Failed to get status', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengambil status bot.',
-        ephemeral: true
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil status bot.',
+          color: 0x99AAB5
+        }
       };
     }
   }
@@ -852,3 +910,4 @@ export class MemberCommandHandler {
     return emojiMap[mapel] || '📝';
   }
 }
+

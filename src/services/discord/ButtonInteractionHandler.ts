@@ -53,7 +53,7 @@ export class ButtonInteractionHandler {
         if (!cooldownResult.allowed) {
           const minutes = Math.floor(cooldownResult.remainingSeconds! / 60);
           const seconds = cooldownResult.remainingSeconds! % 60;
-          
+
           let timeMessage = '';
           if (minutes > 0) {
             timeMessage = `${minutes} minutes ${seconds} seconds`;
@@ -61,8 +61,9 @@ export class ButtonInteractionHandler {
             timeMessage = `${seconds} seconds`;
           }
 
+          const loadingEmoji = this.configManager.getEmoji('loading');
           await interaction.reply({
-            content: `⏳ Please wait ${timeMessage} before using this command again.`,
+            content: `${loadingEmoji} Tunggu ${timeMessage} sebelum menggunakan command ini lagi.`,
             ephemeral: true
           });
           return;
@@ -126,7 +127,7 @@ export class ButtonInteractionHandler {
     try {
       // Import Admin model dynamically to avoid circular dependency
       const Admin = (await import('../../models/Admin')).default;
-      
+
       const admin = await Admin.findOne({
         user_identifier: userId,
         platform: 'discord',
@@ -146,14 +147,14 @@ export class ButtonInteractionHandler {
    */
   async getTasksThisWeek(): Promise<ITask[]> {
     const now = new Date();
-    
+
     // Get start of week (Monday)
     const weekStart = new Date(now);
     const day = weekStart.getDay();
     const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
     weekStart.setDate(diff);
     weekStart.setHours(0, 0, 0, 0);
-    
+
     // Get end of week (Sunday)
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
@@ -164,7 +165,7 @@ export class ButtonInteractionHandler {
     // Filter active tasks within this week
     const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
-      
+
       const deadline = new Date(task.deadline);
       return deadline >= weekStart && deadline <= weekEnd;
     });
@@ -180,10 +181,10 @@ export class ButtonInteractionHandler {
   async getTasksTomorrow(): Promise<ITask[]> {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     const tomorrowStart = new Date(tomorrow);
     tomorrowStart.setHours(0, 0, 0, 0);
-    
+
     const tomorrowEnd = new Date(tomorrow);
     tomorrowEnd.setHours(23, 59, 59, 999);
 
@@ -192,7 +193,7 @@ export class ButtonInteractionHandler {
     // Filter active tasks for tomorrow
     const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
-      
+
       const deadline = new Date(task.deadline);
       return deadline >= tomorrowStart && deadline <= tomorrowEnd;
     });
@@ -220,8 +221,9 @@ export class ButtonInteractionHandler {
   formatTaskListEmbed(title: string, tasks: ITask[]): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(`⋅•⋅☾ **${title}** ☽⋅•⋅`)
-      .setColor(this.configManager.getEmbedColor() as any)
-      .setTimestamp();
+      .setColor(0x99AAB5) // Discord gray color
+      .setTimestamp()
+      .setFooter({ text: 'Made by VinTheGreat' });
 
     if (tasks.length === 0) {
       embed.setDescription('No tasks found for this period.');
@@ -237,23 +239,18 @@ export class ButtonInteractionHandler {
       for (const task of tasks) {
         const deadline = new Date(task.deadline);
         const formattedDate = format(deadline, 'dd MMM yyyy, HH:mm');
-        
+
         const typeEmoji = task.tipe === 'individu' ? individualEmoji : groupEmoji;
         const typeText = task.tipe === 'individu' ? 'Individual' : 'Group';
 
         description += `${taskEmoji} **${task.judul}**\n`;
         description += `${calendarEmoji} Deadline: ${formattedDate}\n`;
         description += `${typeEmoji} Type: ${typeText}\n`;
-        description += `${onlineEmoji} Status: Active\n\n`;
+        description += `${onlineEmoji} Status: Active\n`;
       }
 
       embed.setDescription(description);
     }
-
-    // Footer
-    embed.setFooter({
-      text: '📊 Sorted by nearest deadline'
-    });
 
     return embed;
   }

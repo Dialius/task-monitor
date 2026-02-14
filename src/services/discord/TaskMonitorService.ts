@@ -25,7 +25,7 @@ export class TaskMonitorService {
     private client: Client,
     private taskService: TaskService,
     private configManager: DiscordConfigManager
-  ) {}
+  ) { }
 
   /**
    * Initialize service
@@ -86,17 +86,18 @@ export class TaskMonitorService {
    * Generate embed
    * Requirement: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7
    */
-  async generateEmbed(stats: TaskStatistics, serverName: string): Promise<EmbedBuilder> {
+  async generateEmbed(stats: TaskStatistics): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle('⋅•⋅☾ **Task Monitor** ☽⋅•⋅')
-      .setColor(this.configManager.getEmbedColor() as any)
-      .setTimestamp();
+      .setColor(0x99AAB5) // Discord gray color
+      .setTimestamp()
+      .setFooter({ text: 'Made by VinTheGreat' });
 
     // Field 1: Status Tugas
     const onlineEmoji = this.configManager.getEmoji('online');
     const offlineEmoji = this.configManager.getEmoji('offline');
-    
-    const statusField = `${stats.activeCount} ┊ ${onlineEmoji} tugas aktif\n${stats.completedCount} ┊ ${offlineEmoji} tugas selesai`;
+
+    const statusField = `${onlineEmoji} ┊ ${stats.activeCount} tugas aktif\n${offlineEmoji} ┊ ${stats.completedCount} tugas selesai`;
     embed.addFields({
       name: '**Status Tugas**',
       value: statusField,
@@ -111,29 +112,17 @@ export class TaskMonitorService {
       inline: false
     });
 
-    // Add spacing (empty field)
-    embed.addFields({
-      name: '\u200B',
-      value: '\u200B',
-      inline: false
-    });
-
     // Field 3: Last Updated
     const clockEmoji = this.configManager.getEmoji('clock');
     const timestamp = Math.floor(stats.lastUpdated.getTime() / 1000);
     const lastUpdatedField = `${clockEmoji} **Last Updated:** <t:${timestamp}:R>`;
-    
+
     embed.addFields({
       name: '\u200B',
       value: lastUpdatedField,
       inline: false
     });
 
-    // Footer
-    embed.setFooter({
-      text: this.configManager.getFooterText(serverName),
-      iconURL: this.configManager.getFooterIcon()
-    });
 
     return embed;
   }
@@ -143,19 +132,31 @@ export class TaskMonitorService {
    * Requirement: 3.1, 3.2, 3.3
    */
   createButtons(): ActionRowBuilder<ButtonBuilder> {
-    const calendarEmoji = this.configManager.getEmoji('calendar');
+    // Parse animated emoji string <a:name:id> into object for setEmoji()
+    const calendarEmojiStr = this.configManager.getEmoji('calendar');
+    const emojiMatch = calendarEmojiStr.match(/<a?:(\w+):(\d+)>/);
+    const emojiData = emojiMatch
+      ? { id: emojiMatch[2], name: emojiMatch[1], animated: calendarEmojiStr.startsWith('<a:') }
+      : undefined;
+
+    const weekButton = new ButtonBuilder()
+      .setCustomId('tasks_week')
+      .setLabel('Tasks This Week')
+      .setStyle(ButtonStyle.Secondary);
+
+    const tomorrowButton = new ButtonBuilder()
+      .setCustomId('tasks_tomorrow')
+      .setLabel('Tasks Tomorrow')
+      .setStyle(ButtonStyle.Secondary);
+
+    // Set emoji using the proper setEmoji method (renders animated emojis correctly)
+    if (emojiData) {
+      weekButton.setEmoji(emojiData);
+      tomorrowButton.setEmoji(emojiData);
+    }
 
     const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('tasks_week')
-          .setLabel(`${calendarEmoji} This Week`)
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId('tasks_tomorrow')
-          .setLabel(`${calendarEmoji} Tomorrow`)
-          .setStyle(ButtonStyle.Primary)
-      );
+      .addComponents(weekButton, tomorrowButton);
 
     return row;
   }
@@ -223,12 +224,8 @@ export class TaskMonitorService {
       // Calculate statistics
       const stats = await this.calculateStatistics();
 
-      // Get server name
-      const guild = this.client.guilds.cache.first();
-      const serverName = guild?.name || 'Discord Server';
-
       // Generate embed
-      const embed = await this.generateEmbed(stats, serverName);
+      const embed = await this.generateEmbed(stats);
 
       // Create buttons
       const buttons = this.createButtons();
@@ -255,12 +252,12 @@ export class TaskMonitorService {
           messageId: existingMessage.id,
           stats
         });
-        
+
         console.log(`   ✓ Task Monitor embed updated (ID: ${existingMessage.id})`);
       } else {
         // No existing embed found - create new one
         logger.info('No existing Task Monitor embed found, creating new one');
-        
+
         const newMessage = await channel.send({
           embeds: [embed],
           components: [buttons]
@@ -272,7 +269,7 @@ export class TaskMonitorService {
           messageId: newMessage.id,
           stats
         });
-        
+
         console.log(`   ✓ Task Monitor embed created (ID: ${newMessage.id})`);
       }
     } catch (error) {

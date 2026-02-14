@@ -94,7 +94,8 @@ export class CommandRouter {
 
         return {
           success: false,
-          message: '❌ Anda tidak memiliki izin untuk menjalankan perintah ini.'
+          message: '❌ Anda tidak memiliki izin untuk menjalankan perintah ini.',
+          ephemeral: true
         };
       }
 
@@ -104,7 +105,25 @@ export class CommandRouter {
         argCount: command.args.length
       });
 
-      return await handler(command.args, userId, platform, chatId);
+      const response = await handler(command.args, userId, platform, chatId);
+      
+      // Auto-add ephemeral for admin commands on Discord
+      if (platform === 'discord' && response.ephemeral === undefined) {
+        const adminCommands = [
+          'add_tugas', 'add_tugas_cepat', 'edit_tugas', 'hapus_tugas', 'tandai_selesai',
+          'add_jadwal', 'edit_jadwal', 'hapus_jadwal', 'ganti_jadwal',
+          'set_piket', 'edit_piket',
+          'add_pengumuman', 'hapus_pengumuman',
+          'broadcast', 'broadcast_urgent',
+          'test_reminder'
+        ];
+        
+        if (adminCommands.includes(command.command)) {
+          response.ephemeral = true;
+        }
+      }
+      
+      return response;
     } catch (error) {
       logger.error('Command execution failed', error as Error, {
         command: command.command,
@@ -118,7 +137,8 @@ export class CommandRouter {
 
       return {
         success: false,
-        message: '❌ Terjadi kesalahan saat menjalankan perintah. Silakan coba lagi.'
+        message: '❌ Terjadi kesalahan saat menjalankan perintah. Silakan coba lagi.',
+        ephemeral: true
       };
     }
   }
