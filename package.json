@@ -6,9 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "build": "npm install --prefix frontend && cd frontend && npm run build",
-    "build:frontend": "cd frontend && npm install && npm run build",
-    "build:backend": "tsc",
+    "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:ai": "node scripts/test-ai.js",

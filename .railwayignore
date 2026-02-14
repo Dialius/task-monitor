@@ -1,0 +1,47 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway deployment
+
+# Development
+node_modules/
+.git/
+.github/
+.vscode/
+.kiro/
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+scripts/test-*.js
+scripts/seed-*.js
+__tests__/
+
+# Logs
+logs/
+*.log
+
+# Environment (will be set in Railway dashboard)
+.env
+.env.example
+
+# Build artifacts (will be rebuilt on Railway)
+dist/
+
+# Frontend (removed)
+frontend/
+deploy-package/
+
+# Backup files
+auth_info/
+*.backup
+*.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Deployment files
+deploy-*.sh
+*.ps1
+*.zip
