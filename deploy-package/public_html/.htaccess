@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Force HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2. Proxy API requests to Node.js Backend (Port 3001)
+    # PENTING: Slash di akhir URL sangat berpengaruh!
+    RewriteRule ^api/(.*)$ http://127.0.0.1:3001/api/$1 [P,L]
+    RewriteRule ^socket.io/(.*)$ http://127.0.0.1:3001/socket.io/$1 [P,L]
+
+    # 3. Handle Frontend Routing (SPA)
+    # Jika bukan file atau directory fisik, arahkan ke index.html
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
