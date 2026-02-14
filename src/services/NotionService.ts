@@ -80,12 +80,20 @@ export class NotionService {
         
         // Verify client is properly initialized
         if (!this.notion || !this.notion.databases) {
-          throw new Error('Notion client not properly initialized');
+          logger.warn('Notion client not properly initialized - disabling Notion service');
+          this.enabled = false;
+          return;
         }
         
         // Verify query method exists
         if (typeof this.notion.databases.query !== 'function') {
-          throw new Error('Notion databases.query method is not available');
+          logger.warn('Notion databases.query method is not available - disabling Notion service', {
+            databasesType: typeof this.notion.databases,
+            queryType: typeof (this.notion.databases as any).query,
+            availableMethods: Object.keys(this.notion.databases)
+          });
+          this.enabled = false;
+          return;
         }
         
         logger.info('Notion service initialized with robust error handling', { 
@@ -97,9 +105,8 @@ export class NotionService {
           queryMethodAvailable: typeof this.notion.databases.query === 'function'
         });
       } catch (error) {
-        logger.error('Failed to initialize Notion client', error as Error);
+        logger.error('Failed to initialize Notion client - disabling Notion service', error as Error);
         this.enabled = false;
-        throw error;
       }
     } else {
       logger.warn('Notion service disabled - missing API key or database ID', {
