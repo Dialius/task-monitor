@@ -129,8 +129,19 @@ export class ActivityStatusService {
 
   /**
    * Process activity text with dynamic data
+   * Requirements: 8.2, 8.3, 8.4, 8.5, 8.9
    */
   private async processActivityText(activity: ActivityTemplate): Promise<string> {
+    // Check if text contains new template variables
+    const hasNewVariables = activity.text.includes('{total}') || 
+                           activity.text.includes('{active}') || 
+                           activity.text.includes('{nearest}');
+
+    if (hasNewVariables) {
+      return await this.processNewTemplateVariables(activity.text);
+    }
+
+    // Legacy support for old dataSource format
     if (!activity.dynamic || !activity.dataSource) {
       return activity.text;
     }
@@ -171,6 +182,56 @@ export class ActivityStatusService {
     } catch (error) {
       logger.error('Failed to process dynamic activity text', error as Error);
       return activity.text.replace('{count}', '0');
+    }
+  }
+
+  /**
+   * Process new template variables: {total}, {active}, {nearest}
+   * Requirements: 8.2, 8.3, 8.4, 8.5, 8.9
+   */
+  private async processNewTemplateVariables(text: string): Promise<string> {
+    try {
+      let result = text;
+
+      // Get all active tasks
+      const activeTasks = await this.taskService.getTasks({ status: 'aktif' });
+
+      // Replace {total} and {active} with active task count
+      const activeCount = activeTasks.length;
+      result = result.replace(/{total}/g, activeCount.toString());
+      result = result.replace(/{active}/g, activeCount.toString());
+
+      // Replace {nearest} with nearest deadline
+      if (result.includes('{nearest}')) {
+        if (activeTasks.length === 0) {
+          // Empty state handling
+          result = result.replace(/{nearest}/g, 'tidak ada');
+        } else {
+          // Sort by deadline and get nearest
+          const sortedTasks = activeTasks.sort((a, b) => {
+            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          });
+
+          const nearestTask = sortedTasks[0];
+          const deadline = new Date(nearestTask.deadline);
+          
+          // Format deadline
+          const { format } = await import('date-fns');
+          const { id: localeId } = await import('date-fns/locale');
+          const formattedDeadline = format(deadline, 'dd MMM', { locale: localeId });
+
+          result = result.replace(/{nearest}/g, formattedDeadline);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('Failed to process new template variables', error as Error);
+      // Return original text with placeholders removed
+      return text
+        .replace(/{total}/g, '0')
+        .replace(/{active}/g, '0')
+        .replace(/{nearest}/g, 'N/A');
     }
   }
 

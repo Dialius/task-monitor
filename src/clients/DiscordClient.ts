@@ -20,6 +20,10 @@ import { getLogger } from '../utils/Logger';
 import { ActivityStatusService, ActivityConfig } from '../services/ActivityStatusService';
 import { TaskService } from '../services/TaskService';
 import { getActivityTemplates } from '../config/activityTemplates';
+import { DiscordConfigManager } from '../services/discord/DiscordConfigManager';
+import { RateLimiter } from '../services/discord/RateLimiter';
+import { TaskMonitorService } from '../services/discord/TaskMonitorService';
+import { ButtonInteractionHandler } from '../services/discord/ButtonInteractionHandler';
 
 const logger = getLogger();
 
@@ -46,6 +50,10 @@ export class DiscordClient {
   private config: DiscordConfig;
   private isConnected: boolean = false;
   private activityStatusService?: ActivityStatusService;
+  private discordConfigManager?: DiscordConfigManager;
+  private rateLimiter?: RateLimiter;
+  private taskMonitorService?: TaskMonitorService;
+  private buttonInteractionHandler?: ButtonInteractionHandler;
 
   constructor(config: DiscordConfig) {
     this.config = config;
@@ -118,6 +126,9 @@ export class DiscordClient {
     if (this.activityStatusService) {
       this.activityStatusService.stop();
     }
+
+    // Stop Task Monitor
+    this.stopTaskMonitor();
 
     this.client.destroy();
     this.isConnected = false;
@@ -330,6 +341,103 @@ export class DiscordClient {
       enabled: activityConfig.enabled,
       interval: activityConfig.rotationInterval
     });
+  }
+
+  /**
+   * Setup Task Monitor feature
+   * Requirements: 4.6, 7.8, 7.9, 11.1, 11.2, 11.3
+   */
+  async setupTaskMonitor(taskService: TaskService): Promise<void> {
+    try {
+      logger.info('Setting up Task Monitor feature');
+
+      // Initialize Discord Config Manager
+      this.discordConfigManager = new DiscordConfigManager();
+
+      // Validate configuration
+      const validation = this.discordConfigManager.validateConfig();
+      if (!validation.valid) {
+        logger.error('Discord configuration validation failed', new Error(validation.errors.join(', ')));
+        console.error('❌ Discord Task Monitor configuration validation failed:');
+        validation.errors.forEach(error => console.error(`   - ${error}`));
+        throw new Error('Discord configuration validation failed');
+      }
+
+      logger.info('Discord configuration validated successfully');
+
+      // Initialize Rate Limiter
+      this.rateLimiter = new RateLimiter(
+        this.discordConfigManager.getGeneralRateLimit(),
+        this.discordConfigManager.getCommandRateLimit()
+      );
+
+      logger.info('Rate limiter initialized', {
+        generalCooldown: this.discordConfigManager.getGeneralRateLimit(),
+        commandCooldown: this.discordConfigManager.getCommandRateLimit()
+      });
+
+      // Initialize Task Monitor Service
+      this.taskMonitorService = new TaskMonitorService(
+        this.client,
+        taskService,
+        this.discordConfigManager
+      );
+
+      // Initialize Button Interaction Handler
+      this.buttonInteractionHandler = new ButtonInteractionHandler(
+        taskService,
+        this.discordConfigManager,
+        this.rateLimiter
+      );
+
+      // Register button interaction listener
+      this.client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isButton()) return;
+
+        try {
+          await this.buttonInteractionHandler!.handleButtonClick(interaction);
+        } catch (error) {
+          logger.error('Error handling button interaction', error as Error, {
+            customId: interaction.customId,
+            userId: interaction.user.id
+          });
+        }
+      });
+
+      logger.info('Button interaction handler registered');
+
+      // Initialize Task Monitor (will create/update embed)
+      await this.taskMonitorService.initialize();
+
+      // Start auto-update
+      this.taskMonitorService.startAutoUpdate();
+
+      logger.info('Task Monitor feature initialized successfully');
+      console.log('✅ Discord Task Monitor feature enabled');
+      console.log(`   → Info Channel: ${this.discordConfigManager.getInfoChannelId()}`);
+      console.log(`   → Command Channel: ${this.discordConfigManager.getCommandChannelId()}`);
+      console.log('   → Auto-update: Every 2 hours');
+      console.log('   → Buttons: Minggu Ini, Tugas Besok');
+    } catch (error) {
+      logger.error('Failed to setup Task Monitor feature', error as Error);
+      console.error('❌ Failed to setup Discord Task Monitor:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stop Task Monitor feature
+   */
+  stopTaskMonitor(): void {
+    if (this.taskMonitorService) {
+      this.taskMonitorService.stopAutoUpdate();
+      logger.info('Task Monitor stopped');
+    }
+
+    if (this.rateLimiter) {
+      this.rateLimiter.stop();
+      logger.info('Rate limiter stopped');
+    }
   }
 
   /**

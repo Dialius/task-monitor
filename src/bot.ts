@@ -297,6 +297,14 @@ class MultiPlatformBot {
     // Setup activity status rotation
     this.discordClient.setupActivityStatus(this.taskService);
 
+    // Setup Task Monitor feature
+    try {
+      await this.discordClient.setupTaskMonitor(this.taskService);
+    } catch (error) {
+      this.logger.error('Failed to setup Task Monitor, continuing without it', error as Error);
+      console.log('   ⚠ Task Monitor disabled due to configuration error');
+    }
+
     this.discordAdapter = new DiscordAdapter(this.discordClient.getClient());
 
     // Handle slash commands
