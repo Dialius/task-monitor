@@ -54,19 +54,19 @@ export const discordConfig: DiscordConfig = {
     }
   },
 
+  // ============================================
   // Activity Status Configuration
+  // ============================================
+  // Default Activity Templates Configuration
+  // Define rotating activity status messages for Discord bot
+  //
+  // Activity Types (use numbers):
   // ================================
-  // enabled: true/false - Enable/disable activity rotation
-  // interval: How many minutes between activity changes (default: 5 minutes)
-  // type: Default activity type (can be overridden per template)
-  //   - WATCHING: "👀 Watching ..."
-  //   - PLAYING: "🎮 Playing ..."
-  //   - LISTENING: "🎧 Listening to ..."
-  //   - COMPETING: "🏆 Competing in ..."
-  // templates: Array of activity templates to rotate through
-  //   - text: Text to display (can use variables)
-  //   - dynamic: true = fetch data from database, false = static text
-  //   - type: (optional) Override activity type for this template
+  //   0 = Playing   (🎮 Playing ...)
+  //   1 = Streaming (🎥 Streaming ...)
+  //   2 = Listening (🎧 Listening to ...)
+  //   3 = Watching  (👀 Watching ...)
+  //   5 = Competing (🏆 Competing in ...)
   //
   // Template Variables (Dynamic Data):
   // ================================
@@ -78,162 +78,140 @@ export const discordConfig: DiscordConfig = {
   //   {urgent}   = Urgent tasks with < 24 hours left (example: "2")
   //   {hours}    = Hours until nearest deadline (example: "5")
   //
-  // Activity Types:
+  // Configuration:
   // ================================
-  //   'PLAYING'    = 🎮 Playing ...
-  //   'WATCHING'   = 👀 Watching ...
-  //   'LISTENING'  = 🎧 Listening to ...
-  //   'COMPETING'  = 🏆 Competing in ...
+  //   enabled: true/false - Enable/disable activity rotation
+  //   interval: Minutes between activity changes (default: 5)
+  //   type: Default activity type number (0-5, can be overridden per template)
+  //   templates: Array of activity templates to rotate through
+  //     - text: Text to display (can use variables)
+  //     - dynamic: true = fetch data from database, false = static text
+  //     - type: (optional) Override activity type for this template (use number)
   //
   // HOW TO CONFIGURE:
   // ================================
   // 1. Enable/Disable: Change DISCORD_ACTIVITY_ENABLED in .env (true/false)
-  // 2. Change Delay: Change DISCORD_ACTIVITY_INTERVAL in .env (in minutes)
-  // 3. Change Default Type: Change DISCORD_ACTIVITY_TYPE in .env (WATCHING/PLAYING/LISTENING/COMPETING)
+  // 2. Change Interval: Change DISCORD_ACTIVITY_INTERVAL in .env (in minutes)
+  // 3. Change Default Type: Change DISCORD_ACTIVITY_TYPE in .env (0, 2, 3, or 5)
   // 4. Add/Edit Templates: Edit templates array below
   //
   // Template Examples:
   // ================================
   //   Static text:
-  //     { text: 'Task Manager 2026', dynamic: false, type: 'PLAYING' }
+  //     { text: 'Task Manager 2026', dynamic: false, type: 0 }
   //   
   //   With single variable:
-  //     { text: '{total} tasks', dynamic: true, type: 'WATCHING' }
+  //     { text: '{total} tasks', dynamic: true, type: 3 }
   //   
   //   With multiple variables:
-  //     { text: '{urgent} urgent | {hours}h left', dynamic: true, type: 'COMPETING' }
+  //     { text: '{urgent} urgent | {hours}h left', dynamic: true, type: 5 }
   //   
   //   Without type (uses default):
   //     { text: 'productivity mode', dynamic: false }
   activity: {
     enabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false', // Default: true (active)
     interval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'), // Default: 5 minutes
-    type: (process.env.DISCORD_ACTIVITY_TYPE as any) || 'WATCHING', // Default type
+    type: parseInt(process.env.DISCORD_ACTIVITY_TYPE || '3') as number, // Default: 3 (Watching)
     templates: [
       // ========================================
-      // 🎮 PLAYING Templates
+      // PLAYING Templates (🎮 Type: 0)
       // ========================================
       {
-        text: 'dengan {total} tugas numpuk',
+        text: 'with {total} tasks',
         dynamic: true,
-        type: 'PLAYING'
+        type: 0 as 0
       },
       {
-        text: 'kejar deadline sekolah',
+        text: 'deadline race',
         dynamic: false,
-        type: 'PLAYING'
+        type: 0 as 0
       },
       {
-        text: '{today} tugas harus dikumpul hari ini',
+        text: 'Task Manager 2026',
+        dynamic: false,
+        type: 0 as 0
+      },
+      {
+        text: 'with {today} tasks today',
         dynamic: true,
-        type: 'PLAYING'
-      },
-      {
-        text: 'Homework Manager 2026',
-        dynamic: false,
-        type: 'PLAYING'
-      },
-      {
-        text: 'mode SKS sejati',
-        dynamic: false,
-        type: 'PLAYING'
+        type: 0 as 0
       },
 
       // ========================================
-      // 👀 WATCHING Templates
+      // WATCHING Templates (👀 Type: 3)
       // ========================================
       {
-        text: '{active} tugas belum dikerjain',
+        text: '{total} active missions',
         dynamic: true,
-        type: 'WATCHING'
+        type: 3 as 3
       },
       {
-        text: 'deadline terdekat: {nearest}',
+        text: 'next: {nearest}',
         dynamic: true,
-        type: 'WATCHING'
+        type: 3 as 3
       },
       {
-        text: 'jadwal pelajaran hari ini',
-        dynamic: false,
-        type: 'WATCHING'
-      },
-      {
-        text: 'progress belajar: {percent}%',
+        text: '{today} tasks today',
         dynamic: true,
-        type: 'WATCHING'
+        type: 3 as 3
       },
       {
-        text: 'nasib {urgent} tugas yang terlupakan',
+        text: '{percent}% completion rate',
         dynamic: true,
-        type: 'WATCHING'
+        type: 3 as 3
       },
       {
-        text: 'drama pengumpulan tugas last minute',
-        dynamic: false,
-        type: 'WATCHING'
+        text: '{active} pending tasks',
+        dynamic: true,
+        type: 3 as 3
       },
 
       // ========================================
-      // 🎧 LISTENING Templates
+      // LISTENING Templates (🎧 Type: 2)
       // ========================================
       {
-        text: 'alarm deadline {hours} jam lagi',
+        text: '{active} task notifications',
         dynamic: true,
-        type: 'LISTENING'
+        type: 2 as 2
       },
       {
-        text: 'notif tugas masuk terus',
+        text: 'task alerts & reminders',
         dynamic: false,
-        type: 'LISTENING'
+        type: 2 as 2
       },
       {
-        text: '{active} reminder belum dibalas guru',
-        dynamic: true,
-        type: 'LISTENING'
-      },
-      {
-        text: 'lo-fi sambil belajar',
+        text: 'deadline notifications',
         dynamic: false,
-        type: 'LISTENING'
-      },
-      {
-        text: 'curhatan murid soal PR senin',
-        dynamic: false,
-        type: 'LISTENING'
+        type: 2 as 2
       },
 
       // ========================================
-      // 🏆 COMPETING Templates
+      // COMPETING Templates (🏆 Type: 5)
       // ========================================
       {
-        text: '{hours} jam lagi — masih bisa dikebut',
+        text: '{total} tasks challenge',
         dynamic: true,
-        type: 'COMPETING'
+        type: 5 as 5
       },
       {
-        text: 'kebut {today} tugas dalam sehari',
-        dynamic: true,
-        type: 'COMPETING'
-      },
-      {
-        text: 'capai {percent}% sebelum {nearest}',
-        dynamic: true,
-        type: 'COMPETING'
-      },
-      {
-        text: 'siapa cepat dia lulus',
+        text: 'productivity battle',
         dynamic: false,
-        type: 'COMPETING'
+        type: 5 as 5
       },
       {
-        text: 'sprint ujian akhir semester',
+        text: 'achievement hunt',
         dynamic: false,
-        type: 'COMPETING'
+        type: 5 as 5
       },
       {
-        text: '{total} tugas, 1 malam, bismillah',
+        text: '{urgent} urgent | {hours}h left',
         dynamic: true,
-        type: 'COMPETING'
+        type: 5 as 5
+      },
+      {
+        text: '{percent}% completion race',
+        dynamic: true,
+        type: 5 as 5
       }
     ]
   },

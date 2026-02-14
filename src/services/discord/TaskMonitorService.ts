@@ -34,10 +34,15 @@ export class TaskMonitorService {
     try {
       logger.info('Initializing Task Monitor Service');
 
-      // Perform initial update
+      // Perform initial update (will create embed if not exists)
       await this.updateEmbed();
 
-      logger.info('Task Monitor Service initialized');
+      // Start auto-update cycle
+      this.startAutoUpdate();
+
+      logger.info('Task Monitor Service initialized with auto-update enabled');
+      console.log('      ✓ Task Monitor embed initialized');
+      console.log('      ✓ Auto-update every 2 hours');
     } catch (error) {
       logger.error('Failed to initialize Task Monitor Service', error as Error);
       throw error;
@@ -228,15 +233,16 @@ export class TaskMonitorService {
       // Create buttons
       const buttons = this.createButtons();
 
-      // Find existing embed
-      const existingMessage = await this.findExistingEmbed();
-
+      // Get channel
       const channelId = this.configManager.getInfoChannelId();
       const channel = await this.client.channels.fetch(channelId) as TextChannel;
 
       if (!channel || !channel.isTextBased()) {
         throw new Error(`Info channel not accessible: ${channelId}`);
       }
+
+      // Find existing embed
+      const existingMessage = await this.findExistingEmbed();
 
       if (existingMessage) {
         // Edit existing message
@@ -249,8 +255,12 @@ export class TaskMonitorService {
           messageId: existingMessage.id,
           stats
         });
+        
+        console.log(`   ✓ Task Monitor embed updated (ID: ${existingMessage.id})`);
       } else {
-        // Create new message
+        // No existing embed found - create new one
+        logger.info('No existing Task Monitor embed found, creating new one');
+        
         const newMessage = await channel.send({
           embeds: [embed],
           components: [buttons]
@@ -262,9 +272,12 @@ export class TaskMonitorService {
           messageId: newMessage.id,
           stats
         });
+        
+        console.log(`   ✓ Task Monitor embed created (ID: ${newMessage.id})`);
       }
     } catch (error) {
       logger.error('Failed to update Task Monitor embed', error as Error);
+      console.error('   ✗ Failed to update Task Monitor embed:', error);
       // Don't throw - will retry on next cycle
     }
   }

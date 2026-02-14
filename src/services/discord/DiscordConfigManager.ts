@@ -82,18 +82,21 @@ export class DiscordConfigManager {
    * Requirement: 8.1
    */
   getActivityTemplates(): any[] {
-    // Convert string types to numbers for ActivityStatusService
+    // Convert string types to numbers if needed for ActivityStatusService
     return this.config.activity.templates.map(template => ({
       ...template,
-      type: this.convertActivityTypeToNumber(template.type)
+      type: typeof template.type === 'string' 
+        ? this.convertActivityTypeToNumber(template.type)
+        : template.type // Already a number
     }));
   }
 
   /**
    * Convert activity type string to number
    */
-  private convertActivityTypeToNumber(type?: string): 0 | 1 | 2 | 3 | 5 | undefined {
+  private convertActivityTypeToNumber(type?: string | number): 0 | 1 | 2 | 3 | 5 | undefined {
     if (!type) return undefined;
+    if (typeof type === 'number') return type as 0 | 1 | 2 | 3 | 5;
     
     const typeMap: Record<string, 0 | 1 | 2 | 3 | 5> = {
       'PLAYING': 0,
@@ -118,8 +121,10 @@ export class DiscordConfigManager {
    * Get activity type
    * Requirement: 8.7
    */
-  getActivityType(): 'WATCHING' | 'PLAYING' | 'LISTENING' | 'COMPETING' {
-    return this.config.activity.type;
+  getActivityType(): number {
+    return typeof this.config.activity.type === 'number' 
+      ? this.config.activity.type 
+      : this.convertActivityTypeToNumber(this.config.activity.type) || 3;
   }
 
   /**
@@ -259,7 +264,8 @@ export class DiscordConfigManager {
         errors.push('Activity interval must be greater than 0');
       }
 
-      const validTypes = ['WATCHING', 'PLAYING', 'LISTENING', 'COMPETING'];
+      // Support both string and number types
+      const validTypes = ['WATCHING', 'PLAYING', 'LISTENING', 'COMPETING', 0, 1, 2, 3, 5];
       if (!validTypes.includes(this.config.activity.type)) {
         errors.push(`Invalid activity type: ${this.config.activity.type}`);
       }

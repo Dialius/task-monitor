@@ -19,7 +19,6 @@ import {
 import { getLogger } from '../utils/Logger';
 import { ActivityStatusService, ActivityConfig } from '../services/ActivityStatusService';
 import { TaskService } from '../services/TaskService';
-import { getActivityTemplates } from '../config/activityTemplates';
 import { DiscordConfigManager } from '../services/discord/DiscordConfigManager';
 import { RateLimiter } from '../services/discord/RateLimiter';
 import { TaskMonitorService } from '../services/discord/TaskMonitorService';
@@ -320,10 +319,13 @@ export class DiscordClient {
    * Call this after client is ready and TaskService is available
    */
   setupActivityStatus(taskService: TaskService): void {
+    // Initialize Discord Config Manager to get activity configuration
+    const configManager = new DiscordConfigManager();
+    
     const activityConfig: ActivityConfig = {
-      enabled: this.config.activityEnabled ?? true,
-      rotationInterval: this.config.activityInterval ?? 5,
-      activities: getActivityTemplates()
+      enabled: configManager.isActivityEnabled(),
+      rotationInterval: configManager.getActivityInterval() / (60 * 1000), // Convert ms to minutes
+      activities: configManager.getActivityTemplates()
     };
 
     this.activityStatusService = new ActivityStatusService(
@@ -339,7 +341,8 @@ export class DiscordClient {
 
     logger.info('Activity status service initialized', {
       enabled: activityConfig.enabled,
-      interval: activityConfig.rotationInterval
+      interval: activityConfig.rotationInterval,
+      templatesCount: activityConfig.activities.length
     });
   }
 
@@ -406,18 +409,13 @@ export class DiscordClient {
 
       logger.info('Button interaction handler registered');
 
-      // Initialize Task Monitor (will create/update embed)
+      // Initialize Task Monitor (will create/update embed and start auto-update)
       await this.taskMonitorService.initialize();
-
-      // Start auto-update
-      this.taskMonitorService.startAutoUpdate();
 
       logger.info('Task Monitor feature initialized successfully');
       console.log('✅ Discord Task Monitor feature enabled');
       console.log(`   → Info Channel: ${this.discordConfigManager.getInfoChannelId()}`);
       console.log(`   → Command Channel: ${this.discordConfigManager.getCommandChannelId()}`);
-      console.log('   → Auto-update: Every 2 hours');
-      console.log('   → Buttons: Minggu Ini, Tugas Besok');
     } catch (error) {
       logger.error('Failed to setup Task Monitor feature', error as Error);
       console.error('❌ Failed to setup Discord Task Monitor:', error);

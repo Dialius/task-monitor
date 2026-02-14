@@ -78,7 +78,7 @@ export interface DiscordEmbedConfig {
 export interface ActivityTemplate {
   text: string;
   dynamic: boolean;
-  type?: 'WATCHING' | 'PLAYING' | 'LISTENING' | 'COMPETING'; // Optional per-template type
+  type?: 0 | 1 | 2 | 3 | 5; // Optional per-template type (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing)
 }
 
 /**
@@ -87,7 +87,7 @@ export interface ActivityTemplate {
 export interface DiscordActivityConfig {
   enabled: boolean;
   interval: number;
-  type: 'WATCHING' | 'PLAYING' | 'LISTENING' | 'COMPETING';
+  type: number; // Activity type as number (0=Playing, 1=Streaming, 2=Listening, 3=Watching, 5=Competing)
   templates: ActivityTemplate[];
 }
 
