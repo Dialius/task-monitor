@@ -399,13 +399,28 @@ class MultiPlatformBot {
   private async initializeWhatsApp(): Promise<void> {
     console.log('      → Initializing Baileys client...');
     
+    // Check if pairing code mode is enabled
+    const usePairingCode = process.env.WHATSAPP_USE_PAIRING_CODE === 'true';
+    const phoneNumber = process.env.WHATSAPP_PAIRING_NUMBER || process.env.FIRST_ADMIN_WHATSAPP_ID;
+    
     this.whatsappClient = new BaileysClient({
       authDir: './auth_info',
-      printQRInTerminal: true
+      printQRInTerminal: true,
+      usePairingCode,
+      phoneNumber
     });
 
+    if (usePairingCode && phoneNumber) {
+      console.log('      → Using PAIRING CODE mode (better for Railway)');
+      console.log(`      → Phone number: ${phoneNumber}`);
+    } else {
+      console.log('      → Using QR CODE mode');
+    }
+
     console.log('      → Connecting to WhatsApp...');
-    console.log('      → Scan QR code with your phone if this is first time\n');
+    if (!usePairingCode) {
+      console.log('      → Scan QR code with your phone if this is first time\n');
+    }
     
     // Start connection (don't await - it will connect in background)
     this.whatsappClient.connect();

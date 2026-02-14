@@ -20,6 +20,8 @@ const logger = getLogger();
 export interface BaileysConfig {
   authDir: string;
   printQRInTerminal: boolean; // kept for compatibility but not used
+  usePairingCode?: boolean; // Use pairing code instead of QR (better for Railway)
+  phoneNumber?: string; // Phone number for pairing code (format: 628xxx)
 }
 
 export interface ConnectionState {
@@ -111,12 +113,43 @@ export class BaileysClient {
   private async handleConnectionUpdate(update: any): Promise<void> {
     const { connection, lastDisconnect, qr } = update;
 
-    // Handle QR code manually (new Baileys way)
+    // Handle QR code or pairing code
     if (qr) {
-      console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
-      QRCode.generate(qr, { small: true });
-      console.log('\n⏳ Menunggu scan QR code...\n');
-      logger.info('QR Code generated for WhatsApp authentication');
+      if (this.config.usePairingCode && this.config.phoneNumber) {
+        // Use pairing code instead of QR (better for Railway/server deployment)
+        if (this.socket && !this.socket.authState.creds.registered) {
+          console.log('\n📱 PAIRING CODE MODE\n');
+          console.log('🔢 Requesting pairing code for:', this.config.phoneNumber);
+          
+          try {
+            const code = await this.socket.requestPairingCode(this.config.phoneNumber);
+            console.log('\n╔════════════════════════════════════════╗');
+            console.log('║  PAIRING CODE (8 DIGIT)               ║');
+            console.log('╠════════════════════════════════════════╣');
+            console.log(`║  ${code}                              ║`);
+            console.log('╚════════════════════════════════════════╝\n');
+            console.log('📱 Cara pakai:');
+            console.log('   1. Buka WhatsApp di HP kamu');
+            console.log('   2. Tap Menu (⋮) atau Settings');
+            console.log('   3. Tap "Linked Devices"');
+            console.log('   4. Tap "Link a Device"');
+            console.log('   5. Tap "Link with phone number instead"');
+            console.log(`   6. Masukkan kode: ${code}\n`);
+            console.log('⏳ Menunggu pairing...\n');
+            
+            logger.info('Pairing code generated', { phoneNumber: this.config.phoneNumber, code });
+          } catch (error) {
+            console.error('❌ Failed to request pairing code:', error);
+            logger.error('Failed to request pairing code', error as Error);
+          }
+        }
+      } else {
+        // Fallback to QR code
+        console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
+        QRCode.generate(qr, { small: true });
+        console.log('\n⏳ Menunggu scan QR code...\n');
+        logger.info('QR Code generated for WhatsApp authentication');
+      }
     }
 
     if (connection === 'close') {
@@ -131,10 +164,10 @@ export class BaileysClient {
 
       // Check if should reconnect
       if (statusCode === DisconnectReason.loggedOut) {
-        console.log('\n❌ WhatsApp logged out - please scan QR code again\n');
+        console.log('\n❌ WhatsApp logged out - please authenticate again\n');
         logger.info('WhatsApp logged out, clearing session');
         
-        // Clear session files and reconnect with fresh QR
+        // Clear session files and reconnect with fresh authentication
         await this.clearSession();
         
         // Reset reconnect attempts and reconnect
