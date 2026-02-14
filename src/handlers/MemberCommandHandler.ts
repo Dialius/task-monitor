@@ -4,7 +4,7 @@
  */
 
 import { CommandResponse } from '../utils/CommandRouter';
-import { Platform, UserRole } from '../services/PermissionService';
+import { Platform } from '../services/PermissionService';
 import { TaskService } from '../services/TaskService';
 import { ScheduleService } from '../services/ScheduleService';
 import { PiketService } from '../services/PiketService';
@@ -12,22 +12,127 @@ import { NotionService } from '../services/NotionService';
 import { Formatter } from '../utils/Formatter';
 import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from '../utils/TextFormatter';
 import { getLogger } from '../utils/Logger';
+import { ProgressMessage } from '../utils/ProgressMessage';
+import { executeWithProgress, CommandContext } from '../utils/CommandWithProgress';
 
 const logger = getLogger();
 
 export class MemberCommandHandler {
+  private progressMessage?: ProgressMessage;
+
   constructor(
     private taskService: TaskService,
     private scheduleService: ScheduleService,
     private piketService: PiketService,
-    private notionService: NotionService
-  ) {}
+    private notionService: NotionService,
+    progressMessage?: ProgressMessage
+  ) {
+    this.progressMessage = progressMessage;
+  }
 
   /**
-   * Handle /tugas command - Get all active tasks
+   * Set progress message service (for late initialization)
+   */
+  setProgressMessage(progressMessage: ProgressMessage): void {
+    this.progressMessage = progressMessage;
+  }
+
+  /**
+   * Handle /tugas command - Get all active tasks with progress message
    * Requirement: 2.6
    */
-  async handleTugas(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
+  async handleTugas(_args: string[], _userId: string, platform: Platform, chatId?: string): Promise<CommandResponse> {
+    // If no chatId provided, execute without progress
+    if (!chatId || !this.progressMessage) {
+      return await this.handleTugasWithoutProgress(_args, _userId, platform);
+    }
+
+    const context: CommandContext = {
+      platform,
+      chatId,
+      userId: _userId,
+      progressMessage: this.progressMessage
+    };
+
+    return await executeWithProgress(context, async (update) => {
+      try {
+        // Step 1: Sync from Notion
+        let syncStatus = '';
+        if (this.notionService.isEnabled()) {
+          await update('🔄 Sinkronisasi dengan Notion...');
+          
+          try {
+            const result = await this.notionService.syncFromNotion();
+            syncStatus = `\n\n✅ Synced: ${result.synced} tugas dari Notion`;
+          } catch (syncError) {
+            logger.warn('Notion sync failed, using cached data', syncError as Error);
+            syncStatus = '\n\n⚠️ Menggunakan data cache (sync gagal)';
+          }
+        }
+
+        // Step 2: Fetch tasks
+        await update('📚 Mengambil daftar tugas...');
+        const tasks = await this.taskService.getTasks();
+        
+        if (tasks.length === 0) {
+          return {
+            success: true,
+            message: `📝 Tidak ada tugas aktif saat ini.${syncStatus}`,
+            ephemeral: true
+          };
+        }
+
+        // Step 3: Format results
+        await update('📝 Memformat hasil...');
+
+        // For Discord, return embed data with fields
+        if (platform === 'discord') {
+          const fields = tasks.map((task, index) => {
+            const emoji = this.getTaskEmoji(task.tipe);
+            const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short' 
+            });
+            
+            const spacing = index < tasks.length - 1 ? '\n' : '';
+            
+            return {
+              name: `${index + 1}. ${emoji} ${task.judul}`,
+              value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
+              inline: false
+            };
+          });
+
+          return {
+            success: true,
+            message: syncStatus,
+            embedData: {
+              title: '📝 Daftar Tugas',
+              color: 0x3498db,
+              fields
+            },
+            ephemeral: true
+          };
+        }
+
+        // For WhatsApp, use reminder format
+        const message = this.formatTasksLikeReminder(tasks, 'Semua Tugas Aktif');
+        return {
+          success: true,
+          message: message + syncStatus
+        };
+      } catch (error) {
+        logger.error('Failed to get tasks', error as Error);
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * Handle /tugas without progress (fallback)
+   */
+  private async handleTugasWithoutProgress(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       // Auto-sync from Notion before querying
       let syncStatus = '';
@@ -564,7 +669,7 @@ export class MemberCommandHandler {
    * Handle /help or /bantuan command
    * Requirement: 11.6
    */
-  async handleHelp(_args: string[], _userId: string, _platform: Platform, role?: UserRole): Promise<CommandResponse> {
+  async handleHelp(_args: string[], _userId: string, _platform: Platform, _chatId?: string): Promise<CommandResponse> {
     let message = '📖 *Daftar Perintah*\n\n';
 
     // Member commands (available to all)
@@ -580,24 +685,21 @@ export class MemberCommandHandler {
     message += '• /status - Status bot\n';
     message += '• /help - Bantuan\n\n';
 
-    // Admin commands
-    if (role && role !== 'member') {
-      message += '👨‍💼 *Perintah Admin:*\n';
-      message += '• /add_tugas - Tambah tugas\n';
-      message += '• /edit_tugas - Edit tugas\n';
-      message += '• /hapus_tugas - Hapus tugas\n';
-      message += '• /tandai_selesai - Tandai selesai\n';
-      message += '• /add_jadwal - Tambah jadwal\n';
-      message += '• /set_piket - Atur piket\n';
-      message += '• /add_pengumuman - Tambah pengumuman\n\n';
-    }
+    // Admin commands (show to all, permission check happens at execution)
+    message += '👨‍💼 *Perintah Admin:*\n';
+    message += '• /add_tugas - Tambah tugas\n';
+    message += '• /add_tugas_cepat - Tambah tugas cepat (natural language)\n';
+    message += '• /edit_tugas - Edit tugas\n';
+    message += '• /hapus_tugas - Hapus tugas\n';
+    message += '• /tandai_selesai - Tandai selesai\n';
+    message += '• /add_jadwal - Tambah jadwal\n';
+    message += '• /set_piket - Atur piket\n';
+    message += '• /add_pengumuman - Tambah pengumuman\n\n';
 
     // Ketua/Wakil only commands
-    if (role && (role === 'ketua' || role === 'wakil')) {
-      message += '👑 *Perintah Ketua/Wakil:*\n';
-      message += '• /broadcast - Broadcast pesan\n';
-      message += '• /broadcast_urgent - Broadcast urgent\n';
-    }
+    message += '👑 *Perintah Ketua/Wakil:*\n';
+    message += '• /broadcast - Broadcast pesan\n';
+    message += '• /broadcast_urgent - Broadcast urgent\n';
 
     return {
       success: true,

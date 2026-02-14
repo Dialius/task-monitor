@@ -29,7 +29,8 @@ export interface CommandResponse {
 export type CommandHandler = (
   args: string[],
   userId: string,
-  platform: Platform
+  platform: Platform,
+  chatId?: string
 ) => Promise<CommandResponse>;
 
 /**
@@ -57,7 +58,8 @@ export class CommandRouter {
   async route(
     command: ParsedCommand,
     userId: string,
-    platform: Platform
+    platform: Platform,
+    chatId?: string
   ): Promise<CommandResponse> {
     try {
       // Check if handler exists
@@ -96,13 +98,13 @@ export class CommandRouter {
         };
       }
 
-      // Execute handler
+      // Execute handler with chatId for progress messages
       logger.logCommand(command.command, userId, true, {
         platform,
         argCount: command.args.length
       });
 
-      return await handler(command.args, userId, platform);
+      return await handler(command.args, userId, platform, chatId);
     } catch (error) {
       logger.error('Command execution failed', error as Error, {
         command: command.command,
