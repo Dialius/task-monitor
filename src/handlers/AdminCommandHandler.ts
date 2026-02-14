@@ -43,7 +43,12 @@ export class AdminCommandHandler {
       if (args.length < 5) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /add_tugas | judul | deskripsi | deadline (YYYY-MM-DD) | mata_pelajaran | tipe\n\nContoh: /add_tugas | Essay Sejarah | Tulis essay tentang kemerdekaan | 2024-12-25 | Sejarah | individu'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/add_tugas | judul | deskripsi | deadline (YYYY-MM-DD) | mata_pelajaran | tipe`\n\n**Contoh:**\n`/add_tugas | Essay Sejarah | Tulis essay tentang kemerdekaan | 2024-12-25 | Sejarah | individu`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -53,7 +58,12 @@ export class AdminCommandHandler {
       if (!Validator.isValidDate(deadlineStr)) {
         return {
           success: false,
-          message: '❌ Format tanggal salah! Gunakan format YYYY-MM-DD (contoh: 2024-12-25)'
+          message: '',
+          embedData: {
+            title: '❌ Format Tanggal Salah',
+            description: 'Gunakan format YYYY-MM-DD (contoh: 2024-12-25)',
+            color: 0xED4245
+          }
         };
       }
 
@@ -61,7 +71,12 @@ export class AdminCommandHandler {
       if (!Validator.isValidTaskType(tipe)) {
         return {
           success: false,
-          message: '❌ Tipe tugas tidak valid! Gunakan: individu, kelompok, atau ujian'
+          message: '',
+          embedData: {
+            title: '❌ Tipe Tugas Tidak Valid',
+            description: 'Gunakan: `individu`, `kelompok`, atau `ujian`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -107,13 +122,23 @@ export class AdminCommandHandler {
 
       return {
         success: true,
-        message: `✅ *Tugas ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(task.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`\n\n💡 Gunakan ID untuk edit/hapus${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`
+        message: '',
+        embedData: {
+          title: '✅ Tugas Berhasil Ditambahkan!',
+          description: `**${task.judul}**\n\n${this.getPriorityEmoji(task.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n\n**ID:** \`${task._id}\`\n\n💡 Gunakan ID untuk edit/hapus${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to add task', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menambahkan tugas. Silakan coba lagi.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menambahkan Tugas',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -136,14 +161,12 @@ export class AdminCommandHandler {
       if (!input || input.length < 10) {
         return {
           success: false,
-          message: `❌ *Input terlalu pendek!*
-
-Gunakan: /add_tugas_cepat <deskripsi natural>
-
-*Contoh:*
-• Besok ada tugas matematika halaman 45-50 deadline jam 10
-• Ujian fisika minggu depan, bawa kalkulator
-• Tugas kelompok bahasa indonesia, bikin puisi, deadline 15 februari`
+          message: '',
+          embedData: {
+            title: '❌ Input Terlalu Pendek',
+            description: 'Gunakan: `/add_tugas_cepat <deskripsi natural>`\n\n**Contoh:**\n• Besok ada tugas matematika halaman 45-50 deadline jam 10\n• Ujian fisika minggu depan, bawa kalkulator\n• Tugas kelompok bahasa indonesia, bikin puisi, deadline 15 februari',
+            color: 0xED4245
+          }
         };
       }
 
@@ -154,15 +177,12 @@ Gunakan: /add_tugas_cepat <deskripsi natural>
       if (!parsed) {
         return {
           success: false,
-          message: `❌ *Maaf, saya tidak bisa memahami input kamu.*
-
-Coba format seperti ini:
-• "Besok ada tugas matematika halaman 45-50 deadline jam 10"
-• "Ujian fisika minggu depan jam 9"
-• "Tugas kelompok bahasa indonesia deadline lusa"
-
-Atau gunakan format manual:
-/add_tugas | judul | deskripsi | deadline | mata_pelajaran | tipe`
+          message: '',
+          embedData: {
+            title: '❌ Tidak Dapat Memahami Input',
+            description: 'Coba format seperti ini:\n• "Besok ada tugas matematika halaman 45-50 deadline jam 10"\n• "Ujian fisika minggu depan jam 9"\n• "Tugas kelompok bahasa indonesia deadline lusa"\n\nAtau gunakan format manual:\n`/add_tugas | judul | deskripsi | deadline | mata_pelajaran | tipe`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -171,7 +191,12 @@ Atau gunakan format manual:
       if (!validation.valid) {
         return {
           success: false,
-          message: `❌ *Parsing gagal:*\n\n${validation.errors.join('\n')}\n\nSilakan coba lagi dengan informasi yang lebih lengkap.`
+          message: '',
+          embedData: {
+            title: '❌ Parsing Gagal',
+            description: validation.errors.join('\n') + '\n\nSilakan coba lagi dengan informasi yang lebih lengkap.',
+            color: 0xED4245
+          }
         };
       }
 
@@ -207,7 +232,12 @@ Atau gunakan format manual:
     if (!pending) {
       return {
         success: false,
-        message: '⏱️ Konfirmasi sudah expired. Silakan gunakan /add_tugas_cepat lagi.'
+        message: '',
+        embedData: {
+          title: '⏱️ Konfirmasi Expired',
+          description: 'Silakan gunakan `/add_tugas_cepat` lagi.',
+          color: 0xFEE75C
+        }
       };
     }
 
@@ -259,14 +289,24 @@ Atau gunakan format manual:
 
         return {
           success: true,
-          message: `✅ *Tugas berhasil ditambahkan!*\n\n📝 ${task.judul}\n${this.getPriorityEmoji(pending.parsedTask.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n🆔 \`${task._id}\`${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`
+          message: '',
+          embedData: {
+            title: '✅ Tugas Berhasil Ditambahkan!',
+            description: `**${task.judul}**\n\n${this.getPriorityEmoji(pending.parsedTask.prioritas)} ${task.mata_pelajaran} • ${deadlineFormatted}\n\n**ID:** \`${task._id}\`${this.notionService.isEnabled() ? '\n✨ Synced to Notion' : ''}`,
+            color: 0x57F287
+          }
         };
       } catch (error) {
         logger.error('Failed to create task from confirmation', error as Error, { userId });
         ConfirmationService.removePendingConfirmation(userId);
         return {
           success: false,
-          message: '❌ Gagal menyimpan tugas. Silakan coba lagi.'
+          message: '',
+          embedData: {
+            title: '❌ Gagal Menyimpan Tugas',
+            description: 'Silakan coba lagi.',
+            color: 0xED4245
+          }
         };
       }
     }
@@ -276,7 +316,12 @@ Atau gunakan format manual:
       ConfirmationService.removePendingConfirmation(userId);
       return {
         success: true,
-        message: '❌ Pembuatan tugas dibatalkan.'
+        message: '',
+        embedData: {
+          title: '❌ Pembuatan Tugas Dibatalkan',
+          description: 'Gunakan `/add_tugas_cepat` untuk mencoba lagi.',
+          color: 0x99AAB5
+        }
       };
     }
 
@@ -313,14 +358,12 @@ Atau gunakan format manual:
     // Invalid response
     return {
       success: false,
-      message: `❌ *Respon tidak dikenali.*
-
-Ketik:
-• *ya* untuk simpan
-• *edit [field] [value]* untuk ubah
-• *batal* untuk cancel
-
-Contoh: edit prioritas urgent`
+      message: '',
+      embedData: {
+        title: '❌ Respon Tidak Dikenali',
+        description: 'Ketik:\n• **ya** untuk simpan\n• **edit [field] [value]** untuk ubah\n• **batal** untuk cancel\n\nContoh: `edit prioritas urgent`',
+        color: 0xED4245
+      }
     };
   }
 
@@ -334,7 +377,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 3) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /edit_tugas | task_id | field | value\n\nField yang bisa diubah: judul, deskripsi, deadline, mata_pelajaran, tipe'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/edit_tugas | task_id | field | value`\n\n**Field yang bisa diubah:**\n`judul`, `deskripsi`, `deadline`, `mata_pelajaran`, `tipe`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -345,7 +393,12 @@ Contoh: edit prioritas urgent`
       if (!validFields.includes(field)) {
         return {
           success: false,
-          message: `❌ Field tidak valid! Gunakan: ${validFields.join(', ')}`
+          message: '',
+          embedData: {
+            title: '❌ Field Tidak Valid',
+            description: `Gunakan: ${validFields.map(f => `\`${f}\``).join(', ')}`,
+            color: 0xED4245
+          }
         };
       }
 
@@ -353,14 +406,24 @@ Contoh: edit prioritas urgent`
       if (field === 'deadline' && !Validator.isValidDate(value)) {
         return {
           success: false,
-          message: '❌ Format tanggal salah! Gunakan format YYYY-MM-DD'
+          message: '',
+          embedData: {
+            title: '❌ Format Tanggal Salah',
+            description: 'Gunakan format YYYY-MM-DD',
+            color: 0xED4245
+          }
         };
       }
 
       if (field === 'tipe' && !Validator.isValidTaskType(value)) {
         return {
           success: false,
-          message: '❌ Tipe tugas tidak valid! Gunakan: individu, kelompok, atau ujian'
+          message: '',
+          embedData: {
+            title: '❌ Tipe Tugas Tidak Valid',
+            description: 'Gunakan: `individu`, `kelompok`, atau `ujian`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -369,13 +432,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ Tugas berhasil diupdate!\n\n📝 ${task.judul}\nField "${field}" diubah menjadi: ${value}`
+        message: '',
+        embedData: {
+          title: '✅ Tugas Berhasil Diupdate!',
+          description: `**${task.judul}**\n\nField \`${field}\` diubah menjadi: **${value}**`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to edit task', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengupdate tugas. Pastikan task_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengupdate Tugas',
+          description: 'Pastikan task_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -390,7 +463,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /hapus_tugas | task_id'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/hapus_tugas | task_id`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -399,13 +477,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: '✅ Tugas berhasil dihapus!'
+        message: '',
+        embedData: {
+          title: '✅ Tugas Berhasil Dihapus!',
+          description: 'Tugas telah dihapus dari database.',
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to delete task', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menghapus tugas. Pastikan task_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menghapus Tugas',
+          description: 'Pastikan task_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -420,7 +508,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /tandai_selesai | task_id'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/tandai_selesai | task_id`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -429,13 +522,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ Tugas selesai!\n\n📝 ${task.judul}\n🎉 Status: Selesai`
+        message: '',
+        embedData: {
+          title: '✅ Tugas Selesai!',
+          description: `**${task.judul}**\n\n🎉 Status: **Selesai**`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to mark task complete', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menandai tugas selesai. Pastikan task_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menandai Tugas Selesai',
+          description: 'Pastikan task_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -450,7 +553,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 6) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /add_jadwal | hari | jam_mulai | jam_selesai | mata_pelajaran | ruangan | nama_guru\n\nContoh: /add_jadwal | Senin | 08:00 | 09:30 | Matematika | R.101 | Pak Budi'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/add_jadwal | hari | jam_mulai | jam_selesai | mata_pelajaran | ruangan | nama_guru`\n\n**Contoh:**\n`/add_jadwal | Senin | 08:00 | 09:30 | Matematika | R.101 | Pak Budi`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -460,7 +568,12 @@ Contoh: edit prioritas urgent`
       if (!Validator.isValidDay(hari)) {
         return {
           success: false,
-          message: '❌ Hari tidak valid! Gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu'
+          message: '',
+          embedData: {
+            title: '❌ Hari Tidak Valid',
+            description: 'Gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu',
+            color: 0xED4245
+          }
         };
       }
 
@@ -468,7 +581,12 @@ Contoh: edit prioritas urgent`
       if (!Validator.isValidTime(jam_mulai) || !Validator.isValidTime(jam_selesai)) {
         return {
           success: false,
-          message: '❌ Format waktu salah! Gunakan format HH:MM (contoh: 08:00)'
+          message: '',
+          embedData: {
+            title: '❌ Format Waktu Salah',
+            description: 'Gunakan format HH:MM (contoh: 08:00)',
+            color: 0xED4245
+          }
         };
       }
 
@@ -483,13 +601,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ *Jadwal ditambahkan!*\n\n📖 ${schedule.mata_pelajaran}\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai} • ${schedule.hari} • ${schedule.ruangan}\n🆔 \`${schedule._id}\`\n\n💡 Gunakan ID untuk edit/hapus`
+        message: '',
+        embedData: {
+          title: '✅ Jadwal Berhasil Ditambahkan!',
+          description: `**${schedule.mata_pelajaran}**\n\n⏰ ${schedule.jam_mulai}-${schedule.jam_selesai}\n📅 ${schedule.hari}\n🏫 ${schedule.ruangan}\n👨‍🏫 ${schedule.nama_guru}\n\n**ID:** \`${schedule._id}\`\n\n💡 Gunakan ID untuk edit/hapus`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to add schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menambahkan jadwal. Silakan coba lagi.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menambahkan Jadwal',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -504,7 +632,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 2) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /set_piket | hari | nama1,nomor1 | nama2,nomor2\n\nContoh: /set_piket | Senin | Budi,081234567890 | Ani,081234567891'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/set_piket | hari | nama1,nomor1 | nama2,nomor2`\n\n**Contoh:**\n`/set_piket | Senin | Budi,081234567890 | Ani,081234567891`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -514,7 +647,12 @@ Contoh: edit prioritas urgent`
       if (!Validator.isValidDay(hari)) {
         return {
           success: false,
-          message: '❌ Hari tidak valid! Gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu'
+          message: '',
+          embedData: {
+            title: '❌ Hari Tidak Valid',
+            description: 'Gunakan: Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu',
+            color: 0xED4245
+          }
         };
       }
 
@@ -528,13 +666,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ Piket berhasil diatur!\n\n🧹 Piket ${piket.hari}:\n${piket.nama_siswa.map((n, i) => `${i + 1}. ${n}`).join('\n')}`
+        message: '',
+        embedData: {
+          title: '✅ Piket Berhasil Diatur!',
+          description: `**🧹 Piket ${piket.hari}:**\n\n${piket.nama_siswa.map((n, i) => `${i + 1}. ${n}`).join('\n')}`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to set piket', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengatur piket. Silakan coba lagi.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengatur Piket',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -549,7 +697,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 4) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /add_pengumuman | tanggal (YYYY-MM-DD) | judul | tipe | keterangan\n\nTipe: acara, perubahan_jadwal, praktikum, lainnya'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/add_pengumuman | tanggal (YYYY-MM-DD) | judul | tipe | keterangan`\n\n**Tipe:** `acara`, `perubahan_jadwal`, `praktikum`, `lainnya`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -559,7 +712,12 @@ Contoh: edit prioritas urgent`
       if (!Validator.isValidDate(tanggalStr)) {
         return {
           success: false,
-          message: '❌ Format tanggal salah! Gunakan format YYYY-MM-DD'
+          message: '',
+          embedData: {
+            title: '❌ Format Tanggal Salah',
+            description: 'Gunakan format YYYY-MM-DD',
+            color: 0xED4245
+          }
         };
       }
 
@@ -567,7 +725,12 @@ Contoh: edit prioritas urgent`
       if (!Validator.isValidAnnouncementType(tipe)) {
         return {
           success: false,
-          message: '❌ Tipe pengumuman tidak valid! Gunakan: acara, perubahan_jadwal, praktikum, lainnya'
+          message: '',
+          embedData: {
+            title: '❌ Tipe Pengumuman Tidak Valid',
+            description: 'Gunakan: `acara`, `perubahan_jadwal`, `praktikum`, `lainnya`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -586,13 +749,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ *Pengumuman ditambahkan!*\n\n📢 ${announcement.judul}\n📅 ${tanggalFormatted} • ${announcement.keterangan}\n🆔 \`${announcement._id}\`\n\n💡 Gunakan ID untuk hapus`
+        message: '',
+        embedData: {
+          title: '✅ Pengumuman Berhasil Ditambahkan!',
+          description: `**${announcement.judul}**\n\n📅 ${tanggalFormatted}\n📝 ${announcement.keterangan}\n\n**ID:** \`${announcement._id}\`\n\n💡 Gunakan ID untuk hapus`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to add announcement', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menambahkan pengumuman. Silakan coba lagi.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menambahkan Pengumuman',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -619,7 +792,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 3) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /edit_jadwal | schedule_id | field | value\n\nField: jam_mulai, jam_selesai, mata_pelajaran, ruangan, nama_guru'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/edit_jadwal | schedule_id | field | value`\n\n**Field:** `jam_mulai`, `jam_selesai`, `mata_pelajaran`, `ruangan`, `nama_guru`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -629,14 +807,24 @@ Contoh: edit prioritas urgent`
       if (!validFields.includes(field)) {
         return {
           success: false,
-          message: `❌ Field tidak valid! Gunakan: ${validFields.join(', ')}`
+          message: '',
+          embedData: {
+            title: '❌ Field Tidak Valid',
+            description: `Gunakan: ${validFields.map(f => `\`${f}\``).join(', ')}`,
+            color: 0xED4245
+          }
         };
       }
 
       if ((field === 'jam_mulai' || field === 'jam_selesai') && !Validator.isValidTime(value)) {
         return {
           success: false,
-          message: '❌ Format waktu salah! Gunakan format HH:MM'
+          message: '',
+          embedData: {
+            title: '❌ Format Waktu Salah',
+            description: 'Gunakan format HH:MM',
+            color: 0xED4245
+          }
         };
       }
 
@@ -644,13 +832,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ Jadwal berhasil diupdate!\n\n📖 ${schedule.mata_pelajaran}\nField "${field}" diubah menjadi: ${value}`
+        message: '',
+        embedData: {
+          title: '✅ Jadwal Berhasil Diupdate!',
+          description: `**${schedule.mata_pelajaran}**\n\nField \`${field}\` diubah menjadi: **${value}**`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to edit schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengupdate jadwal. Pastikan schedule_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengupdate Jadwal',
+          description: 'Pastikan schedule_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -665,7 +863,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /hapus_jadwal | schedule_id'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/hapus_jadwal | schedule_id`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -674,13 +877,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: '✅ Jadwal berhasil dihapus!'
+        message: '',
+        embedData: {
+          title: '✅ Jadwal Berhasil Dihapus!',
+          description: 'Jadwal telah dihapus dari database.',
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to delete schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menghapus jadwal. Pastikan schedule_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menghapus Jadwal',
+          description: 'Pastikan schedule_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -695,7 +908,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 4) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /ganti_jadwal | schedule_id | field | value | alasan\n\nContoh: /ganti_jadwal | 123abc | ruangan | R.202 | Ruangan lama sedang renovasi'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/ganti_jadwal | schedule_id | field | value | alasan`\n\n**Contoh:**\n`/ganti_jadwal | 123abc | ruangan | R.202 | Ruangan lama sedang renovasi`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -714,13 +932,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `✅ Jadwal berhasil diubah dan pengumuman dibuat!\n\n📖 ${schedule.mata_pelajaran}\n📝 ${field}: ${value}\n💬 Alasan: ${alasan}`
+        message: '',
+        embedData: {
+          title: '✅ Jadwal Berhasil Diubah!',
+          description: `**${schedule.mata_pelajaran}**\n\n📝 **${field}:** ${value}\n💬 **Alasan:** ${alasan}\n\n✨ Pengumuman telah dibuat`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to change schedule', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengubah jadwal. Pastikan schedule_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengubah Jadwal',
+          description: 'Pastikan schedule_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -745,7 +973,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /hapus_pengumuman | announcement_id'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/hapus_pengumuman | announcement_id`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -754,13 +987,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: '✅ Pengumuman berhasil dihapus!'
+        message: '',
+        embedData: {
+          title: '✅ Pengumuman Berhasil Dihapus!',
+          description: 'Pengumuman telah dihapus dari database.',
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to delete announcement', error as Error);
       return {
         success: false,
-        message: '❌ Gagal menghapus pengumuman. Pastikan announcement_id benar.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Menghapus Pengumuman',
+          description: 'Pastikan announcement_id benar.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -775,7 +1018,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /broadcast | pesan'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/broadcast | pesan`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -783,13 +1031,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `📢 *PENGUMUMAN*\n\n${message}`
+        message: '',
+        embedData: {
+          title: '📢 PENGUMUMAN',
+          description: message,
+          color: 0x5865F2
+        }
       };
     } catch (error) {
       logger.error('Failed to broadcast', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengirim broadcast.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengirim Broadcast',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -804,7 +1062,12 @@ Contoh: edit prioritas urgent`
       if (args.length < 1) {
         return {
           success: false,
-          message: '❌ Format salah!\n\nGunakan: /broadcast_urgent | pesan'
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/broadcast_urgent | pesan`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -812,13 +1075,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `🚨 *PENGUMUMAN PENTING* 🚨\n\n${message}\n\n⚠️ Mohon segera dibaca!`
+        message: '',
+        embedData: {
+          title: '🚨 PENGUMUMAN PENTING 🚨',
+          description: `${message}\n\n⚠️ **Mohon segera dibaca!**`,
+          color: 0xED4245
+        }
       };
     } catch (error) {
       logger.error('Failed to broadcast urgent', error as Error);
       return {
         success: false,
-        message: '❌ Gagal mengirim broadcast urgent.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Mengirim Broadcast Urgent',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }
@@ -834,7 +1107,12 @@ Contoh: edit prioritas urgent`
       if (!['daily', 'weekly', 'monday'].includes(type)) {
         return {
           success: false,
-          message: '❌ Tipe tidak valid!\n\nGunakan: /test_reminder | daily/weekly/monday\n\nContoh:\n• /test_reminder | daily\n• /test_reminder | weekly\n• /test_reminder | monday'
+          message: '',
+          embedData: {
+            title: '❌ Tipe Tidak Valid',
+            description: 'Gunakan: `/test_reminder | daily/weekly/monday`\n\n**Contoh:**\n• `/test_reminder | daily`\n• `/test_reminder | weekly`\n• `/test_reminder | monday`',
+            color: 0xED4245
+          }
         };
       }
 
@@ -855,7 +1133,12 @@ Contoh: edit prioritas urgent`
       if (tasks.length === 0) {
         return {
           success: false,
-          message: '❌ Tidak ada tugas di database!\n\n💡 Tambah tugas dulu dengan /add_tugas'
+          message: '',
+          embedData: {
+            title: '❌ Tidak Ada Tugas',
+            description: 'Tidak ada tugas di database!\n\n💡 Tambah tugas dulu dengan `/add_tugas`',
+            color: 0xFEE75C
+          }
         };
       }
 
@@ -941,13 +1224,23 @@ Contoh: edit prioritas urgent`
 
       return {
         success: true,
-        message: `🧪 *TEST REMINDER OUTPUT*\n\nTipe: ${type.toUpperCase()}\nTotal tugas di DB: ${tasks.length}\n\n━━━━━━━━━━━━━━━━━━\n\n${message}\n\n━━━━━━━━━━━━━━━━━━\n\n✅ Preview berhasil!\n💡 Ini adalah preview format reminder yang akan dikirim otomatis.`
+        message: '',
+        embedData: {
+          title: '🧪 TEST REMINDER OUTPUT',
+          description: `**Tipe:** ${type.toUpperCase()}\n**Total tugas di DB:** ${tasks.length}\n\n━━━━━━━━━━━━━━━━━━\n\n${message}\n\n━━━━━━━━━━━━━━━━━━\n\n✅ Preview berhasil!\n💡 Ini adalah preview format reminder yang akan dikirim otomatis.`,
+          color: 0x5865F2
+        }
       };
     } catch (error) {
       logger.error('Failed to test reminder', error as Error);
       return {
         success: false,
-        message: '❌ Gagal generate test reminder. Silakan coba lagi.'
+        message: '',
+        embedData: {
+          title: '❌ Gagal Generate Test Reminder',
+          description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
       };
     }
   }

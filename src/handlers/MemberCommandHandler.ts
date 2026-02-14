@@ -621,40 +621,59 @@ export class MemberCommandHandler {
    * Requirement: 11.6
    */
   async handleHelp(_args: string[], _userId: string, _platform: Platform, _chatId?: string): Promise<CommandResponse> {
-    let message = '📖 *Daftar Perintah*\n\n';
+    const memberCommands = [
+      '• `/tugas` - Lihat semua tugas aktif',
+      '• `/tugas_hari_ini` - Tugas hari ini',
+      '• `/tugas_minggu_ini` - Tugas minggu ini',
+      '• `/jadwal` - Jadwal hari ini',
+      '• `/jadwal_besok` - Jadwal besok',
+      '• `/jadwal_minggu_ini` - Jadwal minggu ini',
+      '• `/piket` - Piket hari ini',
+      '• `/piket_minggu_ini` - Piket minggu ini',
+      '• `/status` - Status bot',
+      '• `/help` - Bantuan'
+    ].join('\n');
 
-    // Member commands (available to all)
-    message += '👥 *Perintah Member:*\n';
-    message += '• /tugas - Lihat semua tugas aktif\n';
-    message += '• /tugas_hari_ini - Tugas hari ini\n';
-    message += '• /tugas_minggu_ini - Tugas minggu ini\n';
-    message += '• /jadwal - Jadwal hari ini\n';
-    message += '• /jadwal_besok - Jadwal besok\n';
-    message += '• /jadwal_minggu_ini - Jadwal minggu ini\n';
-    message += '• /piket - Piket hari ini\n';
-    message += '• /piket_minggu_ini - Piket minggu ini\n';
-    message += '• /status - Status bot\n';
-    message += '• /help - Bantuan\n\n';
+    const adminCommands = [
+      '• `/add_tugas` - Tambah tugas',
+      '• `/add_tugas_cepat` - Tambah tugas cepat (natural language)',
+      '• `/edit_tugas` - Edit tugas',
+      '• `/hapus_tugas` - Hapus tugas',
+      '• `/tandai_selesai` - Tandai selesai',
+      '• `/add_jadwal` - Tambah jadwal',
+      '• `/set_piket` - Atur piket',
+      '• `/add_pengumuman` - Tambah pengumuman'
+    ].join('\n');
 
-    // Admin commands (show to all, permission check happens at execution)
-    message += '👨‍💼 *Perintah Admin:*\n';
-    message += '• /add_tugas - Tambah tugas\n';
-    message += '• /add_tugas_cepat - Tambah tugas cepat (natural language)\n';
-    message += '• /edit_tugas - Edit tugas\n';
-    message += '• /hapus_tugas - Hapus tugas\n';
-    message += '• /tandai_selesai - Tandai selesai\n';
-    message += '• /add_jadwal - Tambah jadwal\n';
-    message += '• /set_piket - Atur piket\n';
-    message += '• /add_pengumuman - Tambah pengumuman\n\n';
-
-    // Ketua/Wakil only commands
-    message += '👑 *Perintah Ketua/Wakil:*\n';
-    message += '• /broadcast - Broadcast pesan\n';
-    message += '• /broadcast_urgent - Broadcast urgent\n';
+    const leaderCommands = [
+      '• `/broadcast` - Broadcast pesan',
+      '• `/broadcast_urgent` - Broadcast urgent'
+    ].join('\n');
 
     return {
       success: true,
-      message
+      message: '',
+      embedData: {
+        title: '📖 Daftar Perintah',
+        color: 0x5865F2,
+        fields: [
+          {
+            name: '👥 Perintah Member',
+            value: memberCommands,
+            inline: false
+          },
+          {
+            name: '👨‍💼 Perintah Admin',
+            value: adminCommands,
+            inline: false
+          },
+          {
+            name: '👑 Perintah Ketua/Wakil',
+            value: leaderCommands,
+            inline: false
+          }
+        ]
+      }
     };
   }
 
@@ -668,32 +687,28 @@ export class MemberCommandHandler {
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
 
-      let message = `🤖 *Status Bot*\n\n` +
-        `✅ Bot aktif\n` +
-        `⏱️ Uptime: ${hours}h ${minutes}m\n` +
-        `📊 Platform: Multi-platform (Discord + WhatsApp)\n` +
-        `🔧 Version: 1.0.0\n\n`;
-
+      let notionStatus = '';
+      
       // Check Notion status
       if (this.notionService.isEnabled()) {
         try {
           const stats = await this.notionService.getSyncStats();
-          message += `📝 *Notion Status:*\n`;
-          message += `✅ Connected\n`;
-          message += `📊 Tasks in Notion: ${stats.notionTasks}\n`;
-          message += `💾 Tasks in MongoDB: ${stats.mongoTasks}\n`;
+          notionStatus = `**Notion Status:**\n✅ Connected\n📊 Tasks in Notion: ${stats.notionTasks}\n💾 Tasks in MongoDB: ${stats.mongoTasks}`;
         } catch (error) {
-          message += `📝 *Notion Status:*\n`;
-          message += `⚠️ Connection issue\n`;
+          notionStatus = `**Notion Status:**\n⚠️ Connection issue`;
         }
       } else {
-        message += `📝 *Notion Status:*\n`;
-        message += `❌ Disabled\n`;
+        notionStatus = `**Notion Status:**\n❌ Disabled`;
       }
 
       return {
         success: true,
-        message
+        message: '',
+        embedData: {
+          title: '🤖 Status Bot',
+          description: `✅ Bot aktif\n⏱️ Uptime: ${hours}h ${minutes}m\n📊 Platform: Multi-platform (Discord + WhatsApp)\n🔧 Version: 1.0.0\n\n${notionStatus}`,
+          color: 0x57F287
+        }
       };
     } catch (error) {
       logger.error('Failed to get status', error as Error);
@@ -703,7 +718,7 @@ export class MemberCommandHandler {
         embedData: {
           title: '❌ Error',
           description: 'Gagal mengambil status bot.',
-          color: 0x99AAB5
+          color: 0xED4245
         }
       };
     }
