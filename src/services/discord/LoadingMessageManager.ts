@@ -25,7 +25,8 @@ export class LoadingMessageManager {
    */
   async sendLoadingMessage(interaction: ButtonInteraction): Promise<void> {
     try {
-      await interaction.deferReply({ ephemeral: true });
+      // Don't use ephemeral for button interactions - they should be visible to everyone
+      await interaction.deferReply({ ephemeral: false });
       
       // Store timestamp
       this.sendTimestamps.set(interaction.id, Date.now());
