@@ -28,7 +28,6 @@ import { BaileysClient } from './clients/BaileysClient';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
-import { ProgressMessage } from './utils/ProgressMessage';
 
 // Load environment variables
 dotenv.config();
@@ -53,7 +52,6 @@ class MultiPlatformBot {
   // New services for message tracking and editing
   private messageEditService: any; // Will be imported
   private changeDetectionService: any; // Will be imported
-  private progressMessage?: ProgressMessage; // For progress messages
   
   // Handlers
   private adminHandler!: AdminCommandHandler;
@@ -262,19 +260,6 @@ class MultiPlatformBot {
     }
 
     console.log(`   → ${platformCount} platform(s) active`);
-    
-    // Initialize ProgressMessage service after platforms are ready
-    console.log('   → Initializing progress message service...');
-    const whatsappSocket = this.whatsappClient?.getSocket() || undefined;
-    const discordClient = this.discordClient?.getClient();
-    
-    this.progressMessage = new ProgressMessage(whatsappSocket, discordClient);
-    
-    // Set progress message in handlers
-    this.memberHandler.setProgressMessage(this.progressMessage);
-    // AdminHandler doesn't have setProgressMessage yet, can be added later
-    
-    console.log('   → Progress message service initialized');
   }
 
   /**

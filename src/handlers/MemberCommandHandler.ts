@@ -12,126 +12,22 @@ import { NotionService } from '../services/NotionService';
 import { Formatter } from '../utils/Formatter';
 import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from '../utils/TextFormatter';
 import { getLogger } from '../utils/Logger';
-import { ProgressMessage } from '../utils/ProgressMessage';
-import { executeWithProgress, CommandContext } from '../utils/CommandWithProgress';
 
 const logger = getLogger();
 
 export class MemberCommandHandler {
-  private progressMessage?: ProgressMessage;
-
   constructor(
     private taskService: TaskService,
     private scheduleService: ScheduleService,
     private piketService: PiketService,
-    private notionService: NotionService,
-    progressMessage?: ProgressMessage
-  ) {
-    this.progressMessage = progressMessage;
-  }
+    private notionService: NotionService
+  ) {}
 
   /**
-   * Set progress message service (for late initialization)
-   */
-  setProgressMessage(progressMessage: ProgressMessage): void {
-    this.progressMessage = progressMessage;
-  }
-
-  /**
-   * Handle /tugas command - Get all active tasks with progress message
+   * Handle /tugas command - Get all active tasks
    * Requirement: 2.6
    */
   async handleTugas(_args: string[], _userId: string, platform: Platform, chatId?: string): Promise<CommandResponse> {
-    // If no chatId provided, execute without progress
-    if (!chatId || !this.progressMessage) {
-      return await this.handleTugasWithoutProgress(_args, _userId, platform);
-    }
-
-    const context: CommandContext = {
-      platform,
-      chatId,
-      userId: _userId,
-      progressMessage: this.progressMessage
-    };
-
-    return await executeWithProgress(context, async (update) => {
-      try {
-        // Step 1: Sync from Notion
-        let syncStatus = '';
-        if (this.notionService.isEnabled()) {
-          await update('🔄 Sinkronisasi dengan Notion...');
-          
-          try {
-            const result = await this.notionService.syncFromNotion();
-            syncStatus = `\n\n✅ Synced: ${result.synced} tugas dari Notion`;
-          } catch (syncError) {
-            logger.warn('Notion sync failed, using cached data', syncError as Error);
-            syncStatus = '\n\n⚠️ Menggunakan data cache (sync gagal)';
-          }
-        }
-
-        // Step 2: Fetch tasks
-        await update('📚 Mengambil daftar tugas...');
-        const tasks = await this.taskService.getTasks();
-        
-        if (tasks.length === 0) {
-          return {
-            success: true,
-            message: `📝 Tidak ada tugas aktif saat ini.${syncStatus}`,
-            ephemeral: true
-          };
-        }
-
-        // Step 3: Format results
-        await update('📝 Memformat hasil...');
-
-        // For Discord, return embed data with fields
-        if (platform === 'discord') {
-          const fields = tasks.map((task, index) => {
-            const emoji = this.getTaskEmoji(task.tipe);
-            const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
-              weekday: 'short', 
-              day: 'numeric', 
-              month: 'short' 
-            });
-            
-            const spacing = index < tasks.length - 1 ? '\n' : '';
-            
-            return {
-              name: `${index + 1}. ${emoji} ${task.judul}`,
-              value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
-              inline: false
-            };
-          });
-
-          return {
-            success: true,
-            message: '',
-            embedData: {
-              title: '📝 Daftar Tugas',
-              color: 0x99AAB5,
-              fields
-            }
-          };
-        }
-
-        // For WhatsApp, use reminder format
-        const message = this.formatTasksLikeReminder(tasks, 'Semua Tugas Aktif');
-        return {
-          success: true,
-          message: message + syncStatus
-        };
-      } catch (error) {
-        logger.error('Failed to get tasks', error as Error);
-        throw error;
-      }
-    });
-  }
-
-  /**
-   * Handle /tugas without progress (fallback)
-   */
-  private async handleTugasWithoutProgress(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       // Auto-sync from Notion before querying
       let syncStatus = '';
@@ -186,8 +82,7 @@ export class MemberCommandHandler {
             title: '📝 Daftar Tugas',
             color: 0x99AAB5,
             fields
-          },
-          ephemeral: true
+          }
         };
       }
 
