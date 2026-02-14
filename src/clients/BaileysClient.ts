@@ -116,6 +116,18 @@ export class BaileysClient {
 
     // Handle QR code or pairing code
     if (qr) {
+      // Tambahkan delay untuk mengurangi frekuensi QR code generation
+      const now = Date.now();
+      const lastQRTime = (this as any).lastQRTime || 0;
+      const qrInterval = 45000; // 45 detik antara QR code
+      
+      if (now - lastQRTime < qrInterval) {
+        console.log(`⏳ QR code terlalu cepat, tunggu ${Math.ceil((qrInterval - (now - lastQRTime)) / 1000)}s...\n`);
+        return;
+      }
+      
+      (this as any).lastQRTime = now;
+      
       if (this.config.usePairingCode && this.config.phoneNumber) {
         // Use pairing code instead of QR (better for Railway/server deployment)
         if (this.socket && !this.socket.authState.creds.registered) {
@@ -155,7 +167,7 @@ export class BaileysClient {
             console.log('⚠️  PENTING:');
             console.log(`   - Pastikan nomor HP yang kamu gunakan: ${cleanNumber}`);
             console.log('   - Kode berlaku 60 detik, masukkan segera!');
-            console.log('   - Jika salah, tunggu kode baru di logs\n');
+            console.log('   - Jika salah, tunggu kode baru di logs (45 detik)\n');
             console.log('⏳ Menunggu pairing...\n');
             
             logger.info('Pairing code generated', { phoneNumber: cleanNumber, code });
@@ -195,7 +207,9 @@ export class BaileysClient {
           console.log('⏳ Menunggu scan QR code...\n');
           console.log('💡 Tips:');
           console.log('   - QR code berlaku 60 detik');
-          console.log('   - Jika expired, QR baru akan muncul otomatis');
+          console.log('   - QR baru muncul setiap 45 detik (tidak terlalu cepat)');
+          console.log('   - Timeout diperpanjang jadi 5 menit');
+          console.log('   - Session akan tersimpan otomatis di folder auth_info');
           console.log('   - Pastikan koneksi internet stabil\n');
 
           // Also show ASCII QR as fallback

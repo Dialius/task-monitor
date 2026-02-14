@@ -13,6 +13,7 @@
     "test:ai-enhancement": "node scripts/test-ai-enhancement.js",
     "test:formatter": "node scripts/test-formatter-output.js",
     "test:notion": "node scripts/test-notion.js",
+    "test:session": "node scripts/test-session.js",
     "seed": "node scripts/seed-dummy-data.js",
     "deploy-commands": "node scripts/deploy-commands.js",
     "pm2:start": "pm2 start ecosystem.config.js",

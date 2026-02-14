@@ -28,6 +28,7 @@ import { BaileysClient } from './clients/BaileysClient';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
+import { ProgressMessage } from './utils/ProgressMessage';
 
 // Load environment variables
 dotenv.config();
@@ -52,6 +53,7 @@ class MultiPlatformBot {
   // New services for message tracking and editing
   private messageEditService: any; // Will be imported
   private changeDetectionService: any; // Will be imported
+  private progressMessage?: ProgressMessage; // For progress messages
   
   // Handlers
   private adminHandler!: AdminCommandHandler;
@@ -172,7 +174,7 @@ class MultiPlatformBot {
   private async initializeCommandSystem(): Promise<void> {
     console.log('   → Setting up command parser...');
 
-    // Initialize handlers
+    // Initialize handlers (ProgressMessage will be set later after platform init)
     this.adminHandler = new AdminCommandHandler(
       this.taskService,
       this.scheduleService,
@@ -260,6 +262,19 @@ class MultiPlatformBot {
     }
 
     console.log(`   → ${platformCount} platform(s) active`);
+    
+    // Initialize ProgressMessage service after platforms are ready
+    console.log('   → Initializing progress message service...');
+    const whatsappSocket = this.whatsappClient?.getSocket() || undefined;
+    const discordClient = this.discordClient?.getClient();
+    
+    this.progressMessage = new ProgressMessage(whatsappSocket, discordClient);
+    
+    // Set progress message in handlers
+    this.memberHandler.setProgressMessage(this.progressMessage);
+    // AdminHandler doesn't have setProgressMessage yet, can be added later
+    
+    console.log('   → Progress message service initialized');
   }
 
   /**
@@ -301,6 +316,9 @@ class MultiPlatformBot {
 
       console.log(`📨 Discord slash command: /${command} from ${interaction.user.tag}`);
 
+      // Get channel ID for progress messages
+      const channelId = interaction.channelId;
+
       const response = await this.commandRouter.route(
         { 
           command, 
@@ -308,7 +326,8 @@ class MultiPlatformBot {
           rawMessage: `/${command} ${args.join(' | ')}`
         },
         interaction.user.id,
-        'discord'
+        'discord',
+        channelId // Pass channelId for progress messages
       );
 
       // Check if response has embed data
@@ -349,10 +368,13 @@ class MultiPlatformBot {
 
       console.log(`📨 Discord text command: /${parsed.command} from ${message.author.tag}`);
 
+      // Get channel ID for progress messages
+      const channelId = message.channelId;
       const response = await this.commandRouter.route(
         parsed,
         message.author.id,
-        'discord'
+        'discord',
+        channelId // Pass channelId for progress messages
       );
 
       // Check if response has embed data
@@ -543,9 +565,10 @@ class MultiPlatformBot {
    */
   private async waitForWhatsAppReady(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const maxWait = 120000; // 2 minutes
-      const checkInterval = 500; // Check every 500ms
+      const maxWait = 300000; // 5 minutes (lebih lama untuk scan QR)
+      const checkInterval = 1000; // Check every 1 second (lebih jarang)
       let elapsed = 0;
+      let lastLogTime = 0;
 
       const interval = setInterval(() => {
         if (this.whatsappClient?.isReady()) {
@@ -554,8 +577,16 @@ class MultiPlatformBot {
           resolve();
         } else if (elapsed >= maxWait) {
           clearInterval(interval);
-          reject(new Error('WhatsApp connection timeout after 2 minutes'));
+          reject(new Error('WhatsApp connection timeout after 5 minutes'));
         }
+        
+        // Log progress setiap 30 detik
+        if (elapsed - lastLogTime >= 30000) {
+          const remaining = Math.floor((maxWait - elapsed) / 1000);
+          console.log(`      ⏳ Menunggu koneksi... (${remaining}s tersisa)`);
+          lastLogTime = elapsed;
+        }
+        
         elapsed += checkInterval;
       }, checkInterval);
     });
