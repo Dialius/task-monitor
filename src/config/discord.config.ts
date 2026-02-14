@@ -109,31 +109,36 @@ export const discordConfig: DiscordConfig = {
   //   Without type (uses default):
   //     { text: 'productivity mode', dynamic: false }
   activity: {
-    enabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false', // Default: true (active)
-    interval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'), // Default: 5 minutes
-    type: parseInt(process.env.DISCORD_ACTIVITY_TYPE || '3') as number, // Default: 3 (Watching)
-    templates: [
+  enabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
+  interval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
+  type: parseInt(process.env.DISCORD_ACTIVITY_TYPE || '3') as number,
+  templates: [
       // ========================================
       // PLAYING Templates (🎮 Type: 0)
       // ========================================
       {
-        text: 'with {total} tasks',
+        text: 'dengan {total} tugas numpuk',
         dynamic: true,
         type: 0 as 0
       },
       {
-        text: 'deadline race',
+        text: 'kejar deadline sekolah',
         dynamic: false,
         type: 0 as 0
       },
       {
-        text: 'Task Manager 2026',
-        dynamic: false,
-        type: 0 as 0
-      },
-      {
-        text: 'with {today} tasks today',
+        text: '{today} tugas harus dikumpul hari ini',
         dynamic: true,
+        type: 0 as 0
+      },
+      {
+        text: 'Homework Manager 2026',
+        dynamic: false,
+        type: 0 as 0
+      },
+      {
+        text: 'mode SKS sejati',
+        dynamic: false,
         type: 0 as 0
       },
 
@@ -141,28 +146,33 @@ export const discordConfig: DiscordConfig = {
       // WATCHING Templates (👀 Type: 3)
       // ========================================
       {
-        text: '{total} active missions',
+        text: '{active} tugas belum dikerjain',
         dynamic: true,
         type: 3 as 3
       },
       {
-        text: 'your productivity',
+        text: 'deadline terdekat: {nearest}',
+        dynamic: true,
+        type: 3 as 3
+      },
+      {
+        text: 'jadwal pelajaran hari ini',
         dynamic: false,
         type: 3 as 3
       },
       {
-        text: '{today} tasks today',
+        text: 'progress belajar: {percent}%',
         dynamic: true,
         type: 3 as 3
       },
       {
-        text: '{percent}% completion rate',
+        text: 'nasib {urgent} tugas yang terlupakan',
         dynamic: true,
         type: 3 as 3
       },
       {
-        text: '{active} pending tasks',
-        dynamic: true,
+        text: 'drama pengumpulan tugas last minute',
+        dynamic: false,
         type: 3 as 3
       },
 
@@ -170,17 +180,27 @@ export const discordConfig: DiscordConfig = {
       // LISTENING Templates (🎧 Type: 2)
       // ========================================
       {
-        text: '{active} task notifications',
+        text: 'alarm deadline {hours} jam lagi',
         dynamic: true,
         type: 2 as 2
       },
       {
-        text: 'task alerts & reminders',
+        text: 'notif tugas masuk terus',
         dynamic: false,
         type: 2 as 2
       },
       {
-        text: 'deadline notifications',
+        text: '{active} reminder belum dibalas guru',
+        dynamic: true,
+        type: 2 as 2
+      },
+      {
+        text: 'lo-fi sambil belajar',
+        dynamic: false,
+        type: 2 as 2
+      },
+      {
+        text: 'curhatan murid soal PR senin',
         dynamic: false,
         type: 2 as 2
       },
@@ -189,30 +209,35 @@ export const discordConfig: DiscordConfig = {
       // COMPETING Templates (🏆 Type: 5)
       // ========================================
       {
-        text: '{total} tasks challenge',
+        text: '{hours} jam lagi — masih bisa dikebut',
         dynamic: true,
         type: 5 as 5
       },
       {
-        text: 'productivity battle',
+        text: 'kebut {today} tugas dalam sehari',
+        dynamic: true,
+        type: 5 as 5
+      },
+      {
+        text: 'capai {percent}% sebelum {nearest}',
+        dynamic: true,
+        type: 5 as 5
+      },
+      {
+        text: 'siapa cepat dia lulus',
         dynamic: false,
         type: 5 as 5
       },
       {
-        text: 'achievement hunt',
+        text: 'sprint ujian akhir semester',
         dynamic: false,
         type: 5 as 5
       },
       {
-        text: '{urgent} urgent | {hours}h left',
+        text: '{total} tugas, 1 malam, bismillah',
         dynamic: true,
         type: 5 as 5
       },
-      {
-        text: '{percent}% completion race',
-        dynamic: true,
-        type: 5 as 5
-      }
     ]
   },
 
