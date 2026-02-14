@@ -102,12 +102,9 @@ export class ActivityStatusService {
       // Use per-template type if specified, otherwise use default type
       const activityType = activity.type !== undefined ? activity.type : this.config.activities[0]?.type || 3;
 
-      await this.client.user.setPresence({
-        activities: [{
-          name: statusText,
-          type: activityType // Use template-specific or default type
-        }],
-        status: 'online'
+      // Set activity using setActivity method for better compatibility
+      await this.client.user.setActivity(statusText, { 
+        type: activityType 
       });
 
       // Get activity type name for logging
@@ -254,8 +251,8 @@ export class ActivityStatusService {
       // Replace {nearest} with nearest deadline
       if (result.includes('{nearest}')) {
         if (activeTasks.length === 0) {
-          // Empty state handling
-          result = result.replace(/{nearest}/g, 'none');
+          // Empty state handling - show friendly message
+          result = result.replace(/{nearest}/g, 'no tasks');
         } else {
           // Sort by deadline and get nearest
           const sortedTasks = activeTasks.sort((a, b) => {

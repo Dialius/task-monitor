@@ -146,8 +146,8 @@ export const discordConfig: DiscordConfig = {
         type: 3 as 3
       },
       {
-        text: 'next: {nearest}',
-        dynamic: true,
+        text: 'your productivity',
+        dynamic: false,
         type: 3 as 3
       },
       {

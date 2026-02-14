@@ -64,9 +64,18 @@ export class NotionService {
   private requestWindow = Date.now();
 
   constructor() {
+    const enabled = process.env.NOTION_ENABLED === 'true';
     const apiKey = process.env.NOTION_API_KEY;
     const databaseId = process.env.NOTION_DATABASE_ID;
 
+    // Check if explicitly disabled
+    if (!enabled) {
+      this.enabled = false;
+      logger.info('Notion service disabled via NOTION_ENABLED flag');
+      return;
+    }
+
+    // Check if credentials are provided
     this.enabled = !!(apiKey && databaseId);
 
     if (this.enabled) {

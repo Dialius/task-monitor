@@ -33,6 +33,7 @@ export interface AppConfig {
   aiTimeout: number;
 
   // Notion (Optional)
+  notionEnabled: boolean;
   notionDatabaseId?: string;
   notionApiKey?: string;
 
@@ -88,6 +89,7 @@ export class ConfigManager {
       aiTimeout: parseInt(process.env.AI_TIMEOUT || '10'),
 
       // Notion
+      notionEnabled: process.env.NOTION_ENABLED === 'true',
       notionDatabaseId: process.env.NOTION_DATABASE_ID,
       notionApiKey: process.env.NOTION_API_KEY,
 

@@ -19,7 +19,7 @@ router.get('/', async (_req: AuthRequest, res) => {
     const config = {
       whatsappEnabled: process.env.WHATSAPP_ENABLED === 'true',
       discordEnabled: process.env.DISCORD_ENABLED === 'true',
-      notionEnabled: !!process.env.NOTION_API_KEY,
+      notionEnabled: process.env.NOTION_ENABLED === 'true',
       timezone: process.env.TIMEZONE || 'Asia/Jakarta',
       dailyReminderTime: process.env.DAILY_REMINDER_TIME || '17:00',
       weeklyReminderDay: process.env.WEEKLY_REMINDER_DAY || '5',
