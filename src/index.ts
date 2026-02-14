@@ -6,6 +6,7 @@
 
 import dotenv from 'dotenv';
 import { APIServer } from './api';
+import { MultiPlatformBot } from './bot';
 import { getLogger } from './utils/Logger';
 
 // Load environment variables
@@ -13,24 +14,57 @@ dotenv.config();
 
 const logger = getLogger();
 
-console.log('\n╔════════════════════════════════════════════════════════╗');
-console.log('║   🤖 Task Monitor Bot - API Server                    ║');
-console.log('╚════════════════════════════════════════════════════════╝\n');
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at: ' + String(promise) + ', reason: ' + String(reason));
+  console.error('❌ Unhandled Rejection:', reason);
+});
 
-console.log('📋 Starting API server...');
-console.log('   Bot will NOT start automatically');
-console.log('   Use dashboard to start/stop bot\n');
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
 
-// Start API server if enabled
-if (process.env.API_ENABLED === 'true') {
-  const apiPort = parseInt(process.env.API_PORT || '3001');
-  const apiServer = new APIServer(apiPort);
-  
-  apiServer.start().catch((error) => {
-    logger.error('Failed to start API server', error);
-    console.error('❌ Failed to start API server:', error);
-  });
-} else {
-  console.log('⚠️  API server is disabled in .env');
-  console.log('   Set API_ENABLED=true to enable dashboard\n');
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\n\n🛑 Received SIGINT, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n\n🛑 Received SIGTERM, shutting down gracefully...');
+  process.exit(0);
+});
+
+/**
+ * Main startup function
+ */
+async function main() {
+  try {
+    // Start the bot (always runs)
+    console.log('🚀 Starting Multi-Platform Bot...\n');
+    const bot = new MultiPlatformBot();
+    await bot.start();
+
+    // Optionally start API server if enabled
+    if (process.env.API_ENABLED === 'true') {
+      console.log('\n📋 Starting API server...');
+      const apiPort = parseInt(process.env.API_PORT || '3001');
+      const apiServer = new APIServer(apiPort);
+      await apiServer.start();
+      console.log(`✅ API server running on port ${apiPort}\n`);
+    } else {
+      console.log('\n⚠️  API server is disabled');
+      console.log('   Set API_ENABLED=true in .env to enable dashboard\n');
+    }
+
+  } catch (error) {
+    logger.error('Failed to start application', error as Error);
+    console.error('\n❌ Failed to start application:', error);
+    process.exit(1);
+  }
 }
+
+// Start the application
+main();
