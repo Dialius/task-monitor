@@ -279,4 +279,23 @@ export class TaskService {
       logger.error('Failed to update priorities', error as Error);
     }
   }
+
+  /**
+   * Get all tasks (including completed)
+   */
+  async getAllTasks(): Promise<ITask[]> {
+    try {
+      const tasks = await Task.find()
+        .sort({ deadline: 1 })
+        .exec();
+
+      logger.logDBOperation('read', 'tasks', true);
+
+      return tasks;
+    } catch (error) {
+      logger.logDBOperation('read', 'tasks', false);
+      logger.error('Failed to get all tasks', error as Error);
+      throw error;
+    }
+  }
 }

@@ -6,23 +6,21 @@
  */
 
 import { Client, ButtonInteraction } from 'discord.js';
-import { discordConfig } from '../../config/discord.config';
 import { DiscordConfigManager } from './DiscordConfigManager';
 import { RateLimiter } from './RateLimiter';
-import { LoadingMessageManager } from './LoadingMessageManager';
 import { TaskMonitorService } from './TaskMonitorService';
 import { ButtonInteractionHandler } from './ButtonInteractionHandler';
 import { TaskService } from '../TaskService';
-import Logger from '../../utils/Logger';
+import { getLogger } from '../../utils/Logger';
+
+const logger = getLogger();
 
 export class DiscordTaskMonitorIntegration {
   private readonly client: Client;
   private readonly taskService: TaskService;
-  private readonly logger = Logger;
   
   private configManager!: DiscordConfigManager;
   private rateLimiter!: RateLimiter;
-  private loadingManager!: LoadingMessageManager;
   private taskMonitorService!: TaskMonitorService;
   private buttonHandler!: ButtonInteractionHandler;
   
@@ -38,26 +36,24 @@ export class DiscordTaskMonitorIntegration {
    */
   async initialize(): Promise<void> {
     try {
-      this.logger.info('Initializing Discord Task Monitor Integration');
+      logger.info('Initializing Discord Task Monitor Integration');
       
       // Step 1: Load and validate configuration
-      this.configManager = new DiscordConfigManager(discordConfig);
+      this.configManager = new DiscordConfigManager();
       
       const validation = this.configManager.validateConfig();
       if (!validation.valid) {
-        this.logger.error('Discord configuration validation failed:', {
-          errors: validation.errors
-        });
+        logger.error('Discord configuration validation failed', new Error(validation.errors.join(', ')));
         throw new Error(`Discord configuration invalid: ${validation.errors.join(', ')}`);
       }
       
-      this.logger.info('Discord configuration validated successfully');
+      logger.info('Discord configuration validated successfully');
       
       // Step 2: Initialize services
-      this.rateLimiter = new RateLimiter(this.configManager);
-      this.rateLimiter.startCleanup();
-      
-      this.loadingManager = new LoadingMessageManager(this.configManager);
+      this.rateLimiter = new RateLimiter(
+        this.configManager.getGeneralRateLimit(),
+        this.configManager.getCommandRateLimit()
+      );
       
       this.taskMonitorService = new TaskMonitorService(
         this.client,
@@ -68,11 +64,10 @@ export class DiscordTaskMonitorIntegration {
       this.buttonHandler = new ButtonInteractionHandler(
         this.taskService,
         this.configManager,
-        this.rateLimiter,
-        this.loadingManager
+        this.rateLimiter
       );
       
-      this.logger.info('All Discord Task Monitor services initialized');
+      logger.info('All Discord Task Monitor services initialized');
       
       // Step 3: Register button interaction listeners
       this.registerButtonInteractionListeners();
@@ -84,9 +79,9 @@ export class DiscordTaskMonitorIntegration {
       this.taskMonitorService.startAutoUpdate();
       
       this.isInitialized = true;
-      this.logger.info('Discord Task Monitor Integration initialized successfully');
+      logger.info('Discord Task Monitor Integration initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Discord Task Monitor Integration:', error);
+      logger.error('Failed to initialize Discord Task Monitor Integration:', error as Error);
       throw error;
     }
   }
@@ -106,11 +101,11 @@ export class DiscordTaskMonitorIntegration {
       try {
         await this.buttonHandler.handleButtonClick(interaction as ButtonInteraction);
       } catch (error) {
-        this.logger.error('Error handling button interaction:', error);
+        logger.error('Error handling button interaction:', error as Error);
       }
     });
     
-    this.logger.info('Button interaction listeners registered');
+    logger.info('Button interaction listeners registered');
   }
 
   /**
@@ -118,20 +113,16 @@ export class DiscordTaskMonitorIntegration {
    */
   async shutdown(): Promise<void> {
     try {
-      this.logger.info('Shutting down Discord Task Monitor Integration');
+      logger.info('Shutting down Discord Task Monitor Integration');
       
       if (this.taskMonitorService) {
         this.taskMonitorService.stopAutoUpdate();
       }
       
-      if (this.rateLimiter) {
-        this.rateLimiter.stopCleanup();
-      }
-      
       this.isInitialized = false;
-      this.logger.info('Discord Task Monitor Integration shut down successfully');
+      logger.info('Discord Task Monitor Integration shut down successfully');
     } catch (error) {
-      this.logger.error('Error during shutdown:', error);
+      logger.error('Error during shutdown', error as Error);
     }
   }
 

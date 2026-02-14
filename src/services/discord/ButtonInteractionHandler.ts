@@ -10,8 +10,7 @@ import { RateLimiter } from './RateLimiter';
 import { LoadingMessageManager } from './LoadingMessageManager';
 import { ITask } from '../../models/Task';
 import { getLogger } from '../../utils/Logger';
-import { format, startOfWeek, endOfWeek, addDays, startOfDay, endOfDay } from 'date-fns';
-import { id as localeId } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 const logger = getLogger();
 
@@ -147,13 +146,23 @@ export class ButtonInteractionHandler {
    */
   async getTasksThisWeek(): Promise<ITask[]> {
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
-    const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
+    
+    // Get start of week (Monday)
+    const weekStart = new Date(now);
+    const day = weekStart.getDay();
+    const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    // Get end of week (Sunday)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
 
     const allTasks = await this.taskService.getAllTasks();
 
     // Filter active tasks within this week
-    const tasks = allTasks.filter(task => {
+    const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
       
       const deadline = new Date(task.deadline);
@@ -169,14 +178,19 @@ export class ButtonInteractionHandler {
    * Requirement: 3.6, 9.1
    */
   async getTasksTomorrow(): Promise<ITask[]> {
-    const tomorrow = addDays(new Date(), 1);
-    const tomorrowStart = startOfDay(tomorrow);
-    const tomorrowEnd = endOfDay(tomorrow);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const tomorrowStart = new Date(tomorrow);
+    tomorrowStart.setHours(0, 0, 0, 0);
+    
+    const tomorrowEnd = new Date(tomorrow);
+    tomorrowEnd.setHours(23, 59, 59, 999);
 
     const allTasks = await this.taskService.getAllTasks();
 
     // Filter active tasks for tomorrow
-    const tasks = allTasks.filter(task => {
+    const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
       
       const deadline = new Date(task.deadline);
@@ -222,7 +236,7 @@ export class ButtonInteractionHandler {
 
       for (const task of tasks) {
         const deadline = new Date(task.deadline);
-        const formattedDate = format(deadline, 'dd MMM yyyy, HH:mm', { locale: localeId });
+        const formattedDate = format(deadline, 'dd MMM yyyy, HH:mm');
         
         const typeEmoji = task.tipe === 'individu' ? individualEmoji : groupEmoji;
         const typeText = task.tipe === 'individu' ? 'Individual' : 'Group';

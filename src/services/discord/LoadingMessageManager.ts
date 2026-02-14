@@ -25,9 +25,6 @@ export class LoadingMessageManager {
    */
   async sendLoadingMessage(interaction: ButtonInteraction): Promise<void> {
     try {
-      const loadingEmoji = this.configManager.getEmoji('loading');
-      const message = `${loadingEmoji} Memproses...`;
-
       await interaction.deferReply({ ephemeral: true });
       
       // Store timestamp

@@ -5,7 +5,9 @@
 
 import { Client } from 'discord.js';
 import { TaskService } from './TaskService';
+import { ITask } from '../models/Task';
 import { getLogger } from '../utils/Logger';
+import { format } from 'date-fns';
 
 const logger = getLogger();
 
@@ -207,7 +209,7 @@ export class ActivityStatusService {
       // Replace {today} with tasks due today
       if (result.includes('{today}')) {
         const today = new Date();
-        const todayTasks = activeTasks.filter(task => {
+        const todayTasks = activeTasks.filter((task: ITask) => {
           const deadline = new Date(task.deadline);
           return deadline.toDateString() === today.toDateString();
         });
@@ -217,7 +219,7 @@ export class ActivityStatusService {
       // Replace {percent} with completion rate
       if (result.includes('{percent}')) {
         const allTasks = await this.taskService.getAllTasks();
-        const completedTasks = allTasks.filter(task => task.status === 'selesai');
+        const completedTasks = allTasks.filter((task: ITask) => task.status === 'selesai');
         const totalTasks = allTasks.length;
         const percent = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
         result = result.replace(/{percent}/g, percent.toString());
@@ -226,7 +228,7 @@ export class ActivityStatusService {
       // Replace {urgent} with urgent tasks (< 24 hours)
       if (result.includes('{urgent}')) {
         const now = new Date();
-        const urgentTasks = activeTasks.filter(task => {
+        const urgentTasks = activeTasks.filter((task: ITask) => {
           const deadline = new Date(task.deadline);
           const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
           return hoursUntil < 24 && hoursUntil > 0;
@@ -263,10 +265,8 @@ export class ActivityStatusService {
           const nearestTask = sortedTasks[0];
           const deadline = new Date(nearestTask.deadline);
           
-          // Format deadline
-          const { format } = await import('date-fns');
-          const { id: localeId } = await import('date-fns/locale');
-          const formattedDeadline = format(deadline, 'dd MMM', { locale: localeId });
+          // Format deadline using date-fns
+          const formattedDeadline = format(deadline, 'dd MMM');
 
           result = result.replace(/{nearest}/g, formattedDeadline);
         }

@@ -7,6 +7,7 @@ import { Client, EmbedBuilder, TextChannel, Message, ActionRowBuilder, ButtonBui
 import { TaskService } from '../TaskService';
 import { DiscordConfigManager } from './DiscordConfigManager';
 import { TaskStatistics } from '../../types/discord.types';
+import { ITask } from '../../models/Task';
 import { getLogger } from '../../utils/Logger';
 
 const logger = getLogger();
@@ -53,15 +54,15 @@ export class TaskMonitorService {
       const allTasks = await this.taskService.getAllTasks();
 
       // Count active tasks (status "aktif")
-      const activeTasks = allTasks.filter(task => task.status === 'aktif');
+      const activeTasks = allTasks.filter((task: ITask) => task.status === 'aktif');
       const activeCount = activeTasks.length;
 
       // Count completed tasks (status "selesai")
-      const completedCount = allTasks.filter(task => task.status === 'selesai').length;
+      const completedCount = allTasks.filter((task: ITask) => task.status === 'selesai').length;
 
       // Count by type (only active tasks)
-      const individuCount = activeTasks.filter(task => task.tipe === 'individu').length;
-      const kelompokCount = activeTasks.filter(task => task.tipe === 'kelompok').length;
+      const individuCount = activeTasks.filter((task: ITask) => task.tipe === 'individu').length;
+      const kelompokCount = activeTasks.filter((task: ITask) => task.tipe === 'kelompok').length;
 
       return {
         activeCount,
