@@ -223,14 +223,10 @@ export class ButtonInteractionHandler {
       .setTitle(`⋅•⋅☾ **${title}** ☽⋅•⋅`)
       .setColor(0x99AAB5); // Discord gray color
 
-    // Get server name from interaction
-    const guild = interaction.guild;
-    const serverName = guild ? guild.name : 'Unknown Server';
-    
-    // Set footer with icon and server name
+    // Set footer with icon
     const footerIcon = this.configManager.getFooterIcon();
     embed.setFooter({ 
-      text: `Made by VinTheGreat • ${serverName}`,
+      text: 'Made by VinTheGreat',
       iconURL: footerIcon
     });
 

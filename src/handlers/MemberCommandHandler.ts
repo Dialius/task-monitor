@@ -27,7 +27,7 @@ export class MemberCommandHandler {
    * Handle /tugas command - Get all active tasks
    * Requirement: 2.6
    */
-  async handleTugas(_args: string[], _userId: string, platform: Platform, chatId?: string): Promise<CommandResponse> {
+  async handleTugas(_args: string[], _userId: string, platform: Platform, _chatId?: string): Promise<CommandResponse> {
     try {
       // Auto-sync from Notion before querying
       let syncStatus = '';

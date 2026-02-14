@@ -345,13 +345,11 @@ class MultiPlatformBot {
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color);
 
-        // Get server name and footer icon
-        const guild = interaction.guild;
-        const serverName = guild ? guild.name : 'Unknown Server';
+        // Get footer icon
         const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
         
         embed.setFooter({ 
-          text: `Made by VinTheGreat • ${serverName}`,
+          text: 'Made by VinTheGreat',
           iconURL: footerIcon
         });
 
@@ -399,13 +397,11 @@ class MultiPlatformBot {
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color);
 
-        // Get server name and footer icon
-        const guild = message.guild;
-        const serverName = guild ? guild.name : 'Unknown Server';
+        // Get footer icon
         const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
         
         embed.setFooter({ 
-          text: `Made by VinTheGreat • ${serverName}`,
+          text: 'Made by VinTheGreat',
           iconURL: footerIcon
         });
 

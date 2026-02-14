@@ -91,14 +91,10 @@ export class TaskMonitorService {
       .setTitle('⋅•⋅☾ **Task Monitor** ☽⋅•⋅')
       .setColor(0x99AAB5); // Discord gray color
 
-    // Get server name
-    const guild = this.client.guilds.cache.first();
-    const serverName = guild ? guild.name : 'Unknown Server';
-    
-    // Set footer with icon and server name
+    // Set footer with icon
     const footerIcon = this.configManager.getFooterIcon();
     embed.setFooter({ 
-      text: `Made by VinTheGreat • ${serverName}`,
+      text: 'Made by VinTheGreat',
       iconURL: footerIcon
     });
 
