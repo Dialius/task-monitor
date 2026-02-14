@@ -1,6 +1,44 @@
 # Railway Deployment Status
 
-## Latest Fix (2026-02-14)
+## Latest Update: Pairing Code Support (2026-02-14)
+
+### New Feature: Pairing Code Authentication
+
+Bot sekarang mendukung **pairing code** untuk WhatsApp authentication, yang jauh lebih mudah untuk Railway deployment daripada QR code!
+
+#### Cara Setup:
+
+1. **Tambahkan di Railway Variables:**
+   ```
+   WHATSAPP_USE_PAIRING_CODE=true
+   WHATSAPP_PAIRING_NUMBER=628994630519
+   ```
+   (Ganti dengan nomor WhatsApp kamu)
+
+2. **Deploy ulang** - Railway akan auto-deploy dari GitHub push
+
+3. **Lihat logs** - Kamu akan dapat 8 digit pairing code seperti ini:
+   ```
+   ╔════════════════════════════════════════╗
+   ║  PAIRING CODE (8 DIGIT)               ║
+   ╠════════════════════════════════════════╣
+   ║  1234-5678                            ║
+   ╚════════════════════════════════════════╝
+   ```
+
+4. **Masukkan di WhatsApp:**
+   - Buka WhatsApp > Menu > Linked Devices
+   - Tap "Link a Device"
+   - Tap "Link with phone number instead"
+   - Masukkan 8 digit code
+
+5. **Done!** Bot akan connect dalam beberapa detik
+
+📖 **Lihat panduan lengkap:** [RAILWAY_PAIRING_CODE_SETUP.md](./RAILWAY_PAIRING_CODE_SETUP.md)
+
+---
+
+## Previous Fix: Bot Startup (2026-02-14)
 
 ### Problem
 Bot was not starting on Railway because `src/index.ts` only started the API server when `API_ENABLED=true`, but never started the actual bot.
