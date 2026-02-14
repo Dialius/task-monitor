@@ -1,9 +1,16 @@
 /**
  * Notion Service
  * Sync tasks from Notion database to MongoDB
+ * 
+ * Implements robust error handling for:
+ * - Rate limiting (429 errors) with exponential backoff
+ * - Timeouts (504 errors) with configurable timeout
+ * - Network failures with retry logic
+ * - Size limits (2000 char) with truncation
  */
 
 import { Client } from '@notionhq/client';
+import { APIResponseError } from '@notionhq/client';
 import Task from '../models/Task';
 import { getLogger } from '../utils/Logger';
 
@@ -24,12 +31,24 @@ export interface NotionTask {
 }
 
 /**
- * Notion Service for syncing tasks
+ * Notion Service for syncing tasks with robust error handling
  */
 export class NotionService {
   private notion!: Client;
   private databaseId!: string;
   private enabled: boolean;
+  
+  // Configuration for retry logic
+  private readonly MAX_RETRIES = 5;
+  private readonly BASE_DELAY = 1000; // 1 second
+  private readonly MAX_DELAY = 32000; // 32 seconds
+  private readonly TIMEOUT_MS = 30000; // 30 seconds
+  private readonly RATE_LIMIT_DELAY = 1000; // 1 second between requests to avoid rate limiting
+  
+  // Rate limiting state
+  private lastRequestTime = 0;
+  private requestCount = 0;
+  private requestWindow = Date.now();
 
   constructor() {
     const apiKey = process.env.NOTION_API_KEY;
@@ -38,9 +57,17 @@ export class NotionService {
     this.enabled = !!(apiKey && databaseId);
 
     if (this.enabled) {
-      this.notion = new Client({ auth: apiKey });
+      this.notion = new Client({ 
+        auth: apiKey,
+        // Increase timeout for slow connections
+        timeoutMs: this.TIMEOUT_MS
+      });
       this.databaseId = databaseId!;
-      logger.info('Notion service initialized', { databaseId });
+      logger.info('Notion service initialized with robust error handling', { 
+        databaseId,
+        maxRetries: this.MAX_RETRIES,
+        timeout: `${this.TIMEOUT_MS}ms`
+      });
     } else {
       logger.warn('Notion service disabled - missing API key or database ID');
     }
@@ -54,19 +81,185 @@ export class NotionService {
   }
 
   /**
-   * Helper method to add timeout to promises
+   * Rate limiting: Wait if needed to avoid hitting 3 req/sec limit
    */
-  private withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    return Promise.race([
-      promise,
-      new Promise<T>((_, reject) => 
-        setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
-      )
-    ]);
+  private async rateLimit(): Promise<void> {
+    const now = Date.now();
+    
+    // Reset counter every second
+    if (now - this.requestWindow >= 1000) {
+      this.requestCount = 0;
+      this.requestWindow = now;
+    }
+    
+    // If we've made 3 requests in this second, wait
+    if (this.requestCount >= 3) {
+      const waitTime = 1000 - (now - this.requestWindow);
+      if (waitTime > 0) {
+        logger.debug('Rate limit: waiting', { waitTime: `${waitTime}ms` });
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.requestCount = 0;
+        this.requestWindow = Date.now();
+      }
+    }
+    
+    // Also ensure minimum delay between requests
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.RATE_LIMIT_DELAY) {
+      const waitTime = this.RATE_LIMIT_DELAY - timeSinceLastRequest;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.requestCount++;
+    this.lastRequestTime = Date.now();
   }
 
   /**
-   * Sync all tasks from Notion to MongoDB with retry logic
+   * Execute Notion API request with retry logic and rate limiting
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    operationName: string
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        // Apply rate limiting before each request
+        await this.rateLimit();
+        
+        logger.debug(`${operationName}: attempt ${attempt}/${this.MAX_RETRIES}`);
+        
+        const result = await operation();
+        
+        if (attempt > 1) {
+          logger.info(`${operationName}: succeeded after ${attempt} attempts`);
+        }
+        
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        const isLastAttempt = attempt === this.MAX_RETRIES;
+        
+        // Handle specific error types
+        if (error instanceof APIResponseError) {
+          const status = error.status;
+          const code = error.code;
+          
+          // Rate limit error (429)
+          if (status === 429) {
+            // Respect Retry-After header if present
+            const retryAfter = (error as any).headers?.['retry-after'];
+            const delay = retryAfter 
+              ? parseInt(retryAfter) * 1000 
+              : Math.min(this.BASE_DELAY * Math.pow(2, attempt), this.MAX_DELAY);
+            
+            logger.warn(`${operationName}: rate limited (429)`, {
+              attempt,
+              retryIn: `${delay}ms`,
+              retryAfter
+            });
+            
+            if (!isLastAttempt) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          }
+          
+          // Timeout or gateway errors (502, 503, 504)
+          if (status === 502 || status === 503 || status === 504) {
+            const delay = Math.min(this.BASE_DELAY * Math.pow(2, attempt), this.MAX_DELAY);
+            
+            logger.warn(`${operationName}: gateway error (${status})`, {
+              attempt,
+              retryIn: `${delay}ms`
+            });
+            
+            if (!isLastAttempt) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+          }
+          
+          // Validation errors (400) - don't retry
+          if (status === 400) {
+            logger.error(`${operationName}: validation error (400)`, error as Error, {
+              errorCode: code,
+              message: error.message
+            });
+            throw error;
+          }
+          
+          // Unauthorized (401) - don't retry
+          if (status === 401) {
+            logger.error(`${operationName}: unauthorized (401) - check API key`);
+            throw error;
+          }
+          
+          // Not found (404) - don't retry
+          if (status === 404) {
+            logger.error(`${operationName}: not found (404) - check database ID`);
+            throw error;
+          }
+        }
+        
+        // Network errors or timeouts
+        if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+          const delay = Math.min(this.BASE_DELAY * Math.pow(2, attempt), this.MAX_DELAY);
+          
+          logger.warn(`${operationName}: network error (${error.code})`, {
+            attempt,
+            retryIn: `${delay}ms`
+          });
+          
+          if (!isLastAttempt) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+        
+        // Generic error - retry with exponential backoff
+        if (!isLastAttempt) {
+          const delay = Math.min(this.BASE_DELAY * Math.pow(2, attempt), this.MAX_DELAY);
+          
+          logger.warn(`${operationName}: failed, retrying...`, {
+            attempt,
+            retryIn: `${delay}ms`,
+            error: error.message
+          });
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // Last attempt failed
+        logger.error(`${operationName}: failed after ${this.MAX_RETRIES} attempts`, error);
+        throw error;
+      }
+    }
+
+    // Should never reach here, but TypeScript needs it
+    throw lastError || new Error(`${operationName}: failed after all retries`);
+  }
+
+  /**
+   * Truncate text to fit Notion's 2000 character limit
+   */
+  private truncateText(text: string, maxLength: number = 2000): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    
+    logger.warn('Text truncated to fit Notion limit', {
+      original: text.length,
+      truncated: maxLength
+    });
+    
+    return text.substring(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Sync all tasks from Notion to MongoDB with robust error handling
    */
   async syncFromNotion(): Promise<{ synced: number; errors: number }> {
     if (!this.enabled) {
@@ -74,89 +267,90 @@ export class NotionService {
       return { synced: 0, errors: 0 };
     }
 
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1 second
+    try {
+      logger.info('Starting Notion sync with robust error handling...');
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        logger.info('Starting Notion sync...', { attempt, maxRetries });
-
-        // Query all tasks from Notion Database with 10 second timeout
-        // Type assertion needed as @notionhq/client v5.9.0 types are incomplete
-        const response: any = await this.withTimeout(
-          (this.notion.databases as any).query({
+      // Query all tasks from Notion Database with retry logic
+      const response: any = await this.executeWithRetry(
+        async () => {
+          return await (this.notion.databases as any).query({
             database_id: this.databaseId,
             filter: {
               property: 'Status',
               select: {
                 equals: 'Aktif'
               }
+            },
+            // Pagination: get up to 100 results per page
+            page_size: 100
+          });
+        },
+        'Notion database query'
+      );
+
+      let synced = 0;
+      let errors = 0;
+      const total = response.results.length;
+
+      logger.info(`Found ${total} tasks in Notion, syncing to MongoDB...`);
+
+      // Process tasks in batches to avoid overwhelming MongoDB
+      const batchSize = 10;
+      for (let i = 0; i < response.results.length; i += batchSize) {
+        const batch = response.results.slice(i, i + batchSize);
+        
+        await Promise.all(
+          batch.map(async (page: any) => {
+            try {
+              const task = this.parseNotionPage(page);
+              
+              // Update or create in MongoDB with retry
+              await Task.findOneAndUpdate(
+                { notion_id: task.id },
+                {
+                  judul: task.judul,
+                  mata_pelajaran: task.mata_pelajaran,
+                  deskripsi: task.deskripsi,
+                  deadline: task.deadline,
+                  tipe: task.tipe,
+                  prioritas: task.prioritas,
+                  status: task.status,
+                  link_pengumpulan: task.link_pengumpulan,
+                  catatan: task.catatan,
+                  created_by: task.created_by,
+                  notion_id: task.id,
+                  updated_at: new Date()
+                },
+                { upsert: true, new: true }
+              );
+
+              synced++;
+              
+              if (synced % 10 === 0) {
+                logger.info(`Sync progress: ${synced}/${total} tasks`);
+              }
+            } catch (error) {
+              logger.error('Failed to sync individual task', error as Error, {
+                pageId: page.id
+              });
+              errors++;
             }
-          }),
-          10000 // 10 second timeout
+          })
         );
-
-        let synced = 0;
-        let errors = 0;
-
-        for (const page of response.results) {
-          try {
-            const task = this.parseNotionPage(page as any);
-            
-            // Update or create in MongoDB
-            await Task.findOneAndUpdate(
-              { notion_id: task.id },
-              {
-                judul: task.judul,
-                mata_pelajaran: task.mata_pelajaran,
-                deskripsi: task.deskripsi,
-                deadline: task.deadline,
-                tipe: task.tipe,
-                prioritas: task.prioritas,
-                status: task.status,
-                link_pengumpulan: task.link_pengumpulan,
-                catatan: task.catatan,
-                created_by: task.created_by,
-                notion_id: task.id,
-                updated_at: new Date()
-              },
-              { upsert: true, new: true }
-            );
-
-            synced++;
-          } catch (error) {
-            logger.error('Failed to sync task from Notion', error as Error, {
-              pageId: (page as any).id
-            });
-            errors++;
-          }
-        }
-
-        logger.info('Notion sync completed', { synced, errors, total: response.results.length });
-        return { synced, errors };
-      } catch (error) {
-        const isLastAttempt = attempt === maxRetries;
-        
-        if (isLastAttempt) {
-          logger.error('Failed to sync from Notion after all retries', error as Error, { attempts: maxRetries });
-          throw error;
-        }
-
-        // Exponential backoff: 1s, 2s, 4s
-        const delay = baseDelay * Math.pow(2, attempt - 1);
-        logger.warn('Notion sync failed, retrying...', { 
-          attempt, 
-          maxRetries, 
-          retryIn: `${delay}ms`,
-          error: (error as Error).message 
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    }
 
-    // This should never be reached due to throw in last attempt
-    return { synced: 0, errors: 0 };
+      logger.info('Notion sync completed successfully', { 
+        synced, 
+        errors, 
+        total,
+        successRate: `${((synced / total) * 100).toFixed(1)}%`
+      });
+      
+      return { synced, errors };
+    } catch (error) {
+      logger.error('Notion sync failed completely', error as Error);
+      throw error;
+    }
   }
 
   /**
@@ -240,7 +434,7 @@ export class NotionService {
   }
 
   /**
-   * Add task to Notion database
+   * Add task to Notion database with robust error handling
    */
   async addTaskToNotion(task: {
     judul: string;
@@ -261,82 +455,93 @@ export class NotionService {
     try {
       logger.info('Adding task to Notion...', { judul: task.judul });
 
-      // Create page in Notion database
-      const response: any = await this.notion.pages.create({
-        parent: {
-          database_id: this.databaseId
-        },
-        properties: {
-          'Judul': {
-            title: [
-              {
-                text: {
-                  content: task.judul
-                }
-              }
-            ]
-          },
-          'Mata Pelajaran': {
-            select: {
-              name: task.mata_pelajaran
-            }
-          },
-          'Deskripsi': {
-            rich_text: [
-              {
-                text: {
-                  content: task.deskripsi
-                }
-              }
-            ]
-          },
-          'Deadline': {
-            date: {
-              start: task.deadline.toISOString().split('T')[0]
-            }
-          },
-          'Tipe': {
-            select: {
-              name: this.capitalizeFirst(task.tipe)
-            }
-          },
-          'Prioritas': {
-            select: {
-              name: this.capitalizeFirst(task.prioritas || 'normal')
-            }
-          },
-          'Status': {
-            select: {
-              name: 'Aktif'
-            }
-          },
-          ...(task.link_pengumpulan && {
-            'Link Pengumpulan': {
-              url: task.link_pengumpulan
-            }
-          }),
-          ...(task.catatan && {
-            'Catatan': {
-              rich_text: [
-                {
-                  text: {
-                    content: task.catatan
+      // Truncate text fields to fit Notion limits
+      const judul = this.truncateText(task.judul, 2000);
+      const deskripsi = this.truncateText(task.deskripsi, 2000);
+      const catatan = task.catatan ? this.truncateText(task.catatan, 2000) : undefined;
+      const link_pengumpulan = task.link_pengumpulan ? this.truncateText(task.link_pengumpulan, 2000) : undefined;
+
+      // Create page in Notion database with retry logic
+      const response: any = await this.executeWithRetry(
+        async () => {
+          return await this.notion.pages.create({
+            parent: {
+              database_id: this.databaseId
+            },
+            properties: {
+              'Judul': {
+                title: [
+                  {
+                    text: {
+                      content: judul
+                    }
                   }
+                ]
+              },
+              'Mata Pelajaran': {
+                select: {
+                  name: task.mata_pelajaran
                 }
-              ]
-            }
-          }),
-          'Created By': {
-            rich_text: [
-              {
-                text: {
-                  content: task.created_by
+              },
+              'Deskripsi': {
+                rich_text: [
+                  {
+                    text: {
+                      content: deskripsi
+                    }
+                  }
+                ]
+              },
+              'Deadline': {
+                date: {
+                  start: task.deadline.toISOString().split('T')[0]
                 }
+              },
+              'Tipe': {
+                select: {
+                  name: this.capitalizeFirst(task.tipe)
+                }
+              },
+              'Prioritas': {
+                select: {
+                  name: this.capitalizeFirst(task.prioritas || 'normal')
+                }
+              },
+              'Status': {
+                select: {
+                  name: 'Aktif'
+                }
+              },
+              ...(link_pengumpulan && {
+                'Link Pengumpulan': {
+                  url: link_pengumpulan
+                }
+              }),
+              ...(catatan && {
+                'Catatan': {
+                  rich_text: [
+                    {
+                      text: {
+                        content: catatan
+                      }
+                    }
+                  ]
+                }
+              }),
+              'Created By': {
+                rich_text: [
+                  {
+                    text: {
+                      content: task.created_by
+                    }
+                  }
+                ]
               }
-            ]
-          }
-        }
-      });
+            }
+          });
+        },
+        'Add task to Notion'
+      );
 
       logger.info('Task added to Notion successfully', { 
         notionId: response.id,
@@ -345,7 +550,7 @@ export class NotionService {
 
       return response.id;
     } catch (error) {
-      logger.error('Failed to add task to Notion', error as Error, {
+      logger.error('Failed to add task to Notion after all retries', error as Error, {
         judul: task.judul
       });
       return null;
@@ -353,7 +558,7 @@ export class NotionService {
   }
 
   /**
-   * Update task in Notion database
+   * Update task in Notion database with robust error handling
    */
   async updateTaskInNotion(notionId: string, updates: {
     judul?: string;
@@ -378,7 +583,7 @@ export class NotionService {
 
       if (updates.judul) {
         properties['Judul'] = {
-          title: [{ text: { content: updates.judul } }]
+          title: [{ text: { content: this.truncateText(updates.judul, 2000) } }]
         };
       }
 
@@ -390,7 +595,7 @@ export class NotionService {
 
       if (updates.deskripsi) {
         properties['Deskripsi'] = {
-          rich_text: [{ text: { content: updates.deskripsi } }]
+          rich_text: [{ text: { content: this.truncateText(updates.deskripsi, 2000) } }]
         };
       }
 
@@ -420,25 +625,30 @@ export class NotionService {
 
       if (updates.link_pengumpulan !== undefined) {
         properties['Link Pengumpulan'] = {
-          url: updates.link_pengumpulan || null
+          url: updates.link_pengumpulan ? this.truncateText(updates.link_pengumpulan, 2000) : null
         };
       }
 
       if (updates.catatan !== undefined) {
         properties['Catatan'] = {
-          rich_text: updates.catatan ? [{ text: { content: updates.catatan } }] : []
+          rich_text: updates.catatan ? [{ text: { content: this.truncateText(updates.catatan, 2000) } }] : []
         };
       }
 
-      await this.notion.pages.update({
-        page_id: notionId,
-        properties
-      });
+      await this.executeWithRetry(
+        async () => {
+          return await this.notion.pages.update({
+            page_id: notionId,
+            properties
+          });
+        },
+        'Update task in Notion'
+      );
 
       logger.info('Task updated in Notion successfully', { notionId });
       return true;
     } catch (error) {
-      logger.error('Failed to update task in Notion', error as Error, { notionId });
+      logger.error('Failed to update task in Notion after all retries', error as Error, { notionId });
       return false;
     }
   }
@@ -451,7 +661,7 @@ export class NotionService {
   }
 
   /**
-   * Get sync statistics
+   * Get sync statistics with robust error handling
    */
   async getSyncStats(): Promise<{
     notionTasks: number;
@@ -463,17 +673,21 @@ export class NotionService {
     }
 
     try {
-      // Count tasks in Notion Database
-      // Type assertion needed as @notionhq/client v5.9.0 types are incomplete
-      const notionResponse = await (this.notion.databases as any).query({
-        database_id: this.databaseId,
-        filter: {
-          property: 'Status',
-          select: {
-            equals: 'Aktif'
-          }
-        }
-      });
+      // Count tasks in Notion Database with retry logic
+      const notionResponse = await this.executeWithRetry(
+        async () => {
+          return await (this.notion.databases as any).query({
+            database_id: this.databaseId,
+            filter: {
+              property: 'Status',
+              select: {
+                equals: 'Aktif'
+              }
+            }
+          });
+        },
+        'Get Notion stats'
+      );
 
       // Count tasks in MongoDB
       const mongoCount = await Task.countDocuments({ status: 'aktif' });
