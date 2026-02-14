@@ -75,7 +75,7 @@ export class DiscordClient {
    * Requirement: 17.2
    */
   private setupEventHandlers(): void {
-    this.client.on('ready', () => {
+    this.client.on('clientReady', () => {
       logger.info('Discord client connected', {
         username: this.client.user?.tag,
         guildId: this.config.guildId

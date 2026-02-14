@@ -321,8 +321,10 @@ class MultiPlatformBot {
       
       const isEphemeral = adminCommands.includes(command);
 
-      // Defer reply immediately to prevent timeout and set ephemeral state
-      await interaction.deferReply({ ephemeral: isEphemeral });
+      // Defer reply immediately to prevent timeout and set ephemeral state using flags
+      await interaction.deferReply({ 
+        flags: isEphemeral ? 64 : undefined // 64 = EPHEMERAL flag
+      });
 
       // Get channel ID for progress messages
       const channelId = interaction.channelId;

@@ -687,7 +687,34 @@ export class MemberCommandHandler {
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
 
+      let mongoStatus = '';
       let notionStatus = '';
+      
+      // Check MongoDB status
+      try {
+        const mongoose = require('mongoose');
+        const connectionState = mongoose.connection.readyState;
+        
+        // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+        const stateMap: { [key: number]: { emoji: string; text: string } } = {
+          0: { emoji: '❌', text: 'Disconnected' },
+          1: { emoji: '✅', text: 'Connected' },
+          2: { emoji: '🔄', text: 'Connecting...' },
+          3: { emoji: '⚠️', text: 'Disconnecting...' }
+        };
+        
+        const state = stateMap[connectionState] || { emoji: '❓', text: 'Unknown' };
+        
+        if (connectionState === 1) {
+          // Get database name if connected
+          const dbName = mongoose.connection.db?.databaseName || 'Unknown';
+          mongoStatus = `**MongoDB Status:**\n${state.emoji} ${state.text}\n📊 Database: ${dbName}`;
+        } else {
+          mongoStatus = `**MongoDB Status:**\n${state.emoji} ${state.text}`;
+        }
+      } catch (error) {
+        mongoStatus = `**MongoDB Status:**\n❌ Error checking status`;
+      }
       
       // Check Notion status
       if (this.notionService.isEnabled()) {
@@ -706,7 +733,7 @@ export class MemberCommandHandler {
         message: '',
         embedData: {
           title: '🤖 Status Bot',
-          description: `✅ Bot aktif\n⏱️ Uptime: ${hours}h ${minutes}m\n📊 Platform: Multi-platform (Discord + WhatsApp)\n🔧 Version: 1.0.0\n\n${notionStatus}`,
+          description: `✅ Bot aktif\n⏱️ Uptime: ${hours}h ${minutes}m\n📊 Platform: Multi-platform (Discord + WhatsApp)\n🔧 Version: 1.0.0\n\n${mongoStatus}\n\n${notionStatus}`,
           color: 0x57F287
         }
       };
