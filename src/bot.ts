@@ -324,6 +324,21 @@ class MultiPlatformBot {
 
       console.log(`📨 Discord slash command: /${command} from ${interaction.user.tag}`);
 
+      // Determine if command should be ephemeral (admin commands)
+      const adminCommands = [
+        'add_tugas', 'add_tugas_cepat', 'edit_tugas', 'hapus_tugas', 'tandai_selesai',
+        'add_jadwal', 'edit_jadwal', 'hapus_jadwal', 'ganti_jadwal',
+        'set_piket', 'edit_piket',
+        'add_pengumuman', 'hapus_pengumuman',
+        'broadcast', 'broadcast_urgent',
+        'test_reminder'
+      ];
+      
+      const isEphemeral = adminCommands.includes(command);
+
+      // Defer reply immediately to prevent timeout and set ephemeral state
+      await interaction.deferReply({ ephemeral: isEphemeral });
+
       // Get channel ID for progress messages
       const channelId = interaction.channelId;
 
@@ -365,15 +380,13 @@ class MultiPlatformBot {
           embed.addFields(response.embedData.fields);
         }
 
-        await interaction.reply({ 
-          embeds: [embed],
-          ephemeral: response.ephemeral || false
+        await interaction.editReply({ 
+          embeds: [embed]
         });
       } else {
         // Use plain text for other commands
-        await interaction.reply({
-          content: response.message,
-          ephemeral: response.ephemeral || false
+        await interaction.editReply({
+          content: response.message
         });
       }
     });
