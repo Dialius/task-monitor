@@ -92,7 +92,7 @@ export class ButtonInteractionHandler {
       }
 
       // Format response embed
-      const embed = this.formatTaskListEmbed(title, tasks, interaction);
+      const embed = this.formatTaskListEmbed(title, tasks);
 
       // Edit loading message with response
       await this.loadingManager.editWithResponse(interaction, embed);
@@ -218,7 +218,7 @@ export class ButtonInteractionHandler {
    * Format task list embed
    * Requirement: 3.5, 3.7, 3.8
    */
-  formatTaskListEmbed(title: string, tasks: ITask[], interaction: ButtonInteraction): EmbedBuilder {
+  formatTaskListEmbed(title: string, tasks: ITask[]): EmbedBuilder {
     const embed = new EmbedBuilder()
       .setTitle(`⋅•⋅☾ **${title}** ☽⋅•⋅`)
       .setColor(0x99AAB5); // Discord gray color
