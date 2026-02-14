@@ -143,11 +143,11 @@ export class TaskMonitorService {
       .addComponents(
         new ButtonBuilder()
           .setCustomId('tasks_week')
-          .setLabel(`${calendarEmoji} Minggu Ini`)
+          .setLabel(`${calendarEmoji} This Week`)
           .setStyle(ButtonStyle.Primary),
         new ButtonBuilder()
           .setCustomId('tasks_tomorrow')
-          .setLabel(`${calendarEmoji} Tugas Besok`)
+          .setLabel(`${calendarEmoji} Tomorrow`)
           .setStyle(ButtonStyle.Primary)
       );
 

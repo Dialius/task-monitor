@@ -16,7 +16,7 @@ export interface ActivityConfig {
 }
 
 export interface ActivityTemplate {
-  type: 0 | 1 | 2 | 3 | 5; // 0: Playing, 1: Streaming, 2: Listening, 3: Watching, 5: Competing
+  type?: 0 | 1 | 2 | 3 | 5; // 0: Playing, 1: Streaming, 2: Listening, 3: Watching, 5: Competing (optional per template)
   text: string;
   dynamic?: boolean; // if true, will fetch real-time data
   dataSource?: 'tasks_today' | 'tasks_week' | 'tasks_total' | 'tasks_urgent';
@@ -97,19 +97,22 @@ export class ActivityStatusService {
       const activity = this.config.activities[this.currentIndex];
       const statusText = await this.processActivityText(activity);
 
+      // Use per-template type if specified, otherwise use default type
+      const activityType = activity.type !== undefined ? activity.type : this.config.activities[0]?.type || 3;
+
       await this.client.user.setPresence({
         activities: [{
           name: statusText,
-          type: activity.type // Discord.js accepts number directly
+          type: activityType // Use template-specific or default type
         }],
         status: 'online'
       });
 
       // Get activity type name for logging
-      const activityTypeName = this.getActivityTypeName(activity.type);
+      const activityTypeName = this.getActivityTypeName(activityType);
       
       logger.info('Activity status updated', {
-        type: activity.type,
+        type: activityType,
         typeName: activityTypeName,
         text: statusText,
         index: this.currentIndex,
@@ -186,7 +189,7 @@ export class ActivityStatusService {
   }
 
   /**
-   * Process new template variables: {total}, {active}, {nearest}
+   * Process new template variables: {total}, {active}, {nearest}, {today}, {percent}, {urgent}, {hours}
    * Requirements: 8.2, 8.3, 8.4, 8.5, 8.9
    */
   private async processNewTemplateVariables(text: string): Promise<string> {
@@ -195,17 +198,62 @@ export class ActivityStatusService {
 
       // Get all active tasks
       const activeTasks = await this.taskService.getTasks({ status: 'aktif' });
+      const activeCount = activeTasks.length;
 
       // Replace {total} and {active} with active task count
-      const activeCount = activeTasks.length;
       result = result.replace(/{total}/g, activeCount.toString());
       result = result.replace(/{active}/g, activeCount.toString());
+
+      // Replace {today} with tasks due today
+      if (result.includes('{today}')) {
+        const today = new Date();
+        const todayTasks = activeTasks.filter(task => {
+          const deadline = new Date(task.deadline);
+          return deadline.toDateString() === today.toDateString();
+        });
+        result = result.replace(/{today}/g, todayTasks.length.toString());
+      }
+
+      // Replace {percent} with completion rate
+      if (result.includes('{percent}')) {
+        const allTasks = await this.taskService.getAllTasks();
+        const completedTasks = allTasks.filter(task => task.status === 'selesai');
+        const totalTasks = allTasks.length;
+        const percent = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+        result = result.replace(/{percent}/g, percent.toString());
+      }
+
+      // Replace {urgent} with urgent tasks (< 24 hours)
+      if (result.includes('{urgent}')) {
+        const now = new Date();
+        const urgentTasks = activeTasks.filter(task => {
+          const deadline = new Date(task.deadline);
+          const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+          return hoursUntil < 24 && hoursUntil > 0;
+        });
+        result = result.replace(/{urgent}/g, urgentTasks.length.toString());
+      }
+
+      // Replace {hours} with hours until nearest deadline
+      if (result.includes('{hours}')) {
+        if (activeTasks.length === 0) {
+          result = result.replace(/{hours}/g, '0');
+        } else {
+          const sortedTasks = activeTasks.sort((a, b) => {
+            return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+          });
+          const nearestDeadline = new Date(sortedTasks[0].deadline);
+          const now = new Date();
+          const hoursUntil = Math.max(0, Math.floor((nearestDeadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
+          result = result.replace(/{hours}/g, hoursUntil.toString());
+        }
+      }
 
       // Replace {nearest} with nearest deadline
       if (result.includes('{nearest}')) {
         if (activeTasks.length === 0) {
           // Empty state handling
-          result = result.replace(/{nearest}/g, 'tidak ada');
+          result = result.replace(/{nearest}/g, 'none');
         } else {
           // Sort by deadline and get nearest
           const sortedTasks = activeTasks.sort((a, b) => {
@@ -231,6 +279,10 @@ export class ActivityStatusService {
       return text
         .replace(/{total}/g, '0')
         .replace(/{active}/g, '0')
+        .replace(/{today}/g, '0')
+        .replace(/{percent}/g, '0')
+        .replace(/{urgent}/g, '0')
+        .replace(/{hours}/g, '0')
         .replace(/{nearest}/g, 'N/A');
     }
   }

@@ -39,37 +39,42 @@ export class ButtonInteractionHandler {
       const userId = interaction.user.id;
       const buttonId = interaction.customId;
 
-      // Check if this is in command channel
-      const commandChannelId = this.configManager.getCommandChannelId();
-      const isCommandChannel = interaction.channelId === commandChannelId;
+      // Check if user is admin (admin bypass rate limiting)
+      const isAdmin = await this.isUserAdmin(userId);
 
-      // Check rate limit
-      const context = isCommandChannel ? 'command' : 'general';
-      const cooldownResult = this.rateLimiter.checkCooldown(userId, context);
+      if (!isAdmin) {
+        // Check if this is in command channel
+        const commandChannelId = this.configManager.getCommandChannelId();
+        const isCommandChannel = interaction.channelId === commandChannelId;
 
-      if (!cooldownResult.allowed) {
-        const minutes = Math.floor(cooldownResult.remainingSeconds! / 60);
-        const seconds = cooldownResult.remainingSeconds! % 60;
-        
-        let timeMessage = '';
-        if (minutes > 0) {
-          timeMessage = `${minutes} menit ${seconds} detik`;
-        } else {
-          timeMessage = `${seconds} detik`;
+        // Check rate limit (only for non-admin)
+        const context = isCommandChannel ? 'command' : 'general';
+        const cooldownResult = this.rateLimiter.checkCooldown(userId, context);
+
+        if (!cooldownResult.allowed) {
+          const minutes = Math.floor(cooldownResult.remainingSeconds! / 60);
+          const seconds = cooldownResult.remainingSeconds! % 60;
+          
+          let timeMessage = '';
+          if (minutes > 0) {
+            timeMessage = `${minutes} minutes ${seconds} seconds`;
+          } else {
+            timeMessage = `${seconds} seconds`;
+          }
+
+          await interaction.reply({
+            content: `⏳ Please wait ${timeMessage} before using this command again.`,
+            ephemeral: true
+          });
+          return;
         }
 
-        await interaction.reply({
-          content: `⏳ Mohon tunggu ${timeMessage} sebelum menggunakan command lagi.`,
-          ephemeral: true
-        });
-        return;
+        // Set cooldown (only for non-admin)
+        this.rateLimiter.setCooldown(userId, context);
       }
 
       // Send loading message
       await this.loadingManager.sendLoadingMessage(interaction);
-
-      // Set cooldown
-      this.rateLimiter.setCooldown(userId, context);
 
       // Query tasks based on button
       let tasks: ITask[];
@@ -77,12 +82,12 @@ export class ButtonInteractionHandler {
 
       if (buttonId === 'tasks_week') {
         tasks = await this.getTasksThisWeek();
-        title = 'Minggu Ini';
+        title = 'This Week';
       } else if (buttonId === 'tasks_tomorrow') {
         tasks = await this.getTasksTomorrow();
-        title = 'Tugas Besok';
+        title = 'Tomorrow';
       } else {
-        await this.loadingManager.editWithError(interaction, 'Button tidak dikenal');
+        await this.loadingManager.editWithError(interaction, 'Unknown button');
         return;
       }
 
@@ -95,7 +100,8 @@ export class ButtonInteractionHandler {
       logger.info('Button interaction handled', {
         userId,
         buttonId,
-        taskCount: tasks.length
+        taskCount: tasks.length,
+        isAdmin
       });
     } catch (error) {
       logger.error('Failed to handle button interaction', error as Error, {
@@ -106,11 +112,32 @@ export class ButtonInteractionHandler {
       try {
         await this.loadingManager.editWithError(
           interaction,
-          'Terjadi kesalahan saat memproses permintaan'
+          'An error occurred while processing your request'
         );
       } catch (editError) {
         logger.error('Failed to send error message', editError as Error);
       }
+    }
+  }
+
+  /**
+   * Check if user is admin
+   */
+  private async isUserAdmin(userId: string): Promise<boolean> {
+    try {
+      // Import Admin model dynamically to avoid circular dependency
+      const Admin = (await import('../../models/Admin')).default;
+      
+      const admin = await Admin.findOne({
+        user_identifier: userId,
+        platform: 'discord',
+        is_active: true
+      });
+
+      return admin !== null;
+    } catch (error) {
+      logger.error('Failed to check admin status', error as Error, { userId });
+      return false; // Fail closed - treat as non-admin on error
     }
   }
 
@@ -183,7 +210,7 @@ export class ButtonInteractionHandler {
       .setTimestamp();
 
     if (tasks.length === 0) {
-      embed.setDescription('Tidak ada tugas untuk periode ini.');
+      embed.setDescription('No tasks found for this period.');
     } else {
       const taskEmoji = this.configManager.getEmoji('task');
       const calendarEmoji = this.configManager.getEmoji('calendar');
@@ -198,12 +225,12 @@ export class ButtonInteractionHandler {
         const formattedDate = format(deadline, 'dd MMM yyyy, HH:mm', { locale: localeId });
         
         const typeEmoji = task.tipe === 'individu' ? individualEmoji : groupEmoji;
-        const typeText = task.tipe === 'individu' ? 'Individu' : 'Kelompok';
+        const typeText = task.tipe === 'individu' ? 'Individual' : 'Group';
 
         description += `${taskEmoji} **${task.judul}**\n`;
         description += `${calendarEmoji} Deadline: ${formattedDate}\n`;
-        description += `${typeEmoji} Tipe: ${typeText}\n`;
-        description += `${onlineEmoji} Status: Aktif\n\n`;
+        description += `${typeEmoji} Type: ${typeText}\n`;
+        description += `${onlineEmoji} Status: Active\n\n`;
       }
 
       embed.setDescription(description);

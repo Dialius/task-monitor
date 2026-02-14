@@ -80,6 +80,7 @@ export interface DiscordEmbedConfig {
 export interface ActivityTemplate {
   text: string;
   dynamic: boolean;
+  type?: 'WATCHING' | 'PLAYING' | 'LISTENING' | 'COMPETING'; // Optional per-template type
 }
 
 /**

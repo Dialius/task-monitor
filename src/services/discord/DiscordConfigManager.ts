@@ -79,11 +79,29 @@ export class DiscordConfigManager {
   }
 
   /**
-   * Get activity templates
+   * Get activity templates with converted types
    * Requirement: 8.1
    */
   getActivityTemplates(): ActivityTemplate[] {
-    return this.config.activity.templates;
+    return this.config.activity.templates.map(template => ({
+      text: template.text,
+      dynamic: template.dynamic,
+      type: template.type ? this.convertActivityType(template.type) : undefined
+    }));
+  }
+
+  /**
+   * Convert string activity type to number
+   */
+  private convertActivityType(type: 'WATCHING' | 'PLAYING' | 'LISTENING' | 'COMPETING'): 0 | 1 | 2 | 3 | 5 {
+    const typeMap = {
+      'PLAYING': 0,
+      'STREAMING': 1,
+      'LISTENING': 2,
+      'WATCHING': 3,
+      'COMPETING': 5
+    };
+    return typeMap[type] as 0 | 1 | 2 | 3 | 5;
   }
 
   /**
