@@ -14,6 +14,7 @@ import makeWASocket, {
 import { Boom } from '@hapi/boom';
 import { getLogger } from '../utils/Logger';
 import QRCode from 'qrcode-terminal';
+import QRCodeImage from 'qrcode';
 
 const logger = getLogger();
 
@@ -169,11 +170,48 @@ export class BaileysClient {
           }
         }
       } else {
-        // Fallback to QR code
-        console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
-        QRCode.generate(qr, { small: true });
-        console.log('\n⏳ Menunggu scan QR code...\n');
-        logger.info('QR Code generated for WhatsApp authentication');
+        // Generate QR code as image URL (better for Railway logs)
+        try {
+          // Generate QR code as data URL
+          const qrDataURL = await QRCodeImage.toDataURL(qr, {
+            errorCorrectionLevel: 'M',
+            type: 'image/png',
+            width: 400,
+            margin: 2
+          });
+
+          console.log('\n╔════════════════════════════════════════════════════════╗');
+          console.log('║  📱 WHATSAPP QR CODE - SCAN DENGAN HP KAMU            ║');
+          console.log('╚════════════════════════════════════════════════════════╝\n');
+          console.log('🔗 BUKA URL INI DI BROWSER:');
+          console.log('\n' + qrDataURL + '\n');
+          console.log('📋 Cara pakai:');
+          console.log('   1. COPY URL di atas (data:image/png;base64,...)');
+          console.log('   2. PASTE di address bar browser (Chrome/Firefox/Edge)');
+          console.log('   3. QR code akan muncul sebagai gambar');
+          console.log('   4. Buka WhatsApp > Menu > Linked Devices');
+          console.log('   5. Tap "Link a Device"');
+          console.log('   6. SCAN QR code dari browser\n');
+          console.log('⏳ Menunggu scan QR code...\n');
+          console.log('💡 Tips:');
+          console.log('   - QR code berlaku 60 detik');
+          console.log('   - Jika expired, QR baru akan muncul otomatis');
+          console.log('   - Pastikan koneksi internet stabil\n');
+
+          // Also show ASCII QR as fallback
+          console.log('📱 Atau scan QR ASCII di bawah (jika terminal support):\n');
+          QRCode.generate(qr, { small: true });
+          console.log('');
+
+          logger.info('QR Code generated as data URL for WhatsApp authentication');
+        } catch (error) {
+          console.error('❌ Failed to generate QR code image:', error);
+          // Fallback to ASCII QR
+          console.log('\n📱 Scan QR Code dengan WhatsApp kamu:\n');
+          QRCode.generate(qr, { small: true });
+          console.log('\n⏳ Menunggu scan QR code...\n');
+          logger.info('QR Code generated for WhatsApp authentication');
+        }
       }
     }
 
