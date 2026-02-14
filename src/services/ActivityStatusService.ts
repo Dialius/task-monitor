@@ -26,18 +26,151 @@ export interface ActivityTemplate {
 
 /**
  * Service for managing Discord bot activity status rotation
+ * with smart randomization and type constraint
  */
 export class ActivityStatusService {
   private client: Client;
   private taskService: TaskService;
   private config: ActivityConfig;
   private intervalId?: NodeJS.Timeout;
-  private currentIndex: number = 0;
+  
+  // Random rotation state
+  private templatesByType: Map<number, ActivityTemplate[]> = new Map();
+  private currentPlaylist: ActivityTemplate[] = [];
+  private playlistIndex: number = 0;
+  private roundNumber: number = 0;
 
   constructor(client: Client, taskService: TaskService, config: ActivityConfig) {
     this.client = client;
     this.taskService = taskService;
     this.config = config;
+    
+    // Initialize random rotation system
+    this.initializeRandomRotation();
+  }
+
+  /**
+   * Initialize random rotation system
+   * Groups templates by type and generates first playlist
+   */
+  private initializeRandomRotation(): void {
+    // Group templates by activity type
+    this.config.activities.forEach(template => {
+      const type = template.type !== undefined ? template.type : 3; // Default to WATCHING
+      
+      if (!this.templatesByType.has(type)) {
+        this.templatesByType.set(type, []);
+      }
+      
+      this.templatesByType.get(type)!.push(template);
+    });
+
+    // Log grouped templates
+    logger.info('Activity templates grouped by type', {
+      types: Array.from(this.templatesByType.keys()),
+      counts: Array.from(this.templatesByType.entries()).map(([type, templates]) => ({
+        type: this.getActivityTypeName(type),
+        count: templates.length
+      }))
+    });
+
+    console.log('🎲 Random Activity Rotation initialized:');
+    this.templatesByType.forEach((templates, type) => {
+      console.log(`   → ${this.getActivityTypeName(type)}: ${templates.length} templates`);
+    });
+
+    // Generate first playlist
+    this.generateNewPlaylist();
+  }
+
+  /**
+   * Generate new randomized playlist with type constraint
+   * Uses smart interleaving to minimize consecutive same types
+   */
+  private generateNewPlaylist(): void {
+    this.roundNumber++;
+    
+    // Create shuffled copies of each type group
+    const shuffledGroups = new Map<number, ActivityTemplate[]>();
+    this.templatesByType.forEach((templates, type) => {
+      const shuffled = [...templates];
+      this.shuffleArray(shuffled);
+      shuffledGroups.set(type, shuffled);
+    });
+
+    // Use interleaving strategy to build playlist
+    const playlist = this.interleavedPlaylist(shuffledGroups);
+
+    this.currentPlaylist = playlist;
+    this.playlistIndex = 0;
+
+    logger.info('New activity playlist generated', {
+      round: this.roundNumber,
+      totalTemplates: playlist.length,
+      sequence: playlist.slice(0, 10).map(t => this.getActivityTypeName(t.type !== undefined ? t.type : 3)).join(' → ')
+    });
+
+    console.log(`\n🎲 Round ${this.roundNumber} playlist generated (${playlist.length} activities)`);
+    console.log(`   Sequence: ${playlist.slice(0, 5).map(t => this.getActivityTypeName(t.type !== undefined ? t.type : 3)).join(' → ')}...`);
+  }
+
+  /**
+   * Create interleaved playlist to minimize consecutive same types
+   * Strategy: Distribute templates evenly, prioritizing types with more templates
+   */
+  private interleavedPlaylist(groups: Map<number, ActivityTemplate[]>): ActivityTemplate[] {
+    const playlist: ActivityTemplate[] = [];
+    const remaining = new Map(groups);
+    let lastType: number | null = null;
+
+    while (this.hasRemainingTemplates(remaining)) {
+      // Get types sorted by remaining count (descending)
+      const typesByCount = Array.from(remaining.entries())
+        .filter(([_, templates]) => templates.length > 0)
+        .sort((a, b) => b[1].length - a[1].length);
+
+      // Find best type to use (not same as last, prefer higher count)
+      let selectedType: number;
+      const differentTypes = typesByCount.filter(([type, _]) => type !== lastType);
+      
+      if (differentTypes.length > 0) {
+        // Pick randomly from top types (weighted towards higher counts)
+        const topTypes = differentTypes.slice(0, Math.min(3, differentTypes.length));
+        const randomIndex = Math.floor(Math.random() * topTypes.length);
+        selectedType = topTypes[randomIndex][0];
+      } else {
+        // Forced to use same type (only one type remaining)
+        selectedType = typesByCount[0][0];
+        logger.warn('Consecutive same type unavoidable', {
+          type: this.getActivityTypeName(selectedType),
+          remaining: remaining.get(selectedType)!.length
+        });
+      }
+
+      // Take template and add to playlist
+      const template = remaining.get(selectedType)!.shift()!;
+      playlist.push(template);
+      lastType = selectedType;
+    }
+
+    return playlist;
+  }
+
+  /**
+   * Check if there are remaining templates to process
+   */
+  private hasRemainingTemplates(remaining: Map<number, ActivityTemplate[]>): boolean {
+    return Array.from(remaining.values()).some(templates => templates.length > 0);
+  }
+
+  /**
+   * Shuffle array using Fisher-Yates algorithm
+   */
+  private shuffleArray<T>(array: T[]): void {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
   }
 
   /**
@@ -88,6 +221,7 @@ export class ActivityStatusService {
 
   /**
    * Update bot activity status
+   * Uses randomized playlist with type constraint
    */
   private async updateStatus(): Promise<void> {
     try {
@@ -96,11 +230,18 @@ export class ActivityStatusService {
         return;
       }
 
-      const activity = this.config.activities[this.currentIndex];
+      // Check if we need to generate new playlist
+      if (this.playlistIndex >= this.currentPlaylist.length) {
+        console.log(`\n✅ Round ${this.roundNumber} completed! All ${this.currentPlaylist.length} activities shown.`);
+        this.generateNewPlaylist();
+      }
+
+      // Get current activity from playlist
+      const activity = this.currentPlaylist[this.playlistIndex];
       const statusText = await this.processActivityText(activity);
 
       // Use per-template type if specified, otherwise use default type
-      const activityType = activity.type !== undefined ? activity.type : this.config.activities[0]?.type || 3;
+      const activityType = activity.type !== undefined ? activity.type : 3;
 
       // Set activity using setActivity method for better compatibility
       await this.client.user.setActivity(statusText, { 
@@ -111,18 +252,20 @@ export class ActivityStatusService {
       const activityTypeName = this.getActivityTypeName(activityType);
       
       logger.info('Activity status updated', {
+        round: this.roundNumber,
         type: activityType,
         typeName: activityTypeName,
         text: statusText,
-        index: this.currentIndex,
-        nextIndex: (this.currentIndex + 1) % this.config.activities.length
+        playlistIndex: this.playlistIndex,
+        playlistTotal: this.currentPlaylist.length,
+        progress: `${this.playlistIndex + 1}/${this.currentPlaylist.length}`
       });
 
       // Console log for easy visibility
-      console.log(`🔄 Activity Status: ${activityTypeName} ${statusText}`);
+      console.log(`🔄 [${this.playlistIndex + 1}/${this.currentPlaylist.length}] ${activityTypeName} ${statusText}`);
 
-      // Move to next activity
-      this.currentIndex = (this.currentIndex + 1) % this.config.activities.length;
+      // Move to next activity in playlist
+      this.playlistIndex++;
     } catch (error) {
       logger.error('Failed to update activity status', error as Error);
       console.error('❌ Failed to update activity status:', error);
@@ -310,6 +453,12 @@ export class ActivityStatusService {
   updateConfig(config: Partial<ActivityConfig>): void {
     this.config = { ...this.config, ...config };
     
+    // Reinitialize random rotation if activities changed
+    if (config.activities) {
+      this.templatesByType.clear();
+      this.initializeRandomRotation();
+    }
+    
     // Restart if running
     if (this.intervalId) {
       this.stop();
@@ -327,9 +476,39 @@ export class ActivityStatusService {
   }
 
   /**
+   * Get current rotation statistics
+   */
+  getRotationStats(): {
+    round: number;
+    progress: string;
+    playlistIndex: number;
+    playlistTotal: number;
+    templatesByType: { type: string; count: number }[];
+  } {
+    return {
+      round: this.roundNumber,
+      progress: `${this.playlistIndex}/${this.currentPlaylist.length}`,
+      playlistIndex: this.playlistIndex,
+      playlistTotal: this.currentPlaylist.length,
+      templatesByType: Array.from(this.templatesByType.entries()).map(([type, templates]) => ({
+        type: this.getActivityTypeName(type),
+        count: templates.length
+      }))
+    };
+  }
+
+  /**
    * Manually trigger status update (skip to next)
    */
   async skipToNext(): Promise<void> {
     await this.updateStatus();
+  }
+
+  /**
+   * Force generate new playlist (skip current round)
+   */
+  forceNewRound(): void {
+    console.log(`\n⏭️  Forcing new round (skipping ${this.currentPlaylist.length - this.playlistIndex} remaining activities)`);
+    this.generateNewPlaylist();
   }
 }
