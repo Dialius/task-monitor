@@ -56,8 +56,23 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with fields
+      // For Discord, return with pagination flag if many tasks
       if (platform === 'discord') {
+        // If more than 5 tasks, use pagination
+        if (tasks.length > 5) {
+          return {
+            success: true,
+            message: syncStatus,
+            data: {
+              usePagination: true,
+              tasks: tasks,
+              title: '📝 Daftar Tugas',
+              color: 0x99AAB5
+            }
+          };
+        }
+
+        // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -148,8 +163,23 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with fields
+      // For Discord, return with pagination flag if many tasks
       if (platform === 'discord') {
+        // If more than 5 tasks, use pagination
+        if (tasks.length > 5) {
+          return {
+            success: true,
+            message: syncStatus,
+            data: {
+              usePagination: true,
+              tasks: tasks,
+              title: '📅 Tugas Hari Ini',
+              color: 0x99AAB5
+            }
+          };
+        }
+
+        // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -238,8 +268,23 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed data with fields
+      // For Discord, return with pagination flag if many tasks
       if (platform === 'discord') {
+        // If more than 5 tasks, use pagination
+        if (tasks.length > 5) {
+          return {
+            success: true,
+            message: syncStatus,
+            data: {
+              usePagination: true,
+              tasks: tasks,
+              title: '📊 Tugas Minggu Ini',
+              color: 0x99AAB5
+            }
+          };
+        }
+
+        // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
           const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
@@ -620,7 +665,7 @@ export class MemberCommandHandler {
    * Handle /help or /bantuan command
    * Requirement: 11.6
    */
-  async handleHelp(_args: string[], _userId: string, _platform: Platform, _chatId?: string): Promise<CommandResponse> {
+  async handleHelp(_args: string[], _userId: string, platform: Platform, _chatId?: string): Promise<CommandResponse> {
     const memberCommands = [
       '• `/tugas` - Lihat semua tugas aktif',
       '• `/tugas_hari_ini` - Tugas hari ini',
@@ -650,6 +695,20 @@ export class MemberCommandHandler {
       '• `/broadcast_urgent` - Broadcast urgent'
     ].join('\n');
 
+    // For WhatsApp, return plain text
+    if (platform === 'whatsapp') {
+      const message = `📖 *Daftar Perintah*\n\n` +
+        `👥 *Perintah Member*\n${memberCommands}\n\n` +
+        `👨‍💼 *Perintah Admin*\n${adminCommands}\n\n` +
+        `👑 *Perintah Ketua/Wakil*\n${leaderCommands}`;
+      
+      return {
+        success: true,
+        message
+      };
+    }
+
+    // For Discord, return embed
     return {
       success: true,
       message: '',
@@ -681,7 +740,7 @@ export class MemberCommandHandler {
    * Handle /status command
    * Requirement: 11.7
    */
-  async handleStatus(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleStatus(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const uptime = process.uptime();
       const hours = Math.floor(uptime / 3600);
@@ -728,6 +787,23 @@ export class MemberCommandHandler {
         notionStatus = `**Notion Status:**\n❌ Disabled`;
       }
 
+      // For WhatsApp, return plain text
+      if (platform === 'whatsapp') {
+        const message = `🤖 *Status Bot*\n\n` +
+          `✅ Bot aktif\n` +
+          `⏱️ Uptime: ${hours}h ${minutes}m\n` +
+          `📊 Platform: Multi-platform (Discord + WhatsApp)\n` +
+          `🔧 Version: 1.0.0\n\n` +
+          `${mongoStatus.replace(/\*\*/g, '')}\n\n` +
+          `${notionStatus.replace(/\*\*/g, '')}`;
+        
+        return {
+          success: true,
+          message
+        };
+      }
+
+      // For Discord, return embed
       return {
         success: true,
         message: '',
@@ -739,6 +815,16 @@ export class MemberCommandHandler {
       };
     } catch (error) {
       logger.error('Failed to get status', error as Error);
+      
+      // For WhatsApp
+      if (platform === 'whatsapp') {
+        return {
+          success: false,
+          message: '❌ *Error*\n\nGagal mengambil status bot.'
+        };
+      }
+      
+      // For Discord
       return {
         success: false,
         message: '',

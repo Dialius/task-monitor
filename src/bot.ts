@@ -340,6 +340,36 @@ class MultiPlatformBot {
         channelId // Pass channelId for progress messages
       );
 
+      // Check if response needs pagination
+      if (response.data?.usePagination) {
+        const { PaginationHelper } = await import('./utils/PaginationHelper');
+        
+        const embeds = PaginationHelper.createTaskEmbeds(
+          response.data.tasks,
+          5, // 5 tasks per page
+          response.data.title,
+          response.data.color
+        );
+
+        // Send initial embed
+        await interaction.editReply({
+          embeds: [embeds[0]],
+          content: response.message || undefined
+        });
+
+        // Get the message to add pagination
+        const message = await interaction.fetchReply();
+        
+        // Create pagination
+        await PaginationHelper.createPaginatedEmbed(message as any, {
+          embeds,
+          userId: interaction.user.id,
+          timeout: 120000 // 2 minutes
+        });
+        
+        return;
+      }
+
       // Check if response has embed data
       if (response.embedData) {
         const { EmbedBuilder } = await import('discord.js');
@@ -391,6 +421,33 @@ class MultiPlatformBot {
         'discord',
         channelId // Pass channelId for progress messages
       );
+
+      // Check if response needs pagination
+      if (response.data?.usePagination) {
+        const { PaginationHelper } = await import('./utils/PaginationHelper');
+        
+        const embeds = PaginationHelper.createTaskEmbeds(
+          response.data.tasks,
+          5, // 5 tasks per page
+          response.data.title,
+          response.data.color
+        );
+
+        // Send initial message
+        const sentMessage = await message.reply({
+          embeds: [embeds[0]],
+          content: response.message || undefined
+        });
+
+        // Create pagination
+        await PaginationHelper.createPaginatedEmbed(sentMessage, {
+          embeds,
+          userId: message.author.id,
+          timeout: 120000 // 2 minutes
+        });
+        
+        return;
+      }
 
       // Check if response has embed data
       if (response.embedData) {
@@ -528,12 +585,14 @@ class MultiPlatformBot {
               'whatsapp'
             );
 
-            // Send response
+            // Send response - WhatsApp always uses message field
             if (this.whatsappAdapter) {
-              await this.whatsappAdapter.sendMessage(
-                chatId,
-                response.message
-              );
+              const messageToSend = response.message || 
+                (response.embedData ? this.formatEmbedForWhatsApp(response.embedData) : '');
+              
+              if (messageToSend) {
+                await this.whatsappAdapter.sendMessage(chatId, messageToSend);
+              }
             }
           }
           return;
@@ -553,12 +612,14 @@ class MultiPlatformBot {
           'whatsapp'
         );
 
-        // Send response
+        // Send response - WhatsApp always uses message field
         if (this.whatsappAdapter) {
-          await this.whatsappAdapter.sendMessage(
-            chatId,
-            response.message
-          );
+          const messageToSend = response.message || 
+            (response.embedData ? this.formatEmbedForWhatsApp(response.embedData) : '');
+          
+          if (messageToSend) {
+            await this.whatsappAdapter.sendMessage(chatId, messageToSend);
+          }
         }
       });
 
@@ -682,6 +743,32 @@ class MultiPlatformBot {
       this.logger.error('Failed to initialize message edit services', error as Error);
       console.log('   ⚠ Message edit services disabled due to error');
     }
+  }
+
+  /**
+   * Format embed data to WhatsApp plain text
+   */
+  private formatEmbedForWhatsApp(embedData: any): string {
+    let message = '';
+    
+    // Add title
+    if (embedData.title) {
+      message += `*${embedData.title}*\n\n`;
+    }
+    
+    // Add description
+    if (embedData.description) {
+      message += `${embedData.description}\n`;
+    }
+    
+    // Add fields
+    if (embedData.fields && embedData.fields.length > 0) {
+      embedData.fields.forEach((field: any) => {
+        message += `\n*${field.name}*\n${field.value}\n`;
+      });
+    }
+    
+    return message;
   }
 
   /**

@@ -7,7 +7,6 @@ import { Client } from 'discord.js';
 import { TaskService } from './TaskService';
 import { ITask } from '../models/Task';
 import { getLogger } from '../utils/Logger';
-import { format } from 'date-fns';
 
 const logger = getLogger();
 
@@ -336,6 +335,9 @@ export class ActivityStatusService {
    */
   private async processNewTemplateVariables(text: string): Promise<string> {
     try {
+      // Import DateTimeHelper for proper timezone handling
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
+      
       let result = text;
 
       // Get all active tasks
@@ -348,10 +350,8 @@ export class ActivityStatusService {
 
       // Replace {today} with tasks due today
       if (result.includes('{today}')) {
-        const today = new Date();
         const todayTasks = activeTasks.filter((task: ITask) => {
-          const deadline = new Date(task.deadline);
-          return deadline.toDateString() === today.toDateString();
+          return DateTimeHelper.isToday(task.deadline);
         });
         result = result.replace(/{today}/g, todayTasks.length.toString());
       }
@@ -367,11 +367,8 @@ export class ActivityStatusService {
 
       // Replace {urgent} with urgent tasks (< 24 hours)
       if (result.includes('{urgent}')) {
-        const now = new Date();
         const urgentTasks = activeTasks.filter((task: ITask) => {
-          const deadline = new Date(task.deadline);
-          const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
-          return hoursUntil < 24 && hoursUntil > 0;
+          return DateTimeHelper.isUrgent(task.deadline);
         });
         result = result.replace(/{urgent}/g, urgentTasks.length.toString());
       }
@@ -384,9 +381,8 @@ export class ActivityStatusService {
           const sortedTasks = activeTasks.sort((a, b) => {
             return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
           });
-          const nearestDeadline = new Date(sortedTasks[0].deadline);
-          const now = new Date();
-          const hoursUntil = Math.max(0, Math.floor((nearestDeadline.getTime() - now.getTime()) / (1000 * 60 * 60)));
+          const nearestDeadline = sortedTasks[0].deadline;
+          const hoursUntil = DateTimeHelper.getHoursUntil(nearestDeadline);
           result = result.replace(/{hours}/g, hoursUntil.toString());
         }
       }
@@ -403,10 +399,9 @@ export class ActivityStatusService {
           });
 
           const nearestTask = sortedTasks[0];
-          const deadline = new Date(nearestTask.deadline);
           
-          // Format deadline using date-fns
-          const formattedDeadline = format(deadline, 'dd MMM');
+          // Format deadline using DateTimeHelper
+          const formattedDeadline = DateTimeHelper.formatShortDate(nearestTask.deadline);
 
           result = result.replace(/{nearest}/g, formattedDeadline);
         }
