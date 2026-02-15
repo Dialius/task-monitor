@@ -8,7 +8,6 @@ import {
   GatewayIntentBits,
   REST,
   Routes,
-  SlashCommandBuilder,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
@@ -189,47 +188,34 @@ export class DiscordClient {
    * Register slash commands with Discord API
    * Requirement: 17.5
    */
-  async registerSlashCommands(commands: SlashCommand[]): Promise<void> {
-    try {
-      const rest = new REST({ version: '10' }).setToken(this.config.token);
+  async registerSlashCommands(): Promise<void> {
+      try {
+        const { getSlashCommands } = await import('../config/slashCommands');
+        const commands = getSlashCommands();
 
-      const slashCommands = commands.map(cmd => {
-        const builder = new SlashCommandBuilder()
-          .setName(cmd.name)
-          .setDescription(cmd.description);
+        const rest = new REST({ version: '10' }).setToken(this.config.token);
 
-        // Add options if provided
-        if (cmd.options) {
-          cmd.options.forEach(opt => {
-            if (opt.type === 'string') {
-              builder.addStringOption(option =>
-                option
-                  .setName(opt.name)
-                  .setDescription(opt.description)
-                  .setRequired(opt.required || false)
-              );
-            }
-          });
-        }
+        const slashCommands = commands.map(cmd => cmd.data.toJSON());
 
-        return builder.toJSON();
-      });
+        logger.info('Registering Discord slash commands', {
+          count: slashCommands.length
+        });
 
-      logger.info('Registering Discord slash commands', {
-        count: slashCommands.length
-      });
+        console.log(`   → Registering ${slashCommands.length} slash commands...`);
 
-      await rest.put(
-        Routes.applicationGuildCommands(this.config.clientId, this.config.guildId),
-        { body: slashCommands }
-      );
+        await rest.put(
+          Routes.applicationGuildCommands(this.config.clientId, this.config.guildId),
+          { body: slashCommands }
+        );
 
-      logger.info('Discord slash commands registered successfully');
-    } catch (error) {
-      logger.error('Failed to register slash commands', error as Error);
-      throw error;
+        logger.info('Slash commands registered successfully');
+        console.log(`   ✓ ${slashCommands.length} slash commands registered`);
+      } catch (error) {
+        logger.error('Failed to register slash commands', error as Error);
+        throw error;
+      }
     }
-  }
+
 
   /**
    * Handle slash command interaction

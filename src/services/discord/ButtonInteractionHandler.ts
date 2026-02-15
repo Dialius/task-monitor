@@ -43,6 +43,12 @@ export class ButtonInteractionHandler {
         return; // Let PaginationHelper handle these
       }
 
+      // Handle task confirmation buttons (add_tugas_cepat)
+      if (buttonId.startsWith('task_confirm_')) {
+        await this.handleTaskConfirmation(interaction);
+        return;
+      }
+
       // Handle pagination buttons for ephemeral responses (Task Monitor buttons)
       if (buttonId.startsWith('task_page_')) {
         await this.handleEphemeralPagination(interaction);
@@ -441,5 +447,177 @@ export class ButtonInteractionHandler {
     }
 
     return embed;
+  }
+
+  /**
+   * Handle task confirmation buttons (Yes/No/Revise)
+   */
+  private async handleTaskConfirmation(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const buttonId = interaction.customId;
+      const userId = interaction.user.id;
+
+      // For Revise button, show modal immediately (before any defer)
+      if (buttonId === 'task_confirm_revise') {
+        await this.showRevisionModal(interaction);
+        return;
+      }
+
+      // For Yes/No buttons, defer update
+      await interaction.deferUpdate();
+
+      if (buttonId === 'task_confirm_yes') {
+        // Import AdminCommandHandler dynamically
+        const { AdminCommandHandler } = await import('../../handlers/AdminCommandHandler');
+        const adminHandler = new AdminCommandHandler(
+          this.taskService,
+          null as any, // scheduleService not needed
+          null as any, // piketService not needed
+          null as any, // announcementService not needed
+          null as any, // aiService not needed
+          null as any  // notionService not needed
+        );
+
+        const response = await adminHandler.handleTaskConfirmation(userId, 'confirm');
+
+        // Update message with result
+        const embed = new EmbedBuilder()
+          .setTitle(response.embedData?.title || 'Result')
+          .setDescription(response.embedData?.description || '')
+          .setColor(response.embedData?.color || 0x99AAB5);
+
+        if (response.embedData?.fields) {
+          embed.addFields(response.embedData.fields);
+        }
+
+        const footerIcon = this.configManager.getFooterIcon();
+        embed.setFooter({
+          text: 'Made by VinTheGreat',
+          iconURL: footerIcon
+        });
+
+        await interaction.editReply({
+          embeds: [embed],
+          components: [] // Remove buttons
+        });
+
+      } else if (buttonId === 'task_confirm_no') {
+        // Import AdminCommandHandler dynamically
+        const { AdminCommandHandler } = await import('../../handlers/AdminCommandHandler');
+        const adminHandler = new AdminCommandHandler(
+          this.taskService,
+          null as any,
+          null as any,
+          null as any,
+          null as any,
+          null as any
+        );
+
+        const response = await adminHandler.handleTaskConfirmation(userId, 'cancel');
+
+        const embed = new EmbedBuilder()
+          .setTitle(response.embedData?.title || 'Cancelled')
+          .setDescription(response.embedData?.description || '')
+          .setColor(response.embedData?.color || 0x99AAB5);
+
+        const footerIcon = this.configManager.getFooterIcon();
+        embed.setFooter({
+          text: 'Made by VinTheGreat',
+          iconURL: footerIcon
+        });
+
+        await interaction.editReply({
+          embeds: [embed],
+          components: [] // Remove buttons
+        });
+      }
+
+      logger.info('Task confirmation handled', {
+        userId,
+        buttonId
+      });
+    } catch (error) {
+      logger.error('Failed to handle task confirmation', error as Error, {
+        userId: interaction.user.id,
+        buttonId: interaction.customId
+      });
+    }
+  }
+
+  /**
+   * Show modal for task revision
+   */
+  private async showRevisionModal(interaction: ButtonInteraction): Promise<void> {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = await import('discord.js');
+    const { TaskConfirmationService } = await import('./TaskConfirmationService');
+
+    const pending = TaskConfirmationService.getPendingConfirmation(interaction.user.id);
+
+    if (!pending) {
+      await interaction.reply({
+        content: '⏱️ Konfirmasi expired. Silakan gunakan `/add_tugas_cepat` lagi.',
+        ephemeral: true
+      });
+      return;
+    }
+
+    const parsed = pending.parsedTask;
+
+    // Create modal
+    const modal = new ModalBuilder()
+      .setCustomId('task_revise_modal')
+      .setTitle('Revisi Tugas');
+
+    // Add input fields
+    const judulInput = new TextInputBuilder()
+      .setCustomId('judul')
+      .setLabel('Judul')
+      .setStyle(TextInputStyle.Short)
+      .setValue(parsed.judul || '')
+      .setRequired(true);
+
+    const mapelInput = new TextInputBuilder()
+      .setCustomId('mata_pelajaran')
+      .setLabel('Mata Pelajaran')
+      .setStyle(TextInputStyle.Short)
+      .setValue(parsed.mata_pelajaran || '')
+      .setRequired(true);
+
+    const deskripsiInput = new TextInputBuilder()
+      .setCustomId('deskripsi')
+      .setLabel('Deskripsi')
+      .setStyle(TextInputStyle.Paragraph)
+      .setValue(parsed.deskripsi || '')
+      .setRequired(true);
+
+    const deadlineInput = new TextInputBuilder()
+      .setCustomId('deadline')
+      .setLabel('Deadline (YYYY-MM-DD HH:MM)')
+      .setStyle(TextInputStyle.Short)
+      .setValue(new Date(parsed.deadline).toISOString().slice(0, 16).replace('T', ' '))
+      .setRequired(true);
+
+    const tipeInput = new TextInputBuilder()
+      .setCustomId('tipe')
+      .setLabel('Tipe (individu/kelompok)')
+      .setStyle(TextInputStyle.Short)
+      .setValue(parsed.tipe || 'individu')
+      .setRequired(true);
+
+    // Add rows
+    const row1 = new ActionRowBuilder<any>().addComponents(judulInput);
+    const row2 = new ActionRowBuilder<any>().addComponents(mapelInput);
+    const row3 = new ActionRowBuilder<any>().addComponents(deskripsiInput);
+    const row4 = new ActionRowBuilder<any>().addComponents(deadlineInput);
+    const row5 = new ActionRowBuilder<any>().addComponents(tipeInput);
+
+    modal.addComponents(row1, row2, row3, row4, row5);
+
+    // Show modal
+    await interaction.showModal(modal);
+    
+    logger.info('Revision modal shown', {
+      userId: interaction.user.id
+    });
   }
 }

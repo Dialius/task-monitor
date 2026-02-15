@@ -152,8 +152,8 @@ export class AdminCommandHandler {
     try {
       const input = args.join(' ');
 
-      // Check if user is responding to pending confirmation
-      if (ConfirmationService.hasPendingConfirmation(userId)) {
+      // Check if user is responding to pending confirmation (for WhatsApp)
+      if (platform === 'whatsapp' && ConfirmationService.hasPendingConfirmation(userId)) {
         return await this.handleConfirmationResponse(input, userId, platform);
       }
 
@@ -200,10 +200,30 @@ export class AdminCommandHandler {
         };
       }
 
-      // Store pending confirmation
-      ConfirmationService.storePendingConfirmation(userId, platform, parsed);
+      // For Discord: Return with button confirmation
+      if (platform === 'discord') {
+        // Import TaskConfirmationService
+        const { TaskConfirmationService } = await import('../services/discord/TaskConfirmationService');
+        
+        // Store pending confirmation
+        TaskConfirmationService.setPendingConfirmation(userId, parsed);
 
-      // Show preview and ask for confirmation
+        // Format preview embed
+        const previewEmbed = this.formatTaskPreviewEmbed(parsed);
+
+        return {
+          success: true,
+          message: '',
+          embedData: previewEmbed,
+          data: {
+            showConfirmationButtons: true,
+            parsedTask: parsed
+          }
+        };
+      }
+
+      // For WhatsApp: Store and show text confirmation
+      ConfirmationService.storePendingConfirmation(userId, platform, parsed);
       const previewMessage = ConfirmationService.formatPreviewMessage(parsed);
 
       return {
@@ -217,6 +237,54 @@ export class AdminCommandHandler {
         message: '❌ Terjadi kesalahan saat memproses input. Silakan coba lagi.'
       };
     }
+  }
+
+  /**
+   * Format task preview embed for Discord
+   */
+  private formatTaskPreviewEmbed(parsed: any): any {
+    const deadline = new Date(parsed.deadline);
+    const formattedDeadline = deadline.toLocaleString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    return {
+      title: '✅ Tugas Berhasil Di-parse',
+      description: 'Silakan konfirmasi data tugas berikut:',
+      color: 0x57F287,
+      fields: [
+        {
+          name: '📝 Judul',
+          value: parsed.judul || '-',
+          inline: false
+        },
+        {
+          name: '📚 Mata Pelajaran',
+          value: parsed.mata_pelajaran || '-',
+          inline: true
+        },
+        {
+          name: '👥 Tipe',
+          value: parsed.tipe === 'individu' ? 'Individu' : 'Kelompok',
+          inline: true
+        },
+        {
+          name: '📅 Deadline',
+          value: formattedDeadline,
+          inline: false
+        },
+        {
+          name: '📄 Deskripsi',
+          value: parsed.deskripsi || '-',
+          inline: false
+        }
+      ]
+    };
   }
 
   /**
@@ -1239,6 +1307,101 @@ export class AdminCommandHandler {
         embedData: {
           title: '❌ Gagal Generate Test Reminder',
           description: 'Silakan coba lagi.',
+          color: 0xED4245
+        }
+      };
+    }
+  }
+
+  /**
+   * Handle button confirmation for add_tugas_cepat (Discord only)
+   */
+  async handleTaskConfirmation(userId: string, action: 'confirm' | 'cancel'): Promise<CommandResponse> {
+    try {
+      const { TaskConfirmationService } = await import('../services/discord/TaskConfirmationService');
+      
+      const pending = TaskConfirmationService.getPendingConfirmation(userId);
+
+      if (!pending) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '⏱️ Konfirmasi Expired',
+            description: 'Silakan gunakan `/add_tugas_cepat` lagi.',
+            color: 0xFEE75C
+          }
+        };
+      }
+
+      if (action === 'cancel') {
+        TaskConfirmationService.clearConfirmation(userId);
+        
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '❌ Pembuatan Tugas Dibatalkan',
+            description: 'Gunakan `/add_tugas_cepat` untuk mencoba lagi.',
+            color: 0x99AAB5
+          }
+        };
+      }
+
+      // Confirm - create task
+      const parsed = pending.parsedTask;
+      
+      const task = await this.taskService.createTask({
+        judul: parsed.judul,
+        mata_pelajaran: parsed.mata_pelajaran,
+        deskripsi: parsed.deskripsi,
+        deadline: new Date(parsed.deadline),
+        tipe: parsed.tipe,
+        created_by: userId
+      });
+
+      // Clear confirmation
+      TaskConfirmationService.clearConfirmation(userId);
+
+      // Sync to Notion if enabled
+      if (this.notionService.isEnabled()) {
+        try {
+          await this.notionService.syncFromNotion();
+          logger.info('Synced to Notion after task creation', { taskId: task._id });
+        } catch (syncError) {
+          logger.warn('Failed to sync to Notion', syncError as Error);
+        }
+      }
+
+      logger.info('Task created via add_tugas_cepat', {
+        taskId: task._id,
+        userId
+      });
+
+      return {
+        success: true,
+        message: '',
+        embedData: {
+          title: '✅ Tugas Berhasil Ditambahkan',
+          description: `**${task.judul}** telah ditambahkan ke database.`,
+          color: 0x57F287,
+          fields: [
+            {
+              name: 'ID',
+              value: `\`${task._id}\``,
+              inline: false
+            }
+          ]
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to handle task confirmation', error as Error, { userId });
+      return {
+        success: false,
+        message: '',
+        embedData: {
+          title: '❌ Gagal Membuat Tugas',
+          description: 'Terjadi kesalahan saat menyimpan tugas. Silakan coba lagi.',
           color: 0xED4245
         }
       };

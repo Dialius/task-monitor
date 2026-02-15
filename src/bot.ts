@@ -279,6 +279,15 @@ class MultiPlatformBot {
 
     await this.discordClient.connect();
 
+    // Register slash commands
+    console.log('   → Registering slash commands...');
+    try {
+      await this.discordClient.registerSlashCommands();
+    } catch (error) {
+      this.logger.error('Failed to register slash commands', error as Error);
+      console.log('   ⚠ Slash commands registration failed');
+    }
+
     // Setup activity status rotation
     this.discordClient.setupActivityStatus(this.taskService);
 
@@ -395,14 +404,180 @@ class MultiPlatformBot {
           embed.addFields(response.embedData.fields);
         }
 
-        await interaction.editReply({ 
-          embeds: [embed]
-        });
+        // Check if we need to show confirmation buttons (for add_tugas_cepat)
+        if (response.data?.showConfirmationButtons) {
+          const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+          
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('task_confirm_yes')
+              .setLabel('✅ Yes')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId('task_confirm_no')
+              .setLabel('❌ No')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('task_confirm_revise')
+              .setLabel('✏️ Revise')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.editReply({ 
+            embeds: [embed],
+            components: [row]
+          });
+        } else {
+          await interaction.editReply({ 
+            embeds: [embed]
+          });
+        }
       } else {
         // Use plain text for other commands
         await interaction.editReply({
           content: response.message
         });
+      }
+    });
+
+    // Handle modal submissions
+    this.discordClient.getClient().on('interactionCreate', async (interaction) => {
+      if (!interaction.isModalSubmit()) return;
+
+      if (interaction.customId === 'task_revise_modal') {
+        try {
+          await interaction.deferReply({ ephemeral: true });
+
+          const { TaskConfirmationService } = await import('./services/discord/TaskConfirmationService');
+          const userId = interaction.user.id;
+
+          // Get pending confirmation
+          const pending = TaskConfirmationService.getPendingConfirmation(userId);
+
+          if (!pending) {
+            await interaction.editReply({
+              content: '⏱️ Konfirmasi expired. Silakan gunakan `/add_tugas_cepat` lagi.'
+            });
+            return;
+          }
+
+          // Get values from modal
+          const judul = interaction.fields.getTextInputValue('judul');
+          const mata_pelajaran = interaction.fields.getTextInputValue('mata_pelajaran');
+          const deskripsi = interaction.fields.getTextInputValue('deskripsi');
+          const deadlineStr = interaction.fields.getTextInputValue('deadline');
+          const tipe = interaction.fields.getTextInputValue('tipe');
+
+          // Parse deadline
+          const deadline = new Date(deadlineStr);
+
+          if (isNaN(deadline.getTime())) {
+            await interaction.editReply({
+              content: '❌ Format deadline tidak valid. Gunakan format: YYYY-MM-DD HH:MM'
+            });
+            return;
+          }
+
+          // Validate tipe
+          if (tipe !== 'individu' && tipe !== 'kelompok') {
+            await interaction.editReply({
+              content: '❌ Tipe harus "individu" atau "kelompok"'
+            });
+            return;
+          }
+
+          // Update pending confirmation with revised data
+          const revisedTask = {
+            judul,
+            mata_pelajaran,
+            deskripsi,
+            deadline: deadline.toISOString(),
+            tipe
+          };
+
+          TaskConfirmationService.setPendingConfirmation(userId, revisedTask);
+
+          // Show updated preview with confirmation buttons
+          const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+
+          const formattedDeadline = deadline.toLocaleString('id-ID', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+
+          const embed = new EmbedBuilder()
+            .setTitle('✅ Tugas Telah Direvisi')
+            .setDescription('Silakan konfirmasi data tugas yang sudah direvisi:')
+            .setColor(0x57F287)
+            .addFields([
+              {
+                name: '📝 Judul',
+                value: judul,
+                inline: false
+              },
+              {
+                name: '📚 Mata Pelajaran',
+                value: mata_pelajaran,
+                inline: true
+              },
+              {
+                name: '👥 Tipe',
+                value: tipe === 'individu' ? 'Individu' : 'Kelompok',
+                inline: true
+              },
+              {
+                name: '📅 Deadline',
+                value: formattedDeadline,
+                inline: false
+              },
+              {
+                name: '📄 Deskripsi',
+                value: deskripsi,
+                inline: false
+              }
+            ]);
+
+          const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
+          embed.setFooter({
+            text: 'Made by VinTheGreat',
+            iconURL: footerIcon
+          });
+
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('task_confirm_yes')
+              .setLabel('✅ Yes')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId('task_confirm_no')
+              .setLabel('❌ No')
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId('task_confirm_revise')
+              .setLabel('✏️ Revise Again')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: [row]
+          });
+
+          this.logger.info('Task revised via modal', { userId });
+        } catch (error) {
+          this.logger.error('Failed to handle modal submission', error as Error);
+          try {
+            await interaction.editReply({
+              content: '❌ Terjadi kesalahan saat memproses revisi. Silakan coba lagi.'
+            });
+          } catch (e) {
+            // Ignore if already replied
+          }
+        }
       }
     });
 

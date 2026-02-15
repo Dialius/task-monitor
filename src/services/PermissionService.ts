@@ -6,6 +6,7 @@
 import Admin from '../models/Admin';
 import Member from '../models/Member';
 import { getLogger } from '../utils/Logger';
+import { GuildMember } from 'discord.js';
 
 const logger = getLogger();
 
@@ -29,9 +30,30 @@ interface CachedUser {
 export class PermissionService {
   private userCache: Map<string, CachedUser> = new Map();
   private permissionMatrix: PermissionMatrix;
+  private adminRoleIds: string[] = [];
+  private leaderRoleIds: string[] = [];
 
   constructor() {
     this.permissionMatrix = this.buildPermissionMatrix();
+    this.loadRoleIds();
+  }
+
+  /**
+   * Load Discord role IDs from environment
+   */
+  private loadRoleIds(): void {
+    // Load admin role IDs
+    const adminRoles = process.env.DISCORD_ADMIN_ROLE_IDS || '';
+    this.adminRoleIds = adminRoles.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+    // Load leader role IDs
+    const leaderRoles = process.env.DISCORD_LEADER_ROLE_IDS || '';
+    this.leaderRoleIds = leaderRoles.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+    logger.info('Discord role IDs loaded', {
+      adminRoles: this.adminRoleIds.length,
+      leaderRoles: this.leaderRoleIds.length
+    });
   }
 
   /**
@@ -42,6 +64,7 @@ export class PermissionService {
     return {
       // Admin-only commands (all admin roles)
       'add_tugas': ['ketua', 'wakil', 'koordinator'],
+      'add_tugas_cepat': ['ketua', 'wakil', 'koordinator'],
       'edit_tugas': ['ketua', 'wakil', 'koordinator'],
       'hapus_tugas': ['ketua', 'wakil', 'koordinator'],
       'tandai_selesai': ['ketua', 'wakil', 'koordinator'],
@@ -56,6 +79,8 @@ export class PermissionService {
       
       'add_pengumuman': ['ketua', 'wakil', 'koordinator'],
       'hapus_pengumuman': ['ketua', 'wakil', 'koordinator'],
+      
+      'test_reminder': ['ketua', 'wakil', 'koordinator'],
       
       // Restricted commands (Ketua and Wakil only, not Koordinator)
       'broadcast': ['ketua', 'wakil'],
@@ -81,6 +106,28 @@ export class PermissionService {
       'bantuan': ['ketua', 'wakil', 'koordinator', 'member'],
       'status': ['ketua', 'wakil', 'koordinator', 'member']
     };
+  }
+
+  /**
+   * Check if Discord member has admin or leader role
+   */
+  checkDiscordRoles(member: GuildMember): UserRole {
+    // Check leader roles first (higher priority)
+    for (const roleId of this.leaderRoleIds) {
+      if (member.roles.cache.has(roleId)) {
+        return 'ketua'; // Leader role
+      }
+    }
+
+    // Check admin roles
+    for (const roleId of this.adminRoleIds) {
+      if (member.roles.cache.has(roleId)) {
+        return 'koordinator'; // Admin role
+      }
+    }
+
+    // Default to member
+    return 'member';
   }
 
   /**
@@ -174,12 +221,27 @@ export class PermissionService {
    * Get user role
    * Requirement: 1.2
    * 
+   * For Discord: Check roles first, then database
    * For WhatsApp: Default to 'ketua' if not in database
-   * For Discord: Check database or return null
    */
-  async getUserRole(userIdentifier: string, platform: Platform): Promise<UserRole | null> {
+  async getUserRole(userIdentifier: string, platform: Platform, discordMember?: GuildMember): Promise<UserRole | null> {
     const key = this.getCacheKey(userIdentifier, platform);
     const user = this.userCache.get(key);
+
+    // For Discord, check roles first if member object provided
+    if (platform === 'discord' && discordMember) {
+      const roleFromDiscord = this.checkDiscordRoles(discordMember);
+      
+      // Cache the role
+      this.userCache.set(key, {
+        user_identifier: userIdentifier,
+        platform: platform,
+        role: roleFromDiscord,
+        nama: discordMember.user.username
+      });
+      
+      return roleFromDiscord;
+    }
 
     if (!user) {
       // Check database
@@ -214,6 +276,14 @@ export class PermissionService {
         return 'ketua';
       }
 
+      // For Discord: Default to 'member' (all users can use member commands)
+      if (platform === 'discord') {
+        logger.info('Discord user not in database, defaulting to member role', {
+          userIdentifier
+        });
+        return 'member';
+      }
+
       return null;
     }
 
@@ -227,9 +297,10 @@ export class PermissionService {
   async canExecuteCommand(
     userIdentifier: string,
     platform: Platform,
-    command: string
+    command: string,
+    discordMember?: GuildMember
   ): Promise<boolean> {
-    const role = await this.getUserRole(userIdentifier, platform);
+    const role = await this.getUserRole(userIdentifier, platform, discordMember);
     
     if (!role) {
       logger.warn('Unknown user attempted command', {
