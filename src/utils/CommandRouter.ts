@@ -22,6 +22,11 @@ export interface CommandResponse {
       value: string;
       inline?: boolean;
     }>;
+    footer?: {
+      text: string;
+      iconURL?: string;
+    };
+    timestamp?: boolean;
   };
   ephemeral?: boolean; // Only visible to the user who triggered the command
 }

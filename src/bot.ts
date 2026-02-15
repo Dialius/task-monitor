@@ -386,13 +386,21 @@ class MultiPlatformBot {
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color);
 
-        // Get footer icon
-        const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
-        
-        embed.setFooter({ 
-          text: 'Made by VinTheGreat',
-          iconURL: footerIcon
-        });
+        // Get footer - use custom footer if provided, otherwise use default
+        if (response.embedData.footer) {
+          embed.setFooter(response.embedData.footer);
+        } else {
+          const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
+          embed.setFooter({ 
+            text: 'Made by VinTheGreat',
+            iconURL: footerIcon
+          });
+        }
+
+        // Add timestamp if requested
+        if (response.embedData.timestamp) {
+          embed.setTimestamp();
+        }
 
         // Add description if present
         if (response.embedData.description) {
@@ -631,13 +639,21 @@ class MultiPlatformBot {
           .setTitle(response.embedData.title)
           .setColor(response.embedData.color);
 
-        // Get footer icon
-        const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
-        
-        embed.setFooter({ 
-          text: 'Made by VinTheGreat',
-          iconURL: footerIcon
-        });
+        // Get footer - use custom footer if provided, otherwise use default
+        if (response.embedData.footer) {
+          embed.setFooter(response.embedData.footer);
+        } else {
+          const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
+          embed.setFooter({ 
+            text: 'Made by VinTheGreat',
+            iconURL: footerIcon
+          });
+        }
+
+        // Add timestamp if requested
+        if (response.embedData.timestamp) {
+          embed.setTimestamp();
+        }
 
         // Add description if present
         if (response.embedData.description) {

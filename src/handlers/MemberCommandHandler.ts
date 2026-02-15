@@ -62,7 +62,7 @@ export class MemberCommandHandler {
         if (tasks.length > 5) {
           return {
             success: true,
-            message: syncStatus,
+            message: '', // Don't show sync status separately for pagination
             data: {
               usePagination: true,
               tasks: tasks,
@@ -93,7 +93,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: syncStatus,
+          message: '', // Don't show sync status separately
           embedData: {
             title: '📝 Daftar Tugas',
             color: 0x99AAB5,
@@ -170,7 +170,7 @@ export class MemberCommandHandler {
         if (tasks.length > 5) {
           return {
             success: true,
-            message: syncStatus,
+            message: '', // Don't show sync status separately for pagination
             data: {
               usePagination: true,
               tasks: tasks,
@@ -201,7 +201,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: '',
+          message: '', // Don't show sync status separately
           embedData: {
             title: '📅 Tugas Hari Ini',
             color: 0x99AAB5,
@@ -276,7 +276,7 @@ export class MemberCommandHandler {
         if (tasks.length > 5) {
           return {
             success: true,
-            message: syncStatus,
+            message: '', // Don't show sync status separately for pagination
             data: {
               usePagination: true,
               tasks: tasks,
@@ -307,7 +307,7 @@ export class MemberCommandHandler {
 
         return {
           success: true,
-          message: '',
+          message: '', // Don't show sync status separately
           embedData: {
             title: '📊 Tugas Minggu Ini',
             color: 0x99AAB5,
@@ -745,60 +745,51 @@ export class MemberCommandHandler {
    */
   async handleStatus(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
+      const { EMOJI, EMBED_COLORS } = await import('../config/emoji.config');
+      
       const uptime = process.uptime();
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
 
-      let mongoStatus = '';
-      let notionStatus = '';
+      let mongoConnected = false;
+      let mongoDbName = 'Unknown';
+      let notionConnected = false;
       
       // Check MongoDB status
       try {
         const mongoose = require('mongoose');
         const connectionState = mongoose.connection.readyState;
+        mongoConnected = connectionState === 1;
         
-        // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
-        const stateMap: { [key: number]: { emoji: string; text: string } } = {
-          0: { emoji: '❌', text: 'Disconnected' },
-          1: { emoji: '✅', text: 'Connected' },
-          2: { emoji: '🔄', text: 'Connecting...' },
-          3: { emoji: '⚠️', text: 'Disconnecting...' }
-        };
-        
-        const state = stateMap[connectionState] || { emoji: '❓', text: 'Unknown' };
-        
-        if (connectionState === 1) {
-          // Get database name if connected
-          const dbName = mongoose.connection.db?.databaseName || 'Unknown';
-          mongoStatus = `**MongoDB Status:**\n${state.emoji} ${state.text}\n📊 Database: ${dbName}`;
-        } else {
-          mongoStatus = `**MongoDB Status:**\n${state.emoji} ${state.text}`;
+        if (mongoConnected) {
+          mongoDbName = mongoose.connection.db?.databaseName || 'task_monitor_bot';
         }
       } catch (error) {
-        mongoStatus = `**MongoDB Status:**\n❌ Error checking status`;
+        mongoConnected = false;
       }
       
       // Check Notion status
       if (this.notionService.isEnabled()) {
         try {
-          const stats = await this.notionService.getSyncStats();
-          notionStatus = `**Notion Status:**\n✅ Connected\n📊 Tasks in Notion: ${stats.notionTasks}\n💾 Tasks in MongoDB: ${stats.mongoTasks}`;
+          await this.notionService.getSyncStats();
+          notionConnected = true;
         } catch (error) {
-          notionStatus = `**Notion Status:**\n⚠️ Connection issue`;
+          notionConnected = false;
         }
-      } else {
-        notionStatus = `**Notion Status:**\n❌ Disabled`;
       }
 
       // For WhatsApp, return plain text
       if (platform === 'whatsapp') {
-        const message = `🤖 *Status Bot*\n\n` +
-          `✅ Bot aktif\n` +
-          `⏱️ Uptime: ${hours}h ${minutes}m\n` +
-          `📊 Platform: Multi-platform (Discord + WhatsApp)\n` +
-          `🔧 Version: 1.0.0\n\n` +
-          `${mongoStatus.replace(/\*\*/g, '')}\n\n` +
-          `${notionStatus.replace(/\*\*/g, '')}`;
+        const message = `🤖 *System Status Monitor*\n\n` +
+          `Semua sistem berjalan normal.\n\n` +
+          `📊 *General Info*\n` +
+          `> Status: ${mongoConnected ? '🟢 Active' : '🔴 Offline'}\n` +
+          `> Uptime: ${hours}h ${minutes}m\n` +
+          `> Version: v1.0.0\n\n` +
+          `🔌 *Connectivity*\n` +
+          `> MongoDB: ${mongoConnected ? '✅ Connected' : '❌ Disconnected'}\n` +
+          `> └ DB: ${mongoDbName}\n` +
+          `> Notion: ${notionConnected ? '✅ Connected' : '❌ Disconnected'}`;
         
         return {
           success: true,
@@ -806,14 +797,51 @@ export class MemberCommandHandler {
         };
       }
 
-      // For Discord, return embed
+      // For Discord, return embed with new format
+      const embedColor = mongoConnected && (notionConnected || !this.notionService.isEnabled()) 
+        ? EMBED_COLORS.SUCCESS 
+        : EMBED_COLORS.ERROR;
+
       return {
         success: true,
         message: '',
         embedData: {
-          title: '🤖 Status Bot',
-          description: `✅ Bot aktif\n⏱️ Uptime: ${hours}h ${minutes}m\n📊 Platform: Multi-platform (Discord + WhatsApp)\n🔧 Version: 1.0.0\n\n${mongoStatus}\n\n${notionStatus}`,
-          color: 0x57F287
+          title: `${EMOJI.SYSTEM}  System Status Monitor`,
+          description: '`System operational. Monitoring active tasks.`',
+          color: embedColor,
+          fields: [
+            {
+              name: `${EMOJI.INFO} General Information`,
+              value: [
+                `> **Status**`,
+                `> ${EMOJI.ONLINE} **Active** (Online)`,
+                `> `,
+                `> **Uptime**`,
+                `> \`${hours}h ${minutes}m\``,
+                `> `,
+                `> **Version**`,
+                `> \`v1.0.0\``
+              ].join('\n'),
+              inline: true
+            },
+            {
+              name: `${EMOJI.DATABASE} Database & Integrations`,
+              value: [
+                `> **MongoDB**`,
+                `> ${mongoConnected ? EMOJI.SUCCESS : '❌'} ${mongoConnected ? 'Connected' : 'Disconnected'}`,
+                `> └ \`DB: ${mongoDbName}\``,
+                `> `,
+                `> **Notion API**`,
+                `> ${notionConnected ? EMOJI.SUCCESS : (this.notionService.isEnabled() ? '❌' : '⚠️')} ${notionConnected ? 'Connected' : (this.notionService.isEnabled() ? 'Disconnected' : 'Disabled')}`
+              ].join('\n'),
+              inline: true
+            }
+          ],
+          footer: {
+            text: 'Made by VinTheGreat',
+            iconURL: process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png'
+          },
+          timestamp: true
         }
       };
     } catch (error) {
