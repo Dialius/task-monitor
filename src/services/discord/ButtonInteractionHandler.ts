@@ -38,7 +38,12 @@ export class ButtonInteractionHandler {
       const userId = interaction.user.id;
       const buttonId = interaction.customId;
 
-      // Handle pagination buttons for ephemeral responses
+      // Ignore pagination buttons handled by PaginationHelper (cmd_page_*)
+      if (buttonId.startsWith('cmd_page_')) {
+        return; // Let PaginationHelper handle these
+      }
+
+      // Handle pagination buttons for ephemeral responses (Task Monitor buttons)
       if (buttonId.startsWith('task_page_')) {
         await this.handleEphemeralPagination(interaction);
         return;

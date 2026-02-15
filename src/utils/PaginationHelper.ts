@@ -48,20 +48,21 @@ export class PaginationHelper {
     let currentPage = 0;
 
     // Create buttons with animated emojis (use only emoji ID for custom emojis)
+    // Use unique prefix 'cmd_page_' to avoid conflicts with other button handlers
     const getButtons = (page: number) => {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
-          .setCustomId('prev')
+          .setCustomId('cmd_page_prev')
           .setEmoji('1472405030584848599') // Animated previous emoji (ID only)
           .setStyle(ButtonStyle.Secondary) // Abu-abu
           .setDisabled(page === 0),
         new ButtonBuilder()
-          .setCustomId('page_info')
+          .setCustomId('cmd_page_info')
           .setLabel(`${page + 1} / ${embeds.length}`)
           .setStyle(ButtonStyle.Secondary)
           .setDisabled(true),
         new ButtonBuilder()
-          .setCustomId('next')
+          .setCustomId('cmd_page_next')
           .setEmoji('1472405032594051104') // Animated next emoji (ID only)
           .setStyle(ButtonStyle.Secondary) // Abu-abu
           .setDisabled(page === embeds.length - 1)
@@ -97,9 +98,9 @@ export class PaginationHelper {
       }
 
       // Handle button clicks
-      if (interaction.customId === 'prev') {
+      if (interaction.customId === 'cmd_page_prev') {
         currentPage = Math.max(0, currentPage - 1);
-      } else if (interaction.customId === 'next') {
+      } else if (interaction.customId === 'cmd_page_next') {
         currentPage = Math.min(embeds.length - 1, currentPage + 1);
       }
 
