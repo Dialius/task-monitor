@@ -825,7 +825,7 @@ export class MemberCommandHandler {
                 `> \`${hours}h ${minutes}m\``,
                 `> `,
                 `> **Version**`,
-                `> \`v1.0.0\``
+                `> \`v1.1.0\``
               ].join('\n'),
               inline: true
             },

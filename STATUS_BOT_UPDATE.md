@@ -23,7 +23,7 @@ Perubahan format embed status bot:
 ✅ Bot aktif
 ⏱️ Uptime: 0h 24m
 📊 Platform: Multi-platform
-🔧 Version: 1.0.0
+🔧 Version: 1.1.0
 
 MongoDB Status:
 ✅ Connected
@@ -46,7 +46,7 @@ Notion Status:
 > `0h 24m`
 > 
 > Version
-> `v1.0.0`
+> `v1.1.0`
 
 <animated:database> Database & Integrations
 > MongoDB
