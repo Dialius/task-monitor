@@ -7,7 +7,9 @@
 
 **Solusi:**
 - Dibuat `PaginationHelper` utility class untuk handle pagination dengan button next/previous
-- Menggunakan emoji ⬅️ dan ➡️ untuk navigasi
+- Menggunakan emoji animated custom untuk navigasi:
+  - `<a:lastpage:1472405030584848599>` untuk Previous (⏪ animated)
+  - `<a:nextpage:1472405032594051104>` untuk Next (⏩ animated)
 - Menampilkan nomor halaman (contoh: "1 / 3")
 - Otomatis disable button jika di halaman pertama/terakhir
 - Timeout 2 menit, setelah itu button disabled

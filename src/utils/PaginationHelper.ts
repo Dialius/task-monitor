@@ -47,12 +47,12 @@ export class PaginationHelper {
 
     let currentPage = 0;
 
-    // Create buttons
+    // Create buttons with animated emojis (use only emoji ID for custom emojis)
     const getButtons = (page: number) => {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId('prev')
-          .setEmoji('⬅️')
+          .setEmoji('1472405030584848599') // Animated previous emoji (ID only)
           .setStyle(ButtonStyle.Primary)
           .setDisabled(page === 0),
         new ButtonBuilder()
@@ -62,7 +62,7 @@ export class PaginationHelper {
           .setDisabled(true),
         new ButtonBuilder()
           .setCustomId('next')
-          .setEmoji('➡️')
+          .setEmoji('1472405032594051104') // Animated next emoji (ID only)
           .setStyle(ButtonStyle.Primary)
           .setDisabled(page === embeds.length - 1)
       );

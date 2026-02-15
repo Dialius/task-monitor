@@ -38,6 +38,12 @@ export class ButtonInteractionHandler {
       const userId = interaction.user.id;
       const buttonId = interaction.customId;
 
+      // Handle pagination buttons (no rate limit, no loading message)
+      if (buttonId === 'task_monitor_prev' || buttonId === 'task_monitor_next') {
+        await this.handlePaginationButton(interaction);
+        return;
+      }
+
       // Check if user is admin (admin bypass rate limiting)
       const isAdmin = await this.isUserAdmin(userId);
 
@@ -116,6 +122,86 @@ export class ButtonInteractionHandler {
         );
       } catch (editError) {
         logger.error('Failed to send error message', editError as Error);
+      }
+    }
+  }
+
+  /**
+   * Handle pagination button click (prev/next)
+   */
+  private async handlePaginationButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const buttonId = interaction.customId;
+      const message = interaction.message;
+
+      // Get current page from footer
+      const embed = message.embeds[0];
+      const footerText = embed.footer?.text || '';
+      const pageMatch = footerText.match(/Page (\d+)\/(\d+)/);
+
+      if (!pageMatch) {
+        await interaction.reply({
+          content: '❌ Could not determine current page',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const currentPage = parseInt(pageMatch[1]) - 1; // Convert to 0-indexed
+      const totalPages = parseInt(pageMatch[2]);
+
+      // Calculate new page
+      let newPage = currentPage;
+      if (buttonId === 'task_monitor_prev') {
+        newPage = Math.max(0, currentPage - 1);
+      } else if (buttonId === 'task_monitor_next') {
+        newPage = Math.min(totalPages - 1, currentPage + 1);
+      }
+
+      // If page didn't change, just acknowledge
+      if (newPage === currentPage) {
+        await interaction.deferUpdate();
+        return;
+      }
+
+      // Defer update
+      await interaction.deferUpdate();
+
+      // Import TaskMonitorService dynamically
+      const { TaskMonitorService } = await import('./TaskMonitorService');
+
+      // Get client from interaction
+      const client = interaction.client;
+
+      // Create temporary TaskMonitorService instance
+      const taskMonitorService = new TaskMonitorService(
+        client,
+        this.taskService,
+        this.configManager
+      );
+
+      // Update embed with new page (without syncing)
+      await taskMonitorService.updateEmbed(newPage);
+
+      logger.info('Pagination button handled', {
+        userId: interaction.user.id,
+        buttonId,
+        oldPage: currentPage,
+        newPage
+      });
+    } catch (error) {
+      logger.error('Failed to handle pagination button', error as Error, {
+        userId: interaction.user.id,
+        buttonId: interaction.customId
+      });
+
+      try {
+        await interaction.reply({
+          content: '❌ An error occurred while changing page',
+          ephemeral: true
+        });
+      } catch (replyError) {
+        logger.error('Failed to send error reply', replyError as Error);
       }
     }
   }

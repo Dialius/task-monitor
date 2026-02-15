@@ -83,7 +83,101 @@ export class TaskMonitorService {
   }
 
   /**
-   * Generate embed
+   * Generate embed with task list (paginated)
+   * Requirement: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7
+   */
+  async generateEmbedWithTasks(stats: TaskStatistics, page: number = 0, tasksPerPage: number = 5): Promise<{ embed: EmbedBuilder; totalPages: number }> {
+    // Get all active tasks
+    const activeTasks = await this.taskService.getTasks({ status: 'aktif' });
+    
+    // Calculate pagination
+    const totalPages = Math.max(1, Math.ceil(activeTasks.length / tasksPerPage));
+    const startIndex = page * tasksPerPage;
+    const endIndex = Math.min(startIndex + tasksPerPage, activeTasks.length);
+    const pageTasks = activeTasks.slice(startIndex, endIndex);
+
+    const embed = new EmbedBuilder()
+      .setTitle('⋅•⋅☾ **Task Monitor** ☽⋅•⋅')
+      .setColor(0x99AAB5); // Discord gray color
+
+    // Set footer with icon and page info
+    const footerIcon = this.configManager.getFooterIcon();
+    const footerText = activeTasks.length > 0 
+      ? `Page ${page + 1}/${totalPages} • Made by VinTheGreat`
+      : 'Made by VinTheGreat';
+    
+    embed.setFooter({ 
+      text: footerText,
+      iconURL: footerIcon
+    });
+
+    // Field 1: Status Tugas
+    const onlineEmoji = this.configManager.getEmoji('online');
+    const offlineEmoji = this.configManager.getEmoji('offline');
+
+    const statusField = `${onlineEmoji} ┊ ${stats.activeCount} tugas aktif\n${offlineEmoji} ┊ ${stats.completedCount} tugas selesai`;
+    embed.addFields({
+      name: '**Status Tugas**',
+      value: statusField,
+      inline: false
+    });
+
+    // Field 2: Tipe Tugas
+    const typeField = `\`\`\`${stats.individuCount} Individu | ${stats.kelompokCount} Kelompok\`\`\``;
+    embed.addFields({
+      name: '**Tipe Tugas**',
+      value: typeField,
+      inline: false
+    });
+
+    // Field 3: Task List (if any)
+    if (pageTasks.length > 0) {
+      let taskList = '';
+      pageTasks.forEach((task: ITask, index: number) => {
+        const globalIndex = startIndex + index + 1;
+        const emoji = this.getTaskEmoji(task.tipe);
+        const deadline = new Date(task.deadline).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short'
+        });
+        taskList += `${globalIndex}. ${emoji} **${task.judul}**\n   📅 ${deadline} • ${task.mata_pelajaran}\n\n`;
+      });
+
+      embed.addFields({
+        name: '**📋 This Week**',
+        value: taskList.trim(),
+        inline: false
+      });
+    }
+
+    // Field 4: Last Updated
+    const clockEmoji = this.configManager.getEmoji('clock');
+    const timestamp = Math.floor(stats.lastUpdated.getTime() / 1000);
+    const lastUpdatedField = `${clockEmoji} **Last Updated:** <t:${timestamp}:R>`;
+
+    embed.addFields({
+      name: '\u200B',
+      value: lastUpdatedField,
+      inline: false
+    });
+
+    return { embed, totalPages };
+  }
+
+  /**
+   * Get task emoji based on type
+   */
+  private getTaskEmoji(tipe: string): string {
+    const emojiMap: Record<string, string> = {
+      'individu': '👤',
+      'kelompok': '👥',
+      'ujian': '📝'
+    };
+    return emojiMap[tipe] || '📝';
+  }
+
+  /**
+   * Generate embed (legacy - without task list)
    * Requirement: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7
    */
   async generateEmbed(stats: TaskStatistics): Promise<EmbedBuilder> {
@@ -133,10 +227,10 @@ export class TaskMonitorService {
   }
 
   /**
-   * Create button action row
+   * Create button action row with pagination
    * Requirement: 3.1, 3.2, 3.3
    */
-  createButtons(): ActionRowBuilder<ButtonBuilder> {
+  createButtons(currentPage: number = 0, totalPages: number = 1): ActionRowBuilder<ButtonBuilder> {
     // Parse animated emoji string <a:name:id> into object for setEmoji()
     const calendarEmojiStr = this.configManager.getEmoji('calendar');
     const emojiMatch = calendarEmojiStr.match(/<a?:(\w+):(\d+)>/);
@@ -144,11 +238,25 @@ export class TaskMonitorService {
       ? { id: emojiMatch[2], name: emojiMatch[1], animated: calendarEmojiStr.startsWith('<a:') }
       : undefined;
 
+    const buttons: ButtonBuilder[] = [];
+
+    // Add previous button if there are multiple pages
+    if (totalPages > 1) {
+      const prevButton = new ButtonBuilder()
+        .setCustomId('task_monitor_prev')
+        .setEmoji('1472405030584848599') // Animated previous emoji (ID only)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage === 0);
+      buttons.push(prevButton);
+    }
+
+    // Week button
     const weekButton = new ButtonBuilder()
       .setCustomId('tasks_week')
       .setLabel('Tasks This Week')
       .setStyle(ButtonStyle.Secondary);
 
+    // Tomorrow button
     const tomorrowButton = new ButtonBuilder()
       .setCustomId('tasks_tomorrow')
       .setLabel('Tasks Tomorrow')
@@ -160,8 +268,20 @@ export class TaskMonitorService {
       tomorrowButton.setEmoji(emojiData);
     }
 
+    buttons.push(weekButton, tomorrowButton);
+
+    // Add next button if there are multiple pages
+    if (totalPages > 1) {
+      const nextButton = new ButtonBuilder()
+        .setCustomId('task_monitor_next')
+        .setEmoji('1472405032594051104') // Animated next emoji (ID only)
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage >= totalPages - 1);
+      buttons.push(nextButton);
+    }
+
     const row = new ActionRowBuilder<ButtonBuilder>()
-      .addComponents(weekButton, tomorrowButton);
+      .addComponents(...buttons);
 
     return row;
   }
@@ -219,21 +339,21 @@ export class TaskMonitorService {
   }
 
   /**
-   * Update embed
+   * Update embed with pagination support
    * Requirement: 2.2, 2.3, 2.4, 2.5, 4.3, 10.5
    */
-  async updateEmbed(): Promise<void> {
+  async updateEmbed(page: number = 0): Promise<void> {
     try {
-      logger.info('Updating Task Monitor embed');
+      logger.info('Updating Task Monitor embed', { page });
 
       // Calculate statistics
       const stats = await this.calculateStatistics();
 
-      // Generate embed
-      const embed = await this.generateEmbed(stats);
+      // Generate embed with tasks (paginated)
+      const { embed, totalPages } = await this.generateEmbedWithTasks(stats, page);
 
-      // Create buttons
-      const buttons = this.createButtons();
+      // Create buttons with pagination
+      const buttons = this.createButtons(page, totalPages);
 
       // Get channel
       const channelId = this.configManager.getInfoChannelId();
@@ -255,10 +375,12 @@ export class TaskMonitorService {
 
         logger.info('Task Monitor embed updated', {
           messageId: existingMessage.id,
+          page,
+          totalPages,
           stats
         });
 
-        console.log(`   ✓ Task Monitor embed updated (ID: ${existingMessage.id})`);
+        console.log(`   ✓ Task Monitor embed updated (ID: ${existingMessage.id}, Page: ${page + 1}/${totalPages})`);
       } else {
         // No existing embed found - create new one
         logger.info('No existing Task Monitor embed found, creating new one');
@@ -272,10 +394,12 @@ export class TaskMonitorService {
 
         logger.info('Task Monitor embed created', {
           messageId: newMessage.id,
+          page,
+          totalPages,
           stats
         });
 
-        console.log(`   ✓ Task Monitor embed created (ID: ${newMessage.id})`);
+        console.log(`   ✓ Task Monitor embed created (ID: ${newMessage.id}, Page: ${page + 1}/${totalPages})`);
       }
     } catch (error) {
       logger.error('Failed to update Task Monitor embed', error as Error);

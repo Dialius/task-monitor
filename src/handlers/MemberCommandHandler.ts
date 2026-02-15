@@ -29,7 +29,7 @@ export class MemberCommandHandler {
    */
   async handleTugas(_args: string[], _userId: string, platform: Platform, _chatId?: string): Promise<CommandResponse> {
     try {
-      // Auto-sync from Notion before querying
+      // Auto-sync from Notion before querying (ONLY ONCE at command start)
       let syncStatus = '';
       if (this.notionService.isEnabled()) {
         logger.info('Auto-syncing from Notion before /tugas command');
@@ -67,7 +67,8 @@ export class MemberCommandHandler {
               usePagination: true,
               tasks: tasks,
               title: '📝 Daftar Tugas',
-              color: 0x99AAB5
+              color: 0x99AAB5,
+              syncDone: true // Flag to indicate sync already done
             }
           };
         }
@@ -136,7 +137,7 @@ export class MemberCommandHandler {
    */
   async handleTugasHariIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
-      // Auto-sync from Notion before querying
+      // Auto-sync from Notion before querying (ONLY ONCE at command start)
       let syncStatus = '';
       if (this.notionService.isEnabled()) {
         logger.info('Auto-syncing from Notion before /tugas_hari_ini command');
@@ -174,7 +175,8 @@ export class MemberCommandHandler {
               usePagination: true,
               tasks: tasks,
               title: '📅 Tugas Hari Ini',
-              color: 0x99AAB5
+              color: 0x99AAB5,
+              syncDone: true // Flag to indicate sync already done
             }
           };
         }
@@ -241,7 +243,7 @@ export class MemberCommandHandler {
    */
   async handleTugasMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
-      // Auto-sync from Notion before querying
+      // Auto-sync from Notion before querying (ONLY ONCE at command start)
       let syncStatus = '';
       if (this.notionService.isEnabled()) {
         logger.info('Auto-syncing from Notion before /tugas_minggu_ini command');
@@ -279,7 +281,8 @@ export class MemberCommandHandler {
               usePagination: true,
               tasks: tasks,
               title: '📊 Tugas Minggu Ini',
-              color: 0x99AAB5
+              color: 0x99AAB5,
+              syncDone: true // Flag to indicate sync already done
             }
           };
         }

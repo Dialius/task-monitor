@@ -17,11 +17,11 @@ Ketika ada banyak tugas (> 5), bot akan otomatis menampilkan pagination dengan b
 
 **Hasil:**
 - Jika tugas ≤ 5: Tampil normal tanpa pagination
-- Jika tugas > 5: Tampil dengan button ⬅️ dan ➡️
+- Jika tugas > 5: Tampil dengan button animated ⏪ (previous) dan ⏩ (next)
 
 **Navigasi:**
-- Klik ⬅️ untuk halaman sebelumnya
-- Klik ➡️ untuk halaman berikutnya
+- Klik ⏪ (animated) untuk halaman sebelumnya
+- Klik ⏩ (animated) untuk halaman berikutnya
 - Button akan disabled jika sudah di halaman pertama/terakhir
 - Nomor halaman ditampilkan di tengah (contoh: "2 / 4")
 
@@ -287,10 +287,11 @@ export class DateTimeHelper {
 /tugas
 ```
 
-3. **Klik button ⬅️ dan ➡️**
+3. **Klik button ⏪ dan ⏩ (animated)**
    - Pastikan navigasi bekerja
    - Pastikan nomor halaman update
    - Pastikan button disabled di halaman pertama/terakhir
+   - Pastikan emoji animated tampil dengan benar
 
 ### Test Activity Status
 
