@@ -53,7 +53,7 @@ export class PaginationHelper {
         new ButtonBuilder()
           .setCustomId('prev')
           .setEmoji('1472405030584848599') // Animated previous emoji (ID only)
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Secondary) // Abu-abu
           .setDisabled(page === 0),
         new ButtonBuilder()
           .setCustomId('page_info')
@@ -63,7 +63,7 @@ export class PaginationHelper {
         new ButtonBuilder()
           .setCustomId('next')
           .setEmoji('1472405032594051104') // Animated next emoji (ID only)
-          .setStyle(ButtonStyle.Primary)
+          .setStyle(ButtonStyle.Secondary) // Abu-abu
           .setDisabled(page === embeds.length - 1)
       );
       return row;
