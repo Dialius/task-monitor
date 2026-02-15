@@ -806,7 +806,7 @@ export class MemberCommandHandler {
         success: true,
         message: '',
         embedData: {
-          title: `${EMOJI.SYSTEM}  System Status Monitor`,
+          title: `${EMOJI.SYSTEM}  System Status Monitor  ${EMOJI.SYSTEM}`,
           description: '`System operational. Monitoring active tasks.`',
           color: embedColor,
           fields: [

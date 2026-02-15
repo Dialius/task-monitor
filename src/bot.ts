@@ -360,20 +360,73 @@ class MultiPlatformBot {
           response.data.color
         );
 
-        // Send initial embed
+        // Send initial embed with pagination buttons directly
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+        
+        const getButtons = (page: number) => {
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('cmd_page_prev')
+              .setEmoji('1472405030584848599')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(page === 0),
+            new ButtonBuilder()
+              .setCustomId('cmd_page_info')
+              .setLabel(`${page + 1} / ${embeds.length}`)
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true),
+            new ButtonBuilder()
+              .setCustomId('cmd_page_next')
+              .setEmoji('1472405032594051104')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(page === embeds.length - 1)
+          );
+          return row;
+        };
+
         await interaction.editReply({
           embeds: [embeds[0]],
+          components: [getButtons(0)],
           content: response.message || undefined
         });
 
-        // Get the message to add pagination
+        // Get the message to add collector
         const message = await interaction.fetchReply();
         
-        // Create pagination
-        await PaginationHelper.createPaginatedEmbed(message as any, {
-          embeds,
-          userId: interaction.user.id,
-          timeout: 120000 // 2 minutes
+        // Create collector for pagination
+        let currentPage = 0;
+        const collector = message.createMessageComponentCollector({
+          componentType: 2, // Button
+          time: 120000 // 2 minutes
+        });
+
+        collector.on('collect', async (btnInteraction: any) => {
+          if (interaction.user.id !== btnInteraction.user.id) {
+            await btnInteraction.reply({
+              content: '❌ Hanya pengirim command yang bisa menggunakan tombol ini.',
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (btnInteraction.customId === 'cmd_page_prev') {
+            currentPage = Math.max(0, currentPage - 1);
+          } else if (btnInteraction.customId === 'cmd_page_next') {
+            currentPage = Math.min(embeds.length - 1, currentPage + 1);
+          }
+
+          await btnInteraction.update({
+            embeds: [embeds[currentPage]],
+            components: [getButtons(currentPage)]
+          });
+        });
+
+        collector.on('end', async () => {
+          try {
+            await interaction.editReply({ components: [] });
+          } catch (error) {
+            // Message might be deleted
+          }
         });
         
         return;
@@ -608,6 +661,7 @@ class MultiPlatformBot {
       // Check if response needs pagination
       if (response.data?.usePagination) {
         const { PaginationHelper } = await import('./utils/PaginationHelper');
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
         
         const embeds = PaginationHelper.createTaskEmbeds(
           response.data.tasks,
@@ -616,17 +670,68 @@ class MultiPlatformBot {
           response.data.color
         );
 
-        // Send initial message
+        const getButtons = (page: number) => {
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId('cmd_page_prev')
+              .setEmoji('1472405030584848599')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(page === 0),
+            new ButtonBuilder()
+              .setCustomId('cmd_page_info')
+              .setLabel(`${page + 1} / ${embeds.length}`)
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(true),
+            new ButtonBuilder()
+              .setCustomId('cmd_page_next')
+              .setEmoji('1472405032594051104')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(page === embeds.length - 1)
+          );
+          return row;
+        };
+
+        // Send initial message with pagination buttons
         const sentMessage = await message.reply({
           embeds: [embeds[0]],
+          components: [getButtons(0)],
           content: response.message || undefined
         });
 
-        // Create pagination
-        await PaginationHelper.createPaginatedEmbed(sentMessage, {
-          embeds,
-          userId: message.author.id,
-          timeout: 120000 // 2 minutes
+        // Create collector for pagination
+        let currentPage = 0;
+        const collector = sentMessage.createMessageComponentCollector({
+          componentType: 2, // Button
+          time: 120000 // 2 minutes
+        });
+
+        collector.on('collect', async (btnInteraction: any) => {
+          if (message.author.id !== btnInteraction.user.id) {
+            await btnInteraction.reply({
+              content: '❌ Hanya pengirim command yang bisa menggunakan tombol ini.',
+              ephemeral: true
+            });
+            return;
+          }
+
+          if (btnInteraction.customId === 'cmd_page_prev') {
+            currentPage = Math.max(0, currentPage - 1);
+          } else if (btnInteraction.customId === 'cmd_page_next') {
+            currentPage = Math.min(embeds.length - 1, currentPage + 1);
+          }
+
+          await btnInteraction.update({
+            embeds: [embeds[currentPage]],
+            components: [getButtons(currentPage)]
+          });
+        });
+
+        collector.on('end', async () => {
+          try {
+            await sentMessage.edit({ components: [] });
+          } catch (error) {
+            // Message might be deleted
+          }
         });
         
         return;
