@@ -86,10 +86,12 @@ export class AdminCommandHandler {
         'Rewrite in Indonesian. Maximum 1-2 short sentences. Keep only the core task, remove any extra explanation or motivation. Be direct and concise.'
       );
 
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
+      
       const task = await this.taskService.createTask({
         judul,
         deskripsi: enhancedDesc,
-        deadline: new Date(deadlineStr),
+        deadline: DateTimeHelper.parseDate(deadlineStr),
         mata_pelajaran,
         tipe: tipe as any,
         created_by: userId
@@ -495,7 +497,8 @@ export class AdminCommandHandler {
         };
       }
 
-      const finalValue = field === 'deadline' ? new Date(value) : value;
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
+      const finalValue = field === 'deadline' ? DateTimeHelper.parseDate(value) : value;
       const task = await this.taskService.updateTask(taskId, field, finalValue);
 
       return {
@@ -991,8 +994,9 @@ export class AdminCommandHandler {
       const schedule = await this.scheduleService.updateSchedule(scheduleId, field, value);
 
       // Create announcement
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
       await this.announcementService.createAnnouncement({
-        tanggal: new Date(),
+        tanggal: DateTimeHelper.now(),
         judul: `Perubahan Jadwal: ${schedule.mata_pelajaran}`,
         tipe: 'perubahan_jadwal',
         keterangan: `${field} diubah menjadi ${value}. Alasan: ${alasan}`
@@ -1211,10 +1215,11 @@ export class AdminCommandHandler {
       }
 
       let message: string;
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
 
       if (type === 'daily') {
         // Get tomorrow's date
-        const tomorrow = new Date();
+        const tomorrow = DateTimeHelper.now();
         tomorrow.setDate(tomorrow.getDate() + 1);
         
         // Filter tasks for tomorrow
@@ -1231,7 +1236,7 @@ export class AdminCommandHandler {
         }
       } else if (type === 'weekly') {
         // Get next week's tasks
-        const today = new Date();
+        const today = DateTimeHelper.now();
         const nextWeek = new Date(today);
         nextWeek.setDate(nextWeek.getDate() + 7);
 
@@ -1272,7 +1277,7 @@ export class AdminCommandHandler {
         }
       } else { // monday
         // Get next Monday's tasks
-        const today = new Date();
+        const today = DateTimeHelper.now();
         const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
         const nextMonday = new Date(today);
         nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
@@ -1350,12 +1355,13 @@ export class AdminCommandHandler {
 
       // Confirm - create task
       const parsed = pending.parsedTask;
+      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
       
       const task = await this.taskService.createTask({
         judul: parsed.judul,
         mata_pelajaran: parsed.mata_pelajaran,
         deskripsi: parsed.deskripsi,
-        deadline: new Date(parsed.deadline),
+        deadline: DateTimeHelper.parseDate(parsed.deadline),
         tipe: parsed.tipe,
         created_by: userId
       });

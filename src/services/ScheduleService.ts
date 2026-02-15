@@ -180,8 +180,9 @@ export class ScheduleService {
    * Get today's schedule
    */
   async getTodaySchedule(): Promise<IJadwal[]> {
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const today = new Date();
+    const today = DateTimeHelper.now();
     const dayName = days[today.getDay()];
 
     return this.getSchedulesByDay(dayName);
@@ -192,8 +193,9 @@ export class ScheduleService {
    * Requirement: 3.6
    */
   async getTomorrowSchedule(): Promise<IJadwal[]> {
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const tomorrow = new Date();
+    const tomorrow = DateTimeHelper.now();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dayName = days[tomorrow.getDay()];
 

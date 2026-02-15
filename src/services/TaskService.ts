@@ -68,7 +68,8 @@ export class TaskService {
    * Requirement: 2.2, 2.11, 2.12
    */
   calculatePriority(deadline: Date): Priority {
-    const now = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const now = DateTimeHelper.now();
     const deadlineTime = new Date(deadline).getTime();
     const currentTime = now.getTime();
     const diffHours = (deadlineTime - currentTime) / (1000 * 60 * 60);
@@ -195,16 +196,17 @@ export class TaskService {
    * Requirement: 2.7
    */
   async getTasksForToday(): Promise<ITask[]> {
-    const today = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const today = DateTimeHelper.now();
     today.setHours(0, 0, 0, 0);
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23, 59, 59, 999);
 
     return this.getTasks({
       deadline: {
         $gte: today,
-        $lte: tomorrow
+        $lte: endOfToday
       }
     });
   }
@@ -214,16 +216,18 @@ export class TaskService {
    * Requirement: 2.8
    */
   async getTasksForWeek(): Promise<ITask[]> {
-    const today = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const today = DateTimeHelper.now();
     today.setHours(0, 0, 0, 0);
     
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
 
     return this.getTasks({
       deadline: {
         $gte: today,
-        $lte: nextWeek
+        $lte: endOfWeek
       }
     });
   }
@@ -232,10 +236,11 @@ export class TaskService {
    * Get tasks for specific date
    */
   async getTasksForDate(date: Date): Promise<ITask[]> {
-    const startOfDay = new Date(date);
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const startOfDay = DateTimeHelper.toWIB(date);
     startOfDay.setHours(0, 0, 0, 0);
     
-    const endOfDay = new Date(date);
+    const endOfDay = new Date(startOfDay);
     endOfDay.setHours(23, 59, 59, 999);
 
     return this.getTasks({

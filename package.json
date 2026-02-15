@@ -1,6 +1,6 @@
 {
   "name": "multi-platform-class-reminder-bot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Multi-Platform Class Reminder Bot for Discord and WhatsApp",
   "main": "dist/index.js",
   "scripts": {

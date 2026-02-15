@@ -38,7 +38,7 @@ export class PiketService {
           hari: day,
           nama_siswa,
           nomor_wa,
-          updated_at: new Date()
+          updated_at: require('../utils/DateTimeHelper').DateTimeHelper.now()
         },
         { upsert: true, new: true }
       );
@@ -129,8 +129,9 @@ export class PiketService {
    * Get today's piket
    */
   async getTodayPiket(): Promise<IPiket | null> {
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const today = new Date();
+    const today = DateTimeHelper.now();
     const dayName = days[today.getDay()];
 
     return this.getPiketByDay(dayName);
@@ -140,8 +141,9 @@ export class PiketService {
    * Get tomorrow's piket
    */
   async getTomorrowPiket(): Promise<IPiket | null> {
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const tomorrow = new Date();
+    const tomorrow = DateTimeHelper.now();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const dayName = days[tomorrow.getDay()];
 

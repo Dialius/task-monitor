@@ -32,7 +32,8 @@ export class ConfirmationService {
     platform: 'whatsapp' | 'discord',
     parsedTask: ParsedTask
   ): void {
-    const now = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const now = DateTimeHelper.now();
     const expiresAt = new Date(now.getTime() + this.TIMEOUT_MS);
 
     this.pendingConfirmations.set(userId, {
@@ -69,7 +70,8 @@ export class ConfirmationService {
     }
 
     // Check if expired
-    if (new Date() > pending.expiresAt) {
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    if (DateTimeHelper.now() > pending.expiresAt) {
       this.pendingConfirmations.delete(userId);
       logger.info('Pending confirmation expired on retrieval', { userId });
       return null;
@@ -219,11 +221,12 @@ ${priorityEmoji[parsedTask.prioritas]} *Prioritas:* ${parsedTask.prioritas.charA
           break;
 
         case 'deadline':
-          const deadline = new Date(value);
+          const { DateTimeHelper } = require('../utils/DateTimeHelper');
+          const deadline = DateTimeHelper.parseDate(value);
           if (isNaN(deadline.getTime())) {
             return { success: false, message: '❌ Format deadline tidak valid. Contoh: 2026-02-15 10:00' };
           }
-          if (deadline <= new Date()) {
+          if (deadline <= DateTimeHelper.now()) {
             return { success: false, message: '❌ Deadline harus di masa depan' };
           }
           updated.deadline = deadline;

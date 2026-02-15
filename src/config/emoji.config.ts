@@ -9,7 +9,8 @@ export const EMOJI = {
   INFO: '<a:info:1472589035947032608>',            // Info/Chart icon
   ONLINE: '<a:online:1472202442664972392>',        // Green circle/pulse
   SUCCESS: '<a:success:1472202445244469278>',      // Checkmark
-  DATABASE: '<:database:1472589046554427392>',    // Database icon (same as success for now)
+  DATABASE: '<:database:1472589046554427392>',     // Database icon
+  ERROR: '<a:error:1472202434591064157>',          // Error/X icon for disconnected status
   
   // Pagination Emojis (already in use)
   PREV: '1472405030584848599',

@@ -101,7 +101,8 @@ export class AnnouncementService {
    * Get announcements for today
    */
   async getTodayAnnouncements(): Promise<IPengumuman[]> {
-    const today = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const today = DateTimeHelper.now();
     today.setHours(0, 0, 0, 0);
     
     const tomorrow = new Date(today);
@@ -114,7 +115,8 @@ export class AnnouncementService {
    * Get announcements for tomorrow
    */
   async getTomorrowAnnouncements(): Promise<IPengumuman[]> {
-    const tomorrow = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const tomorrow = DateTimeHelper.now();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
     
@@ -128,7 +130,8 @@ export class AnnouncementService {
    * Get announcements for this week
    */
   async getWeekAnnouncements(): Promise<IPengumuman[]> {
-    const today = new Date();
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const today = DateTimeHelper.now();
     today.setHours(0, 0, 0, 0);
     
     const nextWeek = new Date(today);

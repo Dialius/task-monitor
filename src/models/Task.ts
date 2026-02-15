@@ -55,7 +55,8 @@ const TaskSchema = new Schema<ITask>({
     validate: {
       validator: function(v: Date) {
         // Deadline must be in the future (at least 1 hour from now)
-        const oneHourFromNow = new Date();
+        const { DateTimeHelper } = require('../utils/DateTimeHelper');
+        const oneHourFromNow = DateTimeHelper.now();
         oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
         return v >= oneHourFromNow;
       },

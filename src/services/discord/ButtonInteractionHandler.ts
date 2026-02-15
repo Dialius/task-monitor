@@ -335,7 +335,8 @@ export class ButtonInteractionHandler {
    * Requirement: 3.6, 9.1
    */
   async getTasksThisWeek(): Promise<ITask[]> {
-    const now = new Date();
+    const { DateTimeHelper } = require('../../utils/DateTimeHelper');
+    const now = DateTimeHelper.now();
 
     // Get start of week (Monday)
     const weekStart = new Date(now);
@@ -355,7 +356,7 @@ export class ButtonInteractionHandler {
     const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
 
-      const deadline = new Date(task.deadline);
+      const deadline = DateTimeHelper.toWIB(task.deadline);
       return deadline >= weekStart && deadline <= weekEnd;
     });
 
@@ -368,7 +369,8 @@ export class ButtonInteractionHandler {
    * Requirement: 3.6, 9.1
    */
   async getTasksTomorrow(): Promise<ITask[]> {
-    const tomorrow = new Date();
+    const { DateTimeHelper } = require('../../utils/DateTimeHelper');
+    const tomorrow = DateTimeHelper.now();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const tomorrowStart = new Date(tomorrow);
@@ -383,7 +385,7 @@ export class ButtonInteractionHandler {
     const tasks = allTasks.filter((task: ITask) => {
       if (task.status !== 'aktif') return false;
 
-      const deadline = new Date(task.deadline);
+      const deadline = DateTimeHelper.toWIB(task.deadline);
       return deadline >= tomorrowStart && deadline <= tomorrowEnd;
     });
 

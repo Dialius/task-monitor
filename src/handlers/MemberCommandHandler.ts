@@ -211,7 +211,8 @@ export class MemberCommandHandler {
       }
 
       // For WhatsApp, use reminder format
-      const today = new Date();
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const today = DateTimeHelper.now();
       const dayName = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][today.getDay()];
       const dateNum = today.getDate();
       const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
@@ -317,8 +318,10 @@ export class MemberCommandHandler {
       }
 
       // For WhatsApp, use reminder format
-      const today = new Date();
-      const weekNumber = Math.ceil((today.getDate() + new Date(today.getFullYear(), today.getMonth(), 1).getDay()) / 7);
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const today = DateTimeHelper.now();
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const weekNumber = Math.ceil((today.getDate() + firstDayOfMonth.getDay()) / 7);
       const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
       const year = today.getFullYear();
       
@@ -475,7 +478,8 @@ export class MemberCommandHandler {
    */
   async handleJadwalMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
-      const schedules = await this.scheduleService.getSchedulesForWeek(new Date());
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const schedules = await this.scheduleService.getSchedulesForWeek(DateTimeHelper.now());
       
       if (schedules.length === 0) {
         return {
@@ -596,7 +600,8 @@ export class MemberCommandHandler {
    */
   async handlePiketMingguIni(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
-      const pikets = await this.piketService.getPiketForWeek(new Date());
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const pikets = await this.piketService.getPiketForWeek(DateTimeHelper.now());
       
       if (pikets.length === 0) {
         return {
@@ -785,7 +790,7 @@ export class MemberCommandHandler {
           `📊 *General Info*\n` +
           `> Status: ${mongoConnected ? '🟢 Active' : '🔴 Offline'}\n` +
           `> Uptime: ${hours}h ${minutes}m\n` +
-          `> Version: v1.0.0\n\n` +
+          `> Version: v1.1.0\n\n` +
           `🔌 *Connectivity*\n` +
           `> MongoDB: ${mongoConnected ? '✅ Connected' : '❌ Disconnected'}\n` +
           `> └ DB: ${mongoDbName}\n` +
@@ -828,11 +833,11 @@ export class MemberCommandHandler {
               name: `${EMOJI.DATABASE} Database & Integrations`,
               value: [
                 `> **MongoDB**`,
-                `> ${mongoConnected ? EMOJI.SUCCESS : '❌'} ${mongoConnected ? 'Connected' : 'Disconnected'}`,
+                `> ${mongoConnected ? EMOJI.SUCCESS : EMOJI.ERROR} ${mongoConnected ? 'Connected' : 'Disconnected'}`,
                 `> └ \`DB: ${mongoDbName}\``,
                 `> `,
                 `> **Notion API**`,
-                `> ${notionConnected ? EMOJI.SUCCESS : (this.notionService.isEnabled() ? '❌' : '⚠️')} ${notionConnected ? 'Connected' : (this.notionService.isEnabled() ? 'Disconnected' : 'Disabled')}`
+                `> ${notionConnected ? EMOJI.SUCCESS : (this.notionService.isEnabled() ? EMOJI.ERROR : '⚠️')} ${notionConnected ? 'Connected' : (this.notionService.isEnabled() ? 'Disconnected' : 'Disabled')}`
               ].join('\n'),
               inline: true
             }

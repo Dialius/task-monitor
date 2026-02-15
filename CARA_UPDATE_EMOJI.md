@@ -12,6 +12,7 @@
    - `success` - Checkmark
    - `system` - System/satellite icon
    - `info` - Info/chart icon
+   - `error` - Error/X icon for disconnected status
 
 ## Cara Mendapatkan Emoji ID
 
@@ -38,7 +39,8 @@ export const EMOJI = {
   INFO: '<a:info:GANTI_DENGAN_ID_BARU>',
   ONLINE: '<a:online:GANTI_DENGAN_ID_BARU>',
   SUCCESS: '<a:success:GANTI_DENGAN_ID_BARU>',
-  DATABASE: '<a:database:GANTI_DENGAN_ID_BARU>',
+  DATABASE: '<:database:GANTI_DENGAN_ID_BARU>',
+  ERROR: '<a:error:GANTI_DENGAN_ID_BARU>',
   
   // Pagination Emojis (already in use)
   PREV: 'GANTI_DENGAN_ID_BARU',
@@ -99,6 +101,7 @@ Berikut daftar emoji yang digunakan di bot:
 | online | Green circle/pulse | Status Active indicator |
 | success | Checkmark | MongoDB/Notion connected |
 | database | Database icon | Database & Integrations field |
+| error | Error/X icon | MongoDB/Notion disconnected |
 | prev | Previous arrow | Pagination button |
 | next | Next arrow | Pagination button |
 
@@ -110,5 +113,6 @@ Simpan file emoji animated di folder `assets/emojis/` untuk backup:
 - `success.gif`
 - `system.gif`
 - `info.gif`
+- `error.gif`
 - `prev.gif`
 - `next.gif`

@@ -63,6 +63,7 @@ Fitur baru:
 - Inline fields untuk layout side-by-side
 - Footer dengan timestamp
 - Warna embed berubah merah jika ada koneksi yang gagal
+- Emoji ERROR untuk status disconnected (MongoDB/Notion)
 
 ### 3. Fix Duplicate Embed pada Command Tugas
 File: `src/handlers/MemberCommandHandler.ts` dan `src/bot.ts`
@@ -140,14 +141,15 @@ Expected:
 ```
 Expected: Text message dengan sync status di akhir
 
-## Emoji IDs yang Digunakan
+## Emoji yang Digunakan
 
 Pastikan emoji berikut sudah di-upload ke Discord server:
 - `database`: 1472589046554427392
-- `online`: 1472589043752767548  
-- `success`: 1472589046554427392
+- `online`: 1472202442664972392
+- `success`: 1472202445244469278
 - `system`: 1472589040430612480
 - `info`: 1472589035947032608
+- `error`: 1472202434591064157 (untuk status disconnected)
 
 ## File yang Diubah
 

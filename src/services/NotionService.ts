@@ -527,8 +527,9 @@ export class NotionService {
     const created_by = properties['Created By']?.rich_text?.[0]?.plain_text || 'notion';
 
     // Extract date
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const deadlineStr = properties.Deadline?.date?.start;
-    const deadline = deadlineStr ? new Date(deadlineStr) : new Date();
+    const deadline = deadlineStr ? DateTimeHelper.parseDate(deadlineStr) : DateTimeHelper.now();
 
     // Extract URL
     const link_pengumpulan = properties['Link Pengumpulan']?.url;

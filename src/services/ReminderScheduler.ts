@@ -131,7 +131,8 @@ export class ReminderScheduler {
         logger.info('Notion sync completed', syncResult);
       }
 
-      const tomorrow = new Date();
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const tomorrow = DateTimeHelper.now();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const recap = await this.buildDailyRecap(tomorrow);
@@ -159,7 +160,8 @@ export class ReminderScheduler {
         logger.info('Notion sync completed', syncResult);
       }
 
-      const today = new Date();
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const today = DateTimeHelper.now();
       const recap = await this.buildWeeklyRecap(today);
 
       await this.platformAdapter.sendMessage(this.config.groupId, recap);
@@ -178,7 +180,8 @@ export class ReminderScheduler {
       logger.info('Generating Monday recap (sent on Sunday)');
 
       // Get next Monday (tomorrow from Sunday)
-      const monday = new Date();
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const monday = DateTimeHelper.now();
       monday.setDate(monday.getDate() + 1);
 
       const recap = await this.buildDailyRecap(monday);
@@ -264,7 +267,8 @@ export class ReminderScheduler {
    * Get next Monday from given date
    */
   private getNextMonday(date: Date): Date {
-    const result = new Date(date);
+    const { DateTimeHelper } = require('../utils/DateTimeHelper');
+    const result = DateTimeHelper.toWIB(date);
     const day = result.getDay();
     
     // If today is Friday (5), next Monday is 3 days away

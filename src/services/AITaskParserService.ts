@@ -32,7 +32,8 @@ export class AITaskParserService {
    */
   async parseNaturalLanguage(input: string): Promise<ParsedTask | null> {
     try {
-      const currentDate = new Date();
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const currentDate = DateTimeHelper.now();
       const prompt = this.buildPrompt(input, currentDate);
 
       logger.info('Parsing natural language input', { input });
@@ -54,7 +55,7 @@ export class AITaskParserService {
         throw new Error('Deadline not found in parsed result');
       }
 
-      parsed.deadline = new Date(parsed.deadline);
+      parsed.deadline = DateTimeHelper.parseDate(parsed.deadline);
 
       // Validate deadline is in the future
       if (parsed.deadline <= currentDate) {
@@ -180,8 +181,11 @@ Now parse the input above and return ONLY valid JSON:`;
 
     if (!parsed.deadline || !(parsed.deadline instanceof Date)) {
       errors.push('Deadline tidak valid');
-    } else if (parsed.deadline <= new Date()) {
-      errors.push('Deadline harus di masa depan');
+    } else {
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      if (parsed.deadline <= DateTimeHelper.now()) {
+        errors.push('Deadline harus di masa depan');
+      }
     }
 
     if (!['individu', 'kelompok', 'ujian'].includes(parsed.tipe)) {

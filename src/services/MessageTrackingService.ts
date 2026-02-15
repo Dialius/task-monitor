@@ -59,7 +59,9 @@ export class MessageTrackingService {
    */
   async getTasksNeedingEdit(hoursAgo: number = 1): Promise<ITask[]> {
     try {
-      const cutoffTime = new Date(Date.now() - hoursAgo * 3600000);
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const now = DateTimeHelper.now();
+      const cutoffTime = new Date(now.getTime() - hoursAgo * 3600000);
 
       const tasks = await Task.find({
         updated_at: { $gt: cutoffTime },
