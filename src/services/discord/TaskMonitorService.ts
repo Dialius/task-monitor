@@ -89,6 +89,7 @@ export class TaskMonitorService {
   async generateEmbed(stats: TaskStatistics): Promise<EmbedBuilder> {
     const embed = new EmbedBuilder()
       .setTitle('⋅•⋅☾ **Task Monitor** ☽⋅•⋅')
+      .setDescription('`Auto-update every 2 hours`')
       .setColor(0x99AAB5); // Discord gray color
 
     // Set footer with icon

@@ -65,7 +65,7 @@ Fitur baru:
 - Warna embed berubah merah jika ada koneksi yang gagal
 
 ### 3. Fix Duplicate Embed pada Command Tugas
-File: `src/handlers/MemberCommandHandler.ts`
+File: `src/handlers/MemberCommandHandler.ts` dan `src/bot.ts`
 
 #### Masalah:
 Ketika menggunakan command `/tugas`, `/tugas_hari_ini`, atau `/tugas_minggu_ini` dengan pagination, muncul 2 embed:
@@ -73,43 +73,31 @@ Ketika menggunakan command `/tugas`, `/tugas_hari_ini`, atau `/tugas_minggu_ini`
 2. Embed pagination dengan daftar tugas
 
 #### Solusi:
-Menghapus `syncStatus` dari `message` ketika menggunakan pagination:
+1. Menghapus `syncStatus` dari `message` ketika menggunakan pagination
+2. Mengubah cara pagination bekerja di `bot.ts`:
+   - Sebelumnya: Mengirim embed dulu, lalu memanggil `PaginationHelper.createPaginatedEmbed` yang mengirim lagi
+   - Sekarang: Langsung mengirim embed dengan buttons pagination dalam satu kali kirim
+   - Membuat collector langsung di bot.ts tanpa double send
 
 **Command yang diperbaiki:**
 - `handleTugas` - Line 30
 - `handleTugasHariIni` - Line 138  
 - `handleTugasMingguIni` - Line 244
 
-**Perubahan:**
-```typescript
-// SEBELUM (dengan duplicate)
-if (tasks.length > 5) {
-  return {
-    success: true,
-    message: syncStatus, // ❌ Ini menyebabkan duplicate
-    data: {
-      usePagination: true,
-      ...
-    }
-  };
-}
+### 4. Tambah Description pada Task Monitor Embed
+File: `src/services/discord/TaskMonitorService.ts`
 
-// SESUDAH (tanpa duplicate)
-if (tasks.length > 5) {
-  return {
-    success: true,
-    message: '', // ✅ Kosong untuk pagination
-    data: {
-      usePagination: true,
-      ...
-    }
-  };
-}
+Menambahkan description singkat pada Task Monitor embed yang otomatis update setiap 2 jam:
+```
+`Auto-update every 2 hours`
 ```
 
-**Catatan:** Sync status tetap ditampilkan untuk:
-- WhatsApp (ditambahkan ke message text)
-- Discord dengan ≤5 tasks (tidak menggunakan pagination)
+Perubahan:
+- `TaskMonitorService.generateEmbed` - Tambah `.setDescription()` pada embed
+
+Format description menggunakan code block (backtick) agar konsisten dengan status embed.
+
+**Catatan:** Description hanya ditambahkan pada Task Monitor embed otomatis, TIDAK pada command `/tugas`, `/tugas_hari_ini`, atau `/tugas_minggu_ini`.
 
 ### 4. Verifikasi Command Lain
 
@@ -126,6 +114,15 @@ Semua command lain sudah diperiksa dan tidak memiliki masalah duplicate embed ka
 ```
 Expected: Embed dengan animated emoji dan format baru
 
+### Test Task Monitor Embed (Otomatis)
+Cek channel info untuk melihat Task Monitor embed yang otomatis update.
+
+Expected: 
+- Embed dengan title "⋅•⋅☾ Task Monitor ☽⋅•⋅"
+- Description: "Auto-update every 2 hours"
+- Status tugas, tipe tugas, dan last updated
+- 2 buttons: Tasks This Week dan Tasks Tomorrow
+
 ### Test Tugas Commands (Pagination)
 ```
 /tugas
@@ -133,8 +130,8 @@ Expected: Embed dengan animated emoji dan format baru
 /tugas_minggu_ini
 ```
 Expected: 
-- Jika >5 tasks: Hanya 1 embed dengan pagination buttons
-- Jika ≤5 tasks: 1 embed tanpa pagination
+- Jika >5 tasks: Hanya 1 embed dengan pagination buttons (TANPA description)
+- Jika ≤5 tasks: 1 embed tanpa pagination (TANPA description)
 - Tidak ada duplicate message/embed
 
 ### Test Tugas Commands (WhatsApp)
@@ -167,8 +164,11 @@ Pastikan emoji berikut sudah di-upload ke Discord server:
    - Interface `CommandResponse` - Tambah support untuk footer dan timestamp di embedData
 
 4. `src/bot.ts` - DIUBAH
-   - Slash command handler - Support custom footer dan timestamp
-   - Message command handler - Support custom footer dan timestamp
+   - Slash command handler - Support custom footer dan timestamp + fix pagination duplicate
+   - Message command handler - Support custom footer dan timestamp + fix pagination duplicate
+
+5. `src/services/discord/TaskMonitorService.ts` - DIUBAH
+   - Method `generateEmbed` - Tambah description "Auto-update every 2 hours"
 
 ## Rollback Instructions
 
