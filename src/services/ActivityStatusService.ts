@@ -3,7 +3,7 @@
  * Manages rotating activity status for Discord bot
  */
 
-import { Client } from 'discord.js';
+import { Client, PresenceStatusData } from 'discord.js';
 import { TaskService } from './TaskService';
 import { ITask } from '../models/Task';
 import { getLogger } from '../utils/Logger';
@@ -14,6 +14,7 @@ export interface ActivityConfig {
   enabled: boolean;
   rotationInterval: number; // in minutes
   activities: ActivityTemplate[];
+  status?: PresenceStatusData; // Bot presence status (online, idle, dnd, invisible)
 }
 
 export interface ActivityTemplate {
@@ -242,9 +243,21 @@ export class ActivityStatusService {
       // Use per-template type if specified, otherwise use default type
       const activityType = activity.type !== undefined ? activity.type : 3;
 
+      // Get status from config (default: online)
+      const status = this.config.status || 'online';
+
       // Set activity using setActivity method for better compatibility
       await this.client.user.setActivity(statusText, { 
         type: activityType 
+      });
+
+      // Set presence status
+      await this.client.user.setPresence({
+        status: status,
+        activities: [{
+          name: statusText,
+          type: activityType
+        }]
       });
 
       // Get activity type name for logging

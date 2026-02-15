@@ -322,10 +322,18 @@ export class DiscordClient {
     // Initialize Discord Config Manager to get activity configuration
     const configManager = new DiscordConfigManager();
     
+    // Get bot status from environment variable
+    const botStatus = (process.env.DISCORD_BOT_STATUS || 'online') as 'online' | 'idle' | 'dnd' | 'invisible';
+    
+    // Validate status
+    const validStatuses = ['online', 'idle', 'dnd', 'invisible'];
+    const status = validStatuses.includes(botStatus) ? botStatus : 'online';
+    
     const activityConfig: ActivityConfig = {
       enabled: configManager.isActivityEnabled(),
       rotationInterval: configManager.getActivityInterval() / (60 * 1000), // Convert ms to minutes
-      activities: configManager.getActivityTemplates()
+      activities: configManager.getActivityTemplates(),
+      status: status
     };
 
     this.activityStatusService = new ActivityStatusService(
@@ -342,8 +350,11 @@ export class DiscordClient {
     logger.info('Activity status service initialized', {
       enabled: activityConfig.enabled,
       interval: activityConfig.rotationInterval,
-      templatesCount: activityConfig.activities.length
+      templatesCount: activityConfig.activities.length,
+      status: status
     });
+    
+    console.log(`   → Bot Status: ${status}`);
   }
 
   /**
