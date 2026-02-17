@@ -146,21 +146,6 @@ export function getSlashCommands(): CommandDefinition[] {
         .addStringOption(option =>
           option.setName('id')
             .setDescription('ID tugas')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('field')
-            .setDescription('Field yang akan diubah')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Judul', value: 'judul' },
-              { name: 'Deskripsi', value: 'deskripsi' },
-              { name: 'Deadline', value: 'deadline' },
-              { name: 'Mata Pelajaran', value: 'mata_pelajaran' },
-              { name: 'Tipe', value: 'tipe' }
-            ))
-        .addStringOption(option =>
-          option.setName('value')
-            .setDescription('Nilai baru')
             .setRequired(true)),
       adminOnly: true,
       leaderOnly: false
@@ -281,21 +266,6 @@ export function getSlashCommands(): CommandDefinition[] {
         .addStringOption(option =>
           option.setName('id')
             .setDescription('ID jadwal')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('field')
-            .setDescription('Field yang akan diubah')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Jam Mulai', value: 'jam_mulai' },
-              { name: 'Jam Selesai', value: 'jam_selesai' },
-              { name: 'Mata Pelajaran', value: 'mata_pelajaran' },
-              { name: 'Ruangan', value: 'ruangan' },
-              { name: 'Nama Guru', value: 'nama_guru' }
-            ))
-        .addStringOption(option =>
-          option.setName('value')
-            .setDescription('Nilai baru')
             .setRequired(true)),
       adminOnly: true,
       leaderOnly: false
@@ -318,25 +288,6 @@ export function getSlashCommands(): CommandDefinition[] {
         .addStringOption(option =>
           option.setName('id')
             .setDescription('ID jadwal')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('field')
-            .setDescription('Field yang akan diubah')
-            .setRequired(true)
-            .addChoices(
-              { name: 'Jam Mulai', value: 'jam_mulai' },
-              { name: 'Jam Selesai', value: 'jam_selesai' },
-              { name: 'Mata Pelajaran', value: 'mata_pelajaran' },
-              { name: 'Ruangan', value: 'ruangan' },
-              { name: 'Nama Guru', value: 'nama_guru' }
-            ))
-        .addStringOption(option =>
-          option.setName('value')
-            .setDescription('Nilai baru')
-            .setRequired(true))
-        .addStringOption(option =>
-          option.setName('alasan')
-            .setDescription('Alasan perubahan')
             .setRequired(true)),
       adminOnly: true,
       leaderOnly: false

@@ -57,7 +57,7 @@ export class ScheduleService {
   async updateSchedule(scheduleId: string, field: string, value: any): Promise<IJadwal> {
     try {
       const schedule = await Jadwal.findById(scheduleId);
-      
+
       if (!schedule) {
         throw new Error('Schedule not found');
       }
@@ -88,7 +88,7 @@ export class ScheduleService {
   async deleteSchedule(scheduleId: string): Promise<boolean> {
     try {
       const schedule = await Jadwal.findById(scheduleId);
-      
+
       if (!schedule) {
         throw new Error('Schedule not found');
       }
@@ -210,5 +210,18 @@ export class ScheduleService {
     const dayName = days[date.getDay()];
 
     return this.getSchedulesByDay(dayName);
+  }
+
+  /**
+   * Get schedule by ID
+   */
+  async getScheduleById(scheduleId: string): Promise<IJadwal | null> {
+    try {
+      const schedule = await Jadwal.findById(scheduleId);
+      return schedule;
+    } catch (error) {
+      logger.error('Failed to get schedule by ID', error as Error);
+      return null;
+    }
   }
 }

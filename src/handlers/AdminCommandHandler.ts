@@ -16,6 +16,7 @@ import ConfirmationService from '../services/ConfirmationService';
 import { formatDailyRecap, formatWeeklyRecap } from '../utils/RecapFormatter';
 import { Validator } from '../utils/Validator';
 import { SubjectResolver } from '../services/SubjectResolver';
+import { EditConfirmationService } from '../services/discord/EditConfirmationService';
 import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
@@ -454,103 +455,79 @@ export class AdminCommandHandler {
   }
 
   /**
-   * Handle /edit_tugas command
-   * Format: /edit_tugas | task_id | field | value
+   * Handle /edit_tugas command — Step 1: Show preview + Edit/Cancel buttons
+   * Format: /edit_tugas [id]
    * Requirement: 2.3
    */
-  async handleEditTugas(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleEditTugas(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
-      if (args.length < 3) {
+      if (args.length < 1) {
         return {
           success: false,
           message: '',
           embedData: {
             title: '❌ Format Salah',
-            description: 'Gunakan: `/edit_tugas | task_id | field | value`\n\n**Field yang bisa diubah:**\n`judul`, `deskripsi`, `deadline`, `mata_pelajaran`, `tipe`',
+            description: 'Gunakan: `/edit_tugas [id]`',
             color: 0xED4245
           }
         };
       }
 
-      const [taskId, field, value] = args;
+      const [taskId] = args;
+      const task = await this.taskService.getTaskById(taskId);
 
-      // Validate field
-      const validFields = ['judul', 'deskripsi', 'deadline', 'mata_pelajaran', 'tipe'];
-      if (!validFields.includes(field)) {
+      if (!task) {
         return {
           success: false,
           message: '',
           embedData: {
-            title: '❌ Field Tidak Valid',
-            description: `Gunakan: ${validFields.map(f => `\`${f}\``).join(', ')}`,
+            title: '❌ Tugas Tidak Ditemukan',
+            description: `Tidak ada tugas dengan ID \`${taskId}\``,
             color: 0xED4245
           }
         };
       }
 
-      // Validate value based on field
-      if (field === 'deadline' && !Validator.isValidDate(value)) {
-        return {
-          success: false,
-          message: '',
-          embedData: {
-            title: '❌ Format Tanggal Salah',
-            description: 'Gunakan format YYYY-MM-DD',
-            color: 0xED4245
-          }
-        };
-      }
+      // Store confirmation data
+      const deadline = new Date(task.deadline);
+      EditConfirmationService.setPending(userId, 'edit_tugas', taskId, {
+        judul: task.judul,
+        deskripsi: task.deskripsi,
+        deadline: deadline.toISOString().slice(0, 16).replace('T', ' '),
+        mata_pelajaran: task.mata_pelajaran,
+        tipe: task.tipe
+      });
 
-      if (field === 'tipe' && !Validator.isValidTaskType(value)) {
-        return {
-          success: false,
-          message: '',
-          embedData: {
-            title: '❌ Tipe Tugas Tidak Valid',
-            description: 'Gunakan: `individu`, `kelompok`, atau `ujian`',
-            color: 0xED4245
-          }
-        };
-      }
-
-      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      let finalValue: any = value;
-      if (field === 'deadline') {
-        finalValue = DateTimeHelper.parseDate(value);
-      } else if (field === 'mata_pelajaran') {
-        const resolved = SubjectResolver.resolve(value);
-        if (!resolved) {
-          return {
-            success: false,
-            message: '',
-            embedData: {
-              title: '❌ Mata Pelajaran Tidak Dikenali',
-              description: `"${value}" tidak ditemukan.\n\n**Pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
-              color: 0xED4245
-            }
-          };
-        }
-        finalValue = resolved;
-      }
-      const task = await this.taskService.updateTask(taskId, field, finalValue);
+      const formattedDeadline = deadline.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
       return {
         success: true,
         message: '',
         embedData: {
-          title: '✅ Tugas Berhasil Diupdate!',
-          description: `**${task.judul}**\n\nField \`${field}\` diubah menjadi: **${value}**`,
-          color: 0x57F287
+          title: '✏️ Edit Tugas',
+          description: `Berikut detail tugas yang akan diedit:`,
+          color: 0x5865F2,
+          fields: [
+            { name: '📝 Judul', value: task.judul, inline: false },
+            { name: '📖 Deskripsi', value: task.deskripsi || '(kosong)', inline: false },
+            { name: '📅 Deadline', value: formattedDeadline, inline: true },
+            { name: '📚 Mata Pelajaran', value: task.mata_pelajaran, inline: true },
+            { name: '📋 Tipe', value: task.tipe, inline: true },
+          ]
+        },
+        data: {
+          showEditButtons: true,
+          editType: 'edit_tugas'
         }
       };
     } catch (error) {
-      logger.error('Failed to edit task', error as Error);
+      logger.error('Failed to preview task for edit', error as Error);
       return {
         success: false,
         message: '',
         embedData: {
-          title: '❌ Gagal Mengupdate Tugas',
-          description: 'Pastikan task_id benar.',
+          title: '❌ Gagal Memuat Tugas',
+          description: 'Pastikan ID tugas benar.',
           color: 0xED4245
         }
       };
@@ -558,11 +535,11 @@ export class AdminCommandHandler {
   }
 
   /**
-   * Handle /hapus_tugas command
-   * Format: /hapus_tugas | task_id
+   * Handle /hapus_tugas command — Show preview + Confirm/Cancel buttons
+   * Format: /hapus_tugas [id]
    * Requirement: 2.4
    */
-  async handleHapusTugas(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleHapusTugas(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
       if (args.length < 1) {
         return {
@@ -570,32 +547,65 @@ export class AdminCommandHandler {
           message: '',
           embedData: {
             title: '❌ Format Salah',
-            description: 'Gunakan: `/hapus_tugas | task_id`',
+            description: 'Gunakan: `/hapus_tugas [id]`',
             color: 0xED4245
           }
         };
       }
 
       const [taskId] = args;
-      await this.taskService.deleteTask(taskId);
+      const task = await this.taskService.getTaskById(taskId);
+
+      if (!task) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Tugas Tidak Ditemukan',
+            description: `Tidak ada tugas dengan ID \`${taskId}\``,
+            color: 0xED4245
+          }
+        };
+      }
+
+      // Store confirmation data
+      EditConfirmationService.setPending(userId, 'hapus_tugas', taskId, {
+        judul: task.judul,
+        deskripsi: task.deskripsi,
+        mata_pelajaran: task.mata_pelajaran
+      });
+
+      const deadline = new Date(task.deadline);
+      const formattedDeadline = deadline.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
       return {
         success: true,
         message: '',
         embedData: {
-          title: '✅ Tugas Berhasil Dihapus!',
-          description: 'Tugas telah dihapus dari database.',
-          color: 0x57F287
+          title: '🗑️ Hapus Tugas',
+          description: `Apakah kamu yakin ingin menghapus tugas ini?`,
+          color: 0xED4245,
+          fields: [
+            { name: '📝 Judul', value: task.judul, inline: false },
+            { name: '📖 Deskripsi', value: task.deskripsi || '(kosong)', inline: false },
+            { name: '📅 Deadline', value: formattedDeadline, inline: true },
+            { name: '📚 Mata Pelajaran', value: task.mata_pelajaran, inline: true },
+            { name: '📋 Tipe', value: task.tipe, inline: true },
+          ]
+        },
+        data: {
+          showDeleteButtons: true,
+          editType: 'hapus_tugas'
         }
       };
     } catch (error) {
-      logger.error('Failed to delete task', error as Error);
+      logger.error('Failed to preview task for delete', error as Error);
       return {
         success: false,
         message: '',
         embedData: {
-          title: '❌ Gagal Menghapus Tugas',
-          description: 'Pastikan task_id benar.',
+          title: '❌ Gagal Memuat Tugas',
+          description: 'Pastikan ID tugas benar.',
           color: 0xED4245
         }
       };
@@ -603,11 +613,11 @@ export class AdminCommandHandler {
   }
 
   /**
-   * Handle /tandai_selesai command
-   * Format: /tandai_selesai | task_id
+   * Handle /tandai_selesai command — Show preview + Confirm/Cancel buttons
+   * Format: /tandai_selesai [id]
    * Requirement: 2.5
    */
-  async handleTandaiSelesai(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleTandaiSelesai(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
       if (args.length < 1) {
         return {
@@ -615,32 +625,63 @@ export class AdminCommandHandler {
           message: '',
           embedData: {
             title: '❌ Format Salah',
-            description: 'Gunakan: `/tandai_selesai | task_id`',
+            description: 'Gunakan: `/tandai_selesai [id]`',
             color: 0xED4245
           }
         };
       }
 
       const [taskId] = args;
-      const task = await this.taskService.markComplete(taskId);
+      const task = await this.taskService.getTaskById(taskId);
+
+      if (!task) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Tugas Tidak Ditemukan',
+            description: `Tidak ada tugas dengan ID \`${taskId}\``,
+            color: 0xED4245
+          }
+        };
+      }
+
+      // Store confirmation data
+      EditConfirmationService.setPending(userId, 'tandai_selesai', taskId, {
+        judul: task.judul,
+        status: task.status
+      });
+
+      const deadline = new Date(task.deadline);
+      const formattedDeadline = deadline.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
       return {
         success: true,
         message: '',
         embedData: {
-          title: '✅ Tugas Selesai!',
-          description: `**${task.judul}**\n\n🎉 Status: **Selesai**`,
-          color: 0x57F287
+          title: '✅ Tandai Tugas Selesai',
+          description: `Apakah kamu yakin ingin menandai tugas ini sebagai selesai?`,
+          color: 0x57F287,
+          fields: [
+            { name: '📝 Judul', value: task.judul, inline: false },
+            { name: '📅 Deadline', value: formattedDeadline, inline: true },
+            { name: '📚 Mata Pelajaran', value: task.mata_pelajaran, inline: true },
+            { name: '📋 Status', value: task.status, inline: true },
+          ]
+        },
+        data: {
+          showDeleteButtons: true,
+          editType: 'tandai_selesai'
         }
       };
     } catch (error) {
-      logger.error('Failed to mark task complete', error as Error);
+      logger.error('Failed to preview task for completion', error as Error);
       return {
         success: false,
         message: '',
         embedData: {
-          title: '❌ Gagal Menandai Tugas Selesai',
-          description: 'Pastikan task_id benar.',
+          title: '❌ Gagal Memuat Tugas',
+          description: 'Pastikan ID tugas benar.',
           color: 0xED4245
         }
       };
@@ -902,100 +943,11 @@ export class AdminCommandHandler {
   }
 
   /**
-   * Handle /edit_jadwal command
-   * Format: /edit_jadwal | schedule_id | field | value
+   * Handle /edit_jadwal command — Show preview + Edit/Cancel buttons
+   * Format: /edit_jadwal [id]
    * Requirement: 3.2
    */
-  async handleEditJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
-    try {
-      if (args.length < 3) {
-        return {
-          success: false,
-          message: '',
-          embedData: {
-            title: '❌ Format Salah',
-            description: 'Gunakan: `/edit_jadwal | schedule_id | field | value`\n\n**Field:** `jam_mulai`, `jam_selesai`, `mata_pelajaran`, `ruangan`, `nama_guru`',
-            color: 0xED4245
-          }
-        };
-      }
-
-      const [scheduleId, field, value] = args;
-
-      const validFields = ['jam_mulai', 'jam_selesai', 'mata_pelajaran', 'ruangan', 'nama_guru'];
-      if (!validFields.includes(field)) {
-        return {
-          success: false,
-          message: '',
-          embedData: {
-            title: '❌ Field Tidak Valid',
-            description: `Gunakan: ${validFields.map(f => `\`${f}\``).join(', ')}`,
-            color: 0xED4245
-          }
-        };
-      }
-
-      if ((field === 'jam_mulai' || field === 'jam_selesai') && !Validator.isValidTime(value)) {
-        return {
-          success: false,
-          message: '',
-          embedData: {
-            title: '❌ Format Waktu Salah',
-            description: 'Gunakan format HH:MM',
-            color: 0xED4245
-          }
-        };
-      }
-
-      // Resolve mata_pelajaran if editing that field
-      let resolvedValue = value;
-      if (field === 'mata_pelajaran') {
-        const resolved = SubjectResolver.resolve(value);
-        if (!resolved) {
-          return {
-            success: false,
-            message: '',
-            embedData: {
-              title: '❌ Mata Pelajaran Tidak Dikenali',
-              description: `"${value}" tidak ditemukan.\n\n**Mata pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
-              color: 0xED4245
-            }
-          };
-        }
-        resolvedValue = resolved;
-      }
-
-      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, resolvedValue);
-
-      return {
-        success: true,
-        message: '',
-        embedData: {
-          title: '✅ Jadwal Berhasil Diupdate!',
-          description: `**${schedule.mata_pelajaran}**\n\nField \`${field}\` diubah menjadi: **${value}**`,
-          color: 0x57F287
-        }
-      };
-    } catch (error) {
-      logger.error('Failed to edit schedule', error as Error);
-      return {
-        success: false,
-        message: '',
-        embedData: {
-          title: '❌ Gagal Mengupdate Jadwal',
-          description: 'Pastikan schedule_id benar.',
-          color: 0xED4245
-        }
-      };
-    }
-  }
-
-  /**
-   * Handle /hapus_jadwal command
-   * Format: /hapus_jadwal | schedule_id
-   * Requirement: 3.3
-   */
-  async handleHapusJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleEditJadwal(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
       if (args.length < 1) {
         return {
@@ -1003,32 +955,65 @@ export class AdminCommandHandler {
           message: '',
           embedData: {
             title: '❌ Format Salah',
-            description: 'Gunakan: `/hapus_jadwal | schedule_id`',
+            description: 'Gunakan: `/edit_jadwal [id]`',
             color: 0xED4245
           }
         };
       }
 
       const [scheduleId] = args;
-      await this.scheduleService.deleteSchedule(scheduleId);
+      const schedule = await this.scheduleService.getScheduleById(scheduleId);
+
+      if (!schedule) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Jadwal Tidak Ditemukan',
+            description: `Tidak ada jadwal dengan ID \`${scheduleId}\``,
+            color: 0xED4245
+          }
+        };
+      }
+
+      // Store confirmation data
+      EditConfirmationService.setPending(userId, 'edit_jadwal', scheduleId, {
+        jam_mulai: schedule.jam_mulai,
+        jam_selesai: schedule.jam_selesai,
+        mata_pelajaran: schedule.mata_pelajaran,
+        ruangan: schedule.ruangan,
+        nama_guru: schedule.nama_guru
+      });
 
       return {
         success: true,
         message: '',
         embedData: {
-          title: '✅ Jadwal Berhasil Dihapus!',
-          description: 'Jadwal telah dihapus dari database.',
-          color: 0x57F287
+          title: '✏️ Edit Jadwal',
+          description: `Berikut detail jadwal yang akan diedit:`,
+          color: 0x5865F2,
+          fields: [
+            { name: '📅 Hari', value: schedule.hari, inline: true },
+            { name: '🕐 Jam Mulai', value: schedule.jam_mulai, inline: true },
+            { name: '🕑 Jam Selesai', value: schedule.jam_selesai, inline: true },
+            { name: '📚 Mata Pelajaran', value: schedule.mata_pelajaran, inline: true },
+            { name: '🏫 Ruangan', value: schedule.ruangan, inline: true },
+            { name: '👨‍🏫 Guru', value: schedule.nama_guru, inline: true },
+          ]
+        },
+        data: {
+          showEditButtons: true,
+          editType: 'edit_jadwal'
         }
       };
     } catch (error) {
-      logger.error('Failed to delete schedule', error as Error);
+      logger.error('Failed to preview schedule for edit', error as Error);
       return {
         success: false,
         message: '',
         embedData: {
-          title: '❌ Gagal Menghapus Jadwal',
-          description: 'Pastikan schedule_id benar.',
+          title: '❌ Gagal Memuat Jadwal',
+          description: 'Pastikan ID jadwal benar.',
           color: 0xED4245
         }
       };
@@ -1036,73 +1021,153 @@ export class AdminCommandHandler {
   }
 
   /**
-   * Handle /ganti_jadwal command
-   * Format: /ganti_jadwal | schedule_id | field | value | alasan
-   * Requirement: 3.4
+   * Handle /hapus_jadwal command — Show preview + Confirm/Cancel buttons
+   * Format: /hapus_jadwal [id]
+   * Requirement: 3.3
    */
-  async handleGantiJadwal(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+  async handleHapusJadwal(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
-      if (args.length < 4) {
+      if (args.length < 1) {
         return {
           success: false,
           message: '',
           embedData: {
             title: '❌ Format Salah',
-            description: 'Gunakan: `/ganti_jadwal | schedule_id | field | value | alasan`\n\n**Contoh:**\n`/ganti_jadwal | 123abc | ruangan | R.202 | Ruangan lama sedang renovasi`',
+            description: 'Gunakan: `/hapus_jadwal [id]`',
             color: 0xED4245
           }
         };
       }
 
-      const [scheduleId, field, value, alasan] = args;
+      const [scheduleId] = args;
+      const schedule = await this.scheduleService.getScheduleById(scheduleId);
 
-      // Resolve mata_pelajaran if editing that field
-      let resolvedValue = value;
-      if (field === 'mata_pelajaran') {
-        const resolved = SubjectResolver.resolve(value);
-        if (!resolved) {
-          return {
-            success: false,
-            message: '',
-            embedData: {
-              title: '❌ Mata Pelajaran Tidak Dikenali',
-              description: `"${value}" tidak ditemukan.\n\n**Mata pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
-              color: 0xED4245
-            }
-          };
-        }
-        resolvedValue = resolved;
+      if (!schedule) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Jadwal Tidak Ditemukan',
+            description: `Tidak ada jadwal dengan ID \`${scheduleId}\``,
+            color: 0xED4245
+          }
+        };
       }
 
-      // Update schedule
-      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, resolvedValue);
-
-      // Create announcement
-      const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      await this.announcementService.createAnnouncement({
-        tanggal: DateTimeHelper.now(),
-        judul: `Perubahan Jadwal: ${schedule.mata_pelajaran}`,
-        tipe: 'perubahan_jadwal',
-        keterangan: `${field} diubah menjadi ${value}. Alasan: ${alasan}`
+      // Store confirmation data
+      EditConfirmationService.setPending(userId, 'hapus_jadwal', scheduleId, {
+        hari: schedule.hari,
+        mata_pelajaran: schedule.mata_pelajaran,
+        jam_mulai: schedule.jam_mulai,
+        jam_selesai: schedule.jam_selesai
       });
 
       return {
         success: true,
         message: '',
         embedData: {
-          title: '✅ Jadwal Berhasil Diubah!',
-          description: `**${schedule.mata_pelajaran}**\n\n📝 **${field}:** ${value}\n💬 **Alasan:** ${alasan}\n\n✨ Pengumuman telah dibuat`,
-          color: 0x57F287
+          title: '🗑️ Hapus Jadwal',
+          description: `Apakah kamu yakin ingin menghapus jadwal ini?`,
+          color: 0xED4245,
+          fields: [
+            { name: '📅 Hari', value: schedule.hari, inline: true },
+            { name: '🕐 Jam', value: `${schedule.jam_mulai} - ${schedule.jam_selesai}`, inline: true },
+            { name: '📚 Mata Pelajaran', value: schedule.mata_pelajaran, inline: true },
+            { name: '🏫 Ruangan', value: schedule.ruangan, inline: true },
+            { name: '👨‍🏫 Guru', value: schedule.nama_guru, inline: true },
+          ]
+        },
+        data: {
+          showDeleteButtons: true,
+          editType: 'hapus_jadwal'
         }
       };
     } catch (error) {
-      logger.error('Failed to change schedule', error as Error);
+      logger.error('Failed to preview schedule for delete', error as Error);
       return {
         success: false,
         message: '',
         embedData: {
-          title: '❌ Gagal Mengubah Jadwal',
-          description: 'Pastikan schedule_id benar.',
+          title: '❌ Gagal Memuat Jadwal',
+          description: 'Pastikan ID jadwal benar.',
+          color: 0xED4245
+        }
+      };
+    }
+  }
+
+  /**
+   * Handle /ganti_jadwal command — Show preview + Edit/Cancel buttons
+   * Format: /ganti_jadwal [id]
+   * Requirement: 3.4
+   */
+  async handleGantiJadwal(args: string[], userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (args.length < 1) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Format Salah',
+            description: 'Gunakan: `/ganti_jadwal [id]`',
+            color: 0xED4245
+          }
+        };
+      }
+
+      const [scheduleId] = args;
+      const schedule = await this.scheduleService.getScheduleById(scheduleId);
+
+      if (!schedule) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Jadwal Tidak Ditemukan',
+            description: `Tidak ada jadwal dengan ID \`${scheduleId}\``,
+            color: 0xED4245
+          }
+        };
+      }
+
+      // Store confirmation data
+      EditConfirmationService.setPending(userId, 'ganti_jadwal', scheduleId, {
+        jam_mulai: schedule.jam_mulai,
+        jam_selesai: schedule.jam_selesai,
+        mata_pelajaran: schedule.mata_pelajaran,
+        ruangan: schedule.ruangan,
+        nama_guru: schedule.nama_guru
+      });
+
+      return {
+        success: true,
+        message: '',
+        embedData: {
+          title: '🔄 Ganti Jadwal',
+          description: `Berikut detail jadwal yang akan diubah:\n*(Akan membuat pengumuman perubahan)*`,
+          color: 0xFEE75C,
+          fields: [
+            { name: '📅 Hari', value: schedule.hari, inline: true },
+            { name: '🕐 Jam Mulai', value: schedule.jam_mulai, inline: true },
+            { name: '🕑 Jam Selesai', value: schedule.jam_selesai, inline: true },
+            { name: '📚 Mata Pelajaran', value: schedule.mata_pelajaran, inline: true },
+            { name: '🏫 Ruangan', value: schedule.ruangan, inline: true },
+            { name: '👨‍🏫 Guru', value: schedule.nama_guru, inline: true },
+          ]
+        },
+        data: {
+          showEditButtons: true,
+          editType: 'ganti_jadwal'
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to preview schedule for change', error as Error);
+      return {
+        success: false,
+        message: '',
+        embedData: {
+          title: '❌ Gagal Memuat Jadwal',
+          description: 'Pastikan ID jadwal benar.',
           color: 0xED4245
         }
       };
