@@ -801,9 +801,12 @@ export class ButtonInteractionHandler {
         return;
       }
 
+      // Defer update immediately to prevent "Unknown interaction"
+      await interaction.deferUpdate();
+
       const pending = EditConfirmationService.getPending(userId);
       if (!pending) {
-        await interaction.update({
+        await interaction.editReply({
           content: '⏱️ Sesi konfirmasi telah berakhir.',
           embeds: [],
           components: []
@@ -814,7 +817,7 @@ export class ButtonInteractionHandler {
       // Execute action based on type
       if (type === 'hapus_tugas') {
         await this.taskService.deleteTask(pending.itemId);
-        await interaction.update({
+        await interaction.editReply({
           content: '✅ Tugas berhasil dihapus.',
           embeds: [],
           components: []
@@ -826,13 +829,13 @@ export class ButtonInteractionHandler {
           .setDescription(`**${task.judul}**\n\n🎉 Status: **Selesai**`)
           .setColor(0x57F287);
 
-        await interaction.update({
+        await interaction.editReply({
           embeds: [finishEmbed],
           components: []
         });
       } else if (type === 'hapus_jadwal') {
         await this.scheduleService.deleteSchedule(pending.itemId);
-        await interaction.update({
+        await interaction.editReply({
           content: '✅ Jadwal berhasil dihapus.',
           embeds: [],
           components: []
@@ -840,14 +843,11 @@ export class ButtonInteractionHandler {
       } else if (type === 'edit_tugas') {
         // Apply changes from newData
         if (!pending.newData) {
-          await interaction.reply({ content: '❌ Data perubahan tidak ditemukan.', ephemeral: true });
+          await interaction.editReply({ content: '❌ Data perubahan tidak ditemukan.' });
           return;
         }
 
         // We need to apply all fields. TaskService.updateTask updates ONE field.
-        // We need updateTaskBatch or call updateTask multiple times.
-        // Or implement updateTaskDetails in TaskService.
-        // For now, let's call updateTask for each field that changed.
         const keys = Object.keys(pending.newData);
         for (const key of keys) {
           if (key === 'deadline') {
@@ -857,21 +857,19 @@ export class ButtonInteractionHandler {
           }
         }
 
-        await interaction.update({
+        await interaction.editReply({
           content: '✅ Tugas berhasil diupdate.',
           embeds: [],
           components: []
         });
       } else if (type === 'edit_jadwal' || type === 'ganti_jadwal') {
         if (!pending.newData) {
-          await interaction.reply({ content: '❌ Data perubahan tidak ditemukan.', ephemeral: true });
+          await interaction.editReply({ content: '❌ Data perubahan tidak ditemukan.' });
           return;
         }
 
         const keys = Object.keys(pending.newData);
         for (const key of keys) {
-          // Skip 'alasan'/field/value if it was from ganti_jadwal original logic (but we reverted it)
-          // But here newData comes from MODAL, so it has mapel, ruangan, etc.
           await this.scheduleService.updateSchedule(pending.itemId, key, pending.newData[key]);
         }
 
@@ -888,7 +886,7 @@ export class ButtonInteractionHandler {
           });
         }
 
-        await interaction.update({
+        await interaction.editReply({
           content: '✅ Jadwal berhasil diupdate.',
           embeds: [],
           components: []
@@ -899,10 +897,15 @@ export class ButtonInteractionHandler {
 
     } catch (error) {
       logger.error('Failed to handle confirm button', error as Error);
-      await interaction.reply({
-        content: '❌ Terjadi kesalahan saat memproses konfirmasi.',
-        ephemeral: true
-      });
+      try {
+        await interaction.editReply({
+          content: '❌ Terjadi kesalahan saat memproses konfirmasi.',
+          embeds: [],
+          components: []
+        });
+      } catch (e) {
+        logger.error('Failed to send error message', e as Error);
+      }
     }
   }
 
@@ -922,9 +925,11 @@ export class ButtonInteractionHandler {
         return;
       }
 
+      await interaction.deferUpdate();
+
       EditConfirmationService.clear(userId);
 
-      await interaction.update({
+      await interaction.editReply({
         content: '❌ Aksi dibatalkan.',
         embeds: [],
         components: []

@@ -19,7 +19,7 @@ export interface ITask extends Document {
   created_by: string;
   created_at: Date;
   updated_at: Date;
-  
+
   // Message tracking for auto-edit feature
   sent_messages?: Array<{
     platform: 'whatsapp' | 'discord';
@@ -29,7 +29,7 @@ export interface ITask extends Document {
     last_edited?: Date;
     edit_count: number;
   }>;
-  
+
   // Change tracking for Notion sync
   last_synced_from_notion?: Date;
   notion_last_edited?: Date;
@@ -53,14 +53,18 @@ const TaskSchema = new Schema<ITask>({
     type: Date,
     required: [true, 'Deadline wajib diisi'],
     validate: {
-      validator: function(v: Date) {
-        // Deadline must be in the future (at least 1 hour from now)
-        const { DateTimeHelper } = require('../utils/DateTimeHelper');
-        const oneHourFromNow = DateTimeHelper.now();
-        oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
-        return v >= oneHourFromNow;
+      validator: function (v: Date) {
+        // Validation only applies to new tasks or when deadline is modified
+        if (this.isNew || this.isModified('deadline')) {
+          const { DateTimeHelper } = require('../utils/DateTimeHelper');
+          const now = DateTimeHelper.now();
+          // Allow leeway of 5 minutes for latency
+          now.setMinutes(now.getMinutes() - 5);
+          return v >= now;
+        }
+        return true;
       },
-      message: 'Deadline harus minimal 1 jam dari sekarang'
+      message: 'Deadline tidak boleh di masa lalu'
     }
   },
   mata_pelajaran: {
@@ -164,9 +168,9 @@ TaskSchema.index({ deadline: 1 });
 TaskSchema.index({ status: 1 });
 
 // Update updated_at on save
-TaskSchema.pre('save', function(next) {
+TaskSchema.pre('save', function (next) {
   this.updated_at = new Date();
-  
+
   // Normalize mata_pelajaran: capitalize first letter
   if (this.mata_pelajaran) {
     this.mata_pelajaran = this.mata_pelajaran
@@ -174,7 +178,7 @@ TaskSchema.pre('save', function(next) {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   }
-  
+
   next();
 });
 
