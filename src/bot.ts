@@ -966,31 +966,6 @@ class MultiPlatformBot {
     }
   }
 
-  /**
-   * Format embed data to WhatsApp plain text
-   */
-  private formatEmbedForWhatsApp(embedData: any): string {
-    let message = '';
-
-    // Add title
-    if (embedData.title) {
-      message += `*${embedData.title}*\n\n`;
-    }
-
-    // Add description
-    if (embedData.description) {
-      message += `${embedData.description}\n`;
-    }
-
-    // Add fields
-    if (embedData.fields && embedData.fields.length > 0) {
-      embedData.fields.forEach((field: any) => {
-        message += `\n*${field.name}*\n${field.value}\n`;
-      });
-    }
-
-    return message;
-  }
 
   /**
    * Start bot
