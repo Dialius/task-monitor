@@ -33,7 +33,7 @@ export class ActivityStatusService {
   private taskService: TaskService;
   private config: ActivityConfig;
   private intervalId?: NodeJS.Timeout;
-  
+
   // Random rotation state
   private templatesByType: Map<number, ActivityTemplate[]> = new Map();
   private currentPlaylist: ActivityTemplate[] = [];
@@ -44,7 +44,7 @@ export class ActivityStatusService {
     this.client = client;
     this.taskService = taskService;
     this.config = config;
-    
+
     // Initialize random rotation system
     this.initializeRandomRotation();
   }
@@ -57,11 +57,11 @@ export class ActivityStatusService {
     // Group templates by activity type
     this.config.activities.forEach(template => {
       const type = template.type !== undefined ? template.type : 3; // Default to WATCHING
-      
+
       if (!this.templatesByType.has(type)) {
         this.templatesByType.set(type, []);
       }
-      
+
       this.templatesByType.get(type)!.push(template);
     });
 
@@ -89,7 +89,7 @@ export class ActivityStatusService {
    */
   private generateNewPlaylist(): void {
     this.roundNumber++;
-    
+
     // Create shuffled copies of each type group
     const shuffledGroups = new Map<number, ActivityTemplate[]>();
     this.templatesByType.forEach((templates, type) => {
@@ -132,7 +132,7 @@ export class ActivityStatusService {
       // Find best type to use (not same as last, prefer higher count)
       let selectedType: number;
       const differentTypes = typesByCount.filter(([type, _]) => type !== lastType);
-      
+
       if (differentTypes.length > 0) {
         // Pick randomly from top types (weighted towards higher counts)
         const topTypes = differentTypes.slice(0, Math.min(3, differentTypes.length));
@@ -201,7 +201,7 @@ export class ActivityStatusService {
       interval: this.config.rotationInterval,
       activitiesCount: this.config.activities.length
     });
-    
+
     console.log(`✅ Activity status rotation started`);
     console.log(`   → Interval: ${this.config.rotationInterval} minutes`);
     console.log(`   → Total activities: ${this.config.activities.length}`);
@@ -246,13 +246,8 @@ export class ActivityStatusService {
       // Get status from config (default: online)
       const status = this.config.status || 'online';
 
-      // Set activity using setActivity method for better compatibility
-      await this.client.user.setActivity(statusText, { 
-        type: activityType 
-      });
-
-      // Set presence status
-      await this.client.user.setPresence({
+      // Set presence status and activity in one go
+      this.client.user.setPresence({
         status: status,
         activities: [{
           name: statusText,
@@ -262,7 +257,7 @@ export class ActivityStatusService {
 
       // Get activity type name for logging
       const activityTypeName = this.getActivityTypeName(activityType);
-      
+
       logger.info('Activity status updated', {
         round: this.roundNumber,
         type: activityType,
@@ -290,9 +285,9 @@ export class ActivityStatusService {
    */
   private async processActivityText(activity: ActivityTemplate): Promise<string> {
     // Check if text contains new template variables
-    const hasNewVariables = activity.text.includes('{total}') || 
-                           activity.text.includes('{active}') || 
-                           activity.text.includes('{nearest}');
+    const hasNewVariables = activity.text.includes('{total}') ||
+      activity.text.includes('{active}') ||
+      activity.text.includes('{nearest}');
 
     if (hasNewVariables) {
       return await this.processNewTemplateVariables(activity.text);
@@ -323,7 +318,7 @@ export class ActivityStatusService {
           break;
 
         case 'tasks_urgent':
-          const tasksUrgent = await this.taskService.getTasks({ 
+          const tasksUrgent = await this.taskService.getTasks({
             status: 'aktif',
             prioritas: 'urgent'
           });
@@ -350,7 +345,7 @@ export class ActivityStatusService {
     try {
       // Import DateTimeHelper for proper timezone handling
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      
+
       let result = text;
 
       // Get all active tasks
@@ -412,7 +407,7 @@ export class ActivityStatusService {
           });
 
           const nearestTask = sortedTasks[0];
-          
+
           // Format deadline using DateTimeHelper
           const formattedDeadline = DateTimeHelper.formatShortDate(nearestTask.deadline);
 
@@ -460,13 +455,13 @@ export class ActivityStatusService {
    */
   updateConfig(config: Partial<ActivityConfig>): void {
     this.config = { ...this.config, ...config };
-    
+
     // Reinitialize random rotation if activities changed
     if (config.activities) {
       this.templatesByType.clear();
       this.initializeRandomRotation();
     }
-    
+
     // Restart if running
     if (this.intervalId) {
       this.stop();
