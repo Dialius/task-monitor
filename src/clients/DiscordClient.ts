@@ -18,6 +18,8 @@ import {
 import { getLogger } from '../utils/Logger';
 import { ActivityStatusService, ActivityConfig } from '../services/ActivityStatusService';
 import { TaskService } from '../services/TaskService';
+import { ScheduleService } from '../services/ScheduleService';
+import { AnnouncementService } from '../services/AnnouncementService';
 import { DiscordConfigManager } from '../services/discord/DiscordConfigManager';
 import { RateLimiter } from '../services/discord/RateLimiter';
 import { TaskMonitorService } from '../services/discord/TaskMonitorService';
@@ -55,7 +57,7 @@ export class DiscordClient {
 
   constructor(config: DiscordConfig) {
     this.config = config;
-    
+
     // Initialize Discord client with required intents
     this.client = new Client({
       intents: [
@@ -189,32 +191,32 @@ export class DiscordClient {
    * Requirement: 17.5
    */
   async registerSlashCommands(): Promise<void> {
-      try {
-        const { getSlashCommands } = await import('../config/slashCommands');
-        const commands = getSlashCommands();
+    try {
+      const { getSlashCommands } = await import('../config/slashCommands');
+      const commands = getSlashCommands();
 
-        const rest = new REST({ version: '10' }).setToken(this.config.token);
+      const rest = new REST({ version: '10' }).setToken(this.config.token);
 
-        const slashCommands = commands.map(cmd => cmd.data.toJSON());
+      const slashCommands = commands.map(cmd => cmd.data.toJSON());
 
-        logger.info('Registering Discord slash commands', {
-          count: slashCommands.length
-        });
+      logger.info('Registering Discord slash commands', {
+        count: slashCommands.length
+      });
 
-        console.log(`   → Registering ${slashCommands.length} slash commands...`);
+      console.log(`   → Registering ${slashCommands.length} slash commands...`);
 
-        await rest.put(
-          Routes.applicationGuildCommands(this.config.clientId, this.config.guildId),
-          { body: slashCommands }
-        );
+      await rest.put(
+        Routes.applicationGuildCommands(this.config.clientId, this.config.guildId),
+        { body: slashCommands }
+      );
 
-        logger.info('Slash commands registered successfully');
-        console.log(`   ✓ ${slashCommands.length} slash commands registered`);
-      } catch (error) {
-        logger.error('Failed to register slash commands', error as Error);
-        throw error;
-      }
+      logger.info('Slash commands registered successfully');
+      console.log(`   ✓ ${slashCommands.length} slash commands registered`);
+    } catch (error) {
+      logger.error('Failed to register slash commands', error as Error);
+      throw error;
     }
+  }
 
 
   /**
@@ -226,7 +228,7 @@ export class DiscordClient {
   ): void {
     this.client.on('interactionCreate', async (interaction) => {
       if (!interaction.isChatInputCommand()) return;
-      
+
       try {
         await handler(interaction);
       } catch (error) {
@@ -248,7 +250,7 @@ export class DiscordClient {
     this.client.on('messageCreate', async (message) => {
       // Ignore bot messages
       if (message.author.bot) return;
-      
+
       // Only process messages starting with /
       if (!message.content.startsWith('/')) return;
 
@@ -307,14 +309,14 @@ export class DiscordClient {
   setupActivityStatus(taskService: TaskService): void {
     // Initialize Discord Config Manager to get activity configuration
     const configManager = new DiscordConfigManager();
-    
+
     // Get bot status from environment variable
     const botStatus = (process.env.DISCORD_BOT_STATUS || 'online') as 'online' | 'idle' | 'dnd' | 'invisible';
-    
+
     // Validate status
     const validStatuses = ['online', 'idle', 'dnd', 'invisible'];
     const status = validStatuses.includes(botStatus) ? botStatus : 'online';
-    
+
     const activityConfig: ActivityConfig = {
       enabled: configManager.isActivityEnabled(),
       rotationInterval: configManager.getActivityInterval() / (60 * 1000), // Convert ms to minutes
@@ -339,7 +341,7 @@ export class DiscordClient {
       templatesCount: activityConfig.activities.length,
       status: status
     });
-    
+
     console.log(`   → Bot Status: ${status}`);
   }
 
@@ -347,7 +349,11 @@ export class DiscordClient {
    * Setup Task Monitor feature
    * Requirements: 4.6, 7.8, 7.9, 11.1, 11.2, 11.3
    */
-  async setupTaskMonitor(taskService: TaskService): Promise<void> {
+  async setupTaskMonitor(
+    taskService: TaskService,
+    scheduleService: ScheduleService,
+    announcementService: AnnouncementService
+  ): Promise<void> {
     try {
       logger.info('Setting up Task Monitor feature');
 
@@ -386,6 +392,8 @@ export class DiscordClient {
       // Initialize Button Interaction Handler
       this.buttonInteractionHandler = new ButtonInteractionHandler(
         taskService,
+        scheduleService,
+        announcementService,
         this.discordConfigManager,
         this.rateLimiter
       );

@@ -11,6 +11,8 @@ import { RateLimiter } from './RateLimiter';
 import { TaskMonitorService } from './TaskMonitorService';
 import { ButtonInteractionHandler } from './ButtonInteractionHandler';
 import { TaskService } from '../TaskService';
+import { ScheduleService } from '../ScheduleService';
+import { AnnouncementService } from '../AnnouncementService';
 import { getLogger } from '../../utils/Logger';
 
 const logger = getLogger();
@@ -18,17 +20,26 @@ const logger = getLogger();
 export class DiscordTaskMonitorIntegration {
   private readonly client: Client;
   private readonly taskService: TaskService;
-  
+  private readonly scheduleService: ScheduleService;
+  private readonly announcementService: AnnouncementService;
+
   private configManager!: DiscordConfigManager;
   private rateLimiter!: RateLimiter;
   private taskMonitorService!: TaskMonitorService;
   private buttonHandler!: ButtonInteractionHandler;
-  
+
   private isInitialized = false;
 
-  constructor(client: Client, taskService: TaskService) {
+  constructor(
+    client: Client,
+    taskService: TaskService,
+    scheduleService: ScheduleService,
+    announcementService: AnnouncementService
+  ) {
     this.client = client;
     this.taskService = taskService;
+    this.scheduleService = scheduleService;
+    this.announcementService = announcementService;
   }
 
   /**
@@ -37,47 +48,49 @@ export class DiscordTaskMonitorIntegration {
   async initialize(): Promise<void> {
     try {
       logger.info('Initializing Discord Task Monitor Integration');
-      
+
       // Step 1: Load and validate configuration
       this.configManager = new DiscordConfigManager();
-      
+
       const validation = this.configManager.validateConfig();
       if (!validation.valid) {
         logger.error('Discord configuration validation failed', new Error(validation.errors.join(', ')));
         throw new Error(`Discord configuration invalid: ${validation.errors.join(', ')}`);
       }
-      
+
       logger.info('Discord configuration validated successfully');
-      
+
       // Step 2: Initialize services
       this.rateLimiter = new RateLimiter(
         this.configManager.getGeneralRateLimit(),
         this.configManager.getCommandRateLimit()
       );
-      
+
       this.taskMonitorService = new TaskMonitorService(
         this.client,
         this.taskService,
         this.configManager
       );
-      
+
       this.buttonHandler = new ButtonInteractionHandler(
         this.taskService,
+        this.scheduleService,
+        this.announcementService,
         this.configManager,
         this.rateLimiter
       );
-      
+
       logger.info('All Discord Task Monitor services initialized');
-      
+
       // Step 3: Register button interaction listeners
       this.registerButtonInteractionListeners();
-      
+
       // Step 4: Initialize Task Monitor (create/update embed)
       await this.taskMonitorService.initialize();
-      
+
       // Step 5: Start auto-update
       this.taskMonitorService.startAutoUpdate();
-      
+
       this.isInitialized = true;
       logger.info('Discord Task Monitor Integration initialized successfully');
     } catch (error) {
@@ -92,19 +105,19 @@ export class DiscordTaskMonitorIntegration {
   private registerButtonInteractionListeners(): void {
     this.client.on('interactionCreate', async (interaction) => {
       if (!interaction.isButton()) return;
-      
+
       // Only handle Task Monitor buttons
       if (!['tasks_week', 'tasks_tomorrow'].includes(interaction.customId)) {
         return;
       }
-      
+
       try {
         await this.buttonHandler.handleButtonClick(interaction as ButtonInteraction);
       } catch (error) {
         logger.error('Error handling button interaction:', error as Error);
       }
     });
-    
+
     logger.info('Button interaction listeners registered');
   }
 
@@ -114,11 +127,11 @@ export class DiscordTaskMonitorIntegration {
   async shutdown(): Promise<void> {
     try {
       logger.info('Shutting down Discord Task Monitor Integration');
-      
+
       if (this.taskMonitorService) {
         this.taskMonitorService.stopAutoUpdate();
       }
-      
+
       this.isInitialized = false;
       logger.info('Discord Task Monitor Integration shut down successfully');
     } catch (error) {
@@ -161,7 +174,7 @@ export class DiscordTaskMonitorIntegration {
     if (!this.isInitialized) {
       throw new Error('Discord Task Monitor Integration not initialized');
     }
-    
+
     await this.taskMonitorService.updateEmbed();
   }
 }

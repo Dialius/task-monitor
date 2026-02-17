@@ -28,6 +28,10 @@ import { BaileysClient } from './clients/BaileysClient';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
+import { ButtonInteractionHandler } from './services/discord/ButtonInteractionHandler';
+import { EditConfirmationService } from './services/discord/EditConfirmationService';
+import { DiscordConfigManager } from './services/discord/DiscordConfigManager';
+import { RateLimiter } from './services/discord/RateLimiter';
 
 // Load environment variables
 dotenv.config();
@@ -293,11 +297,37 @@ class MultiPlatformBot {
 
     // Setup Task Monitor feature
     try {
-      await this.discordClient.setupTaskMonitor(this.taskService);
+      await this.discordClient.setupTaskMonitor(
+        this.taskService,
+        this.scheduleService,
+        this.announcementService
+      );
     } catch (error) {
       this.logger.error('Failed to setup Task Monitor, continuing without it', error as Error);
       console.log('   ⚠ Task Monitor disabled due to configuration error');
     }
+
+    // Initialize Button Interaction Handler
+    const discordConfigManager = new DiscordConfigManager();
+    const rateLimiter = new RateLimiter(
+      discordConfigManager.getGeneralRateLimit(),
+      discordConfigManager.getCommandRateLimit()
+    );
+
+    const buttonHandler = new ButtonInteractionHandler(
+      this.taskService,
+      this.scheduleService,
+      this.announcementService,
+      discordConfigManager,
+      rateLimiter
+    );
+
+    // Register button interaction listener
+    this.discordClient.getClient().on('interactionCreate', async (interaction) => {
+      if (interaction.isButton()) {
+        await buttonHandler.handleButtonClick(interaction);
+      }
+    });
 
     this.discordAdapter = new DiscordAdapter(this.discordClient.getClient());
 
@@ -568,12 +598,14 @@ class MultiPlatformBot {
     this.discordClient.getClient().on('interactionCreate', async (interaction) => {
       if (!interaction.isModalSubmit()) return;
 
+      const userId = interaction.user.id;
+
+      // Handle task revision modal (add_tugas_cepat flow)
       if (interaction.customId === 'task_revise_modal') {
         try {
           await interaction.deferReply({ ephemeral: true });
 
           const { TaskConfirmationService } = await import('./services/discord/TaskConfirmationService');
-          const userId = interaction.user.id;
 
           // Get pending confirmation
           const pending = TaskConfirmationService.getPendingConfirmation(userId);
@@ -701,6 +733,89 @@ class MultiPlatformBot {
           } catch (e) {
             // Ignore if already replied
           }
+        }
+      }
+
+      // Handle generic edit modal (edit_tugas, edit_jadwal, ganti_jadwal)
+      if (interaction.customId.startsWith('modal_edit_')) {
+        try {
+          // Defer update to allow processing
+          await interaction.deferUpdate();
+
+          const parts = interaction.customId.split('_');
+          // customId: modal_edit_editType
+          // parts: ['modal', 'edit', ...editTypeParts]
+          const editType = parts.slice(2).join('_');
+
+          const pending = EditConfirmationService.getPending(userId);
+          if (!pending) {
+            await interaction.followUp({ content: '⏱️ Sesi edit telah berakhir / expired.', ephemeral: true });
+            return;
+          }
+
+          // Extract fields based on editType
+          const newData: Record<string, any> = {};
+
+          if (editType === 'edit_tugas') {
+            newData.judul = interaction.fields.getTextInputValue('judul');
+            newData.mata_pelajaran = interaction.fields.getTextInputValue('mata_pelajaran');
+            newData.deskripsi = interaction.fields.getTextInputValue('deskripsi');
+            const deadlineStr = interaction.fields.getTextInputValue('deadline');
+            // validation?
+            if (deadlineStr) {
+              // Try parse
+              const d = new Date(deadlineStr);
+              if (!isNaN(d.getTime())) {
+                newData.deadline = d.toISOString();
+              }
+            }
+            newData.tipe = interaction.fields.getTextInputValue('tipe');
+          } else if (editType === 'edit_jadwal' || editType === 'ganti_jadwal') {
+            newData.mata_pelajaran = interaction.fields.getTextInputValue('mata_pelajaran');
+            newData.ruangan = interaction.fields.getTextInputValue('ruangan');
+            newData.jam_mulai = interaction.fields.getTextInputValue('jam_mulai');
+            newData.jam_selesai = interaction.fields.getTextInputValue('jam_selesai');
+            newData.nama_guru = interaction.fields.getTextInputValue('nama_guru');
+          }
+
+          // Store new data
+          EditConfirmationService.setNewData(userId, newData);
+
+          // Show confirmation preview
+          const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+
+          // Helper to format diff
+          const changes = EditConfirmationService.formatDiff(pending.originalData, newData);
+
+          const embed = new EmbedBuilder()
+            .setTitle('✅ Konfirmasi Perubahan')
+            .setDescription(`Periksa kembali data sebelum menyimpan:\n\n${changes}`)
+            .setColor(0x57F287);
+
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`btn_confirm_${userId}_${editType}`)
+              .setLabel('💾 Simpan / Konfirmasi')
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId(`btn_edit_${userId}_${editType}`) // Clicking this opens the modal again
+              .setLabel('✏️ Revisi')
+              .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+              .setCustomId(`btn_cancel_${userId}`)
+              .setLabel('❌ Batal')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          // Edit the original message (which had the "Edit" button)
+          await interaction.editReply({
+            embeds: [embed],
+            components: [row]
+          });
+
+        } catch (error) {
+          this.logger.error('Failed to handle edit modal submission', error as Error);
+          await interaction.followUp({ content: '❌ Terjadi kesalahan saat memproses data edit.', ephemeral: true });
         }
       }
     });

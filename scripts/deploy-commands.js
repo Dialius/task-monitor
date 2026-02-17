@@ -22,47 +22,47 @@ const commands = [
   new SlashCommandBuilder()
     .setName('tugas')
     .setDescription('Lihat semua tugas aktif'),
-  
+
   new SlashCommandBuilder()
     .setName('tugas_hari_ini')
     .setDescription('Lihat tugas yang deadline-nya hari ini'),
-  
+
   new SlashCommandBuilder()
     .setName('tugas_minggu_ini')
     .setDescription('Lihat tugas yang deadline-nya minggu ini'),
-  
+
   new SlashCommandBuilder()
     .setName('jadwal')
     .setDescription('Lihat jadwal hari ini'),
-  
+
   new SlashCommandBuilder()
     .setName('jadwal_besok')
     .setDescription('Lihat jadwal besok'),
-  
+
   new SlashCommandBuilder()
     .setName('jadwal_minggu_ini')
     .setDescription('Lihat jadwal minggu ini'),
-  
+
   new SlashCommandBuilder()
     .setName('piket')
     .setDescription('Lihat piket hari ini'),
-  
+
   new SlashCommandBuilder()
     .setName('piket_minggu_ini')
     .setDescription('Lihat piket minggu ini'),
-  
+
   new SlashCommandBuilder()
     .setName('help')
     .setDescription('Lihat daftar command yang tersedia'),
-  
+
   new SlashCommandBuilder()
     .setName('bantuan')
     .setDescription('Lihat daftar command yang tersedia'),
-  
+
   new SlashCommandBuilder()
     .setName('status')
     .setDescription('Lihat status bot'),
-  
+
   // Admin Commands
   new SlashCommandBuilder()
     .setName('add_tugas')
@@ -88,11 +88,17 @@ const commands = [
         .setDescription('Tipe tugas')
         .setRequired(true)
         .addChoices(
-          { name: 'Individu', value: 'individu' },
-          { name: 'Kelompok', value: 'kelompok' },
           { name: 'Ujian', value: 'ujian' }
         )),
-  
+
+  new SlashCommandBuilder()
+    .setName('add_tugas_cepat')
+    .setDescription('Tambah tugas dengan natural language (AI)')
+    .addStringOption(option =>
+      option.setName('deskripsi')
+        .setDescription('Deskripsi tugas dalam bahasa natural')
+        .setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('edit_tugas')
     .setDescription('Edit tugas yang sudah ada')
@@ -115,7 +121,7 @@ const commands = [
       option.setName('value')
         .setDescription('Nilai baru')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('hapus_tugas')
     .setDescription('Hapus tugas')
@@ -123,7 +129,7 @@ const commands = [
       option.setName('task_id')
         .setDescription('ID tugas')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('tandai_selesai')
     .setDescription('Tandai tugas sebagai selesai')
@@ -131,7 +137,7 @@ const commands = [
       option.setName('task_id')
         .setDescription('ID tugas')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('add_jadwal')
     .setDescription('Tambah jadwal baru')
@@ -168,7 +174,7 @@ const commands = [
       option.setName('nama_guru')
         .setDescription('Nama guru')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('edit_jadwal')
     .setDescription('Edit jadwal yang sudah ada')
@@ -191,7 +197,7 @@ const commands = [
       option.setName('value')
         .setDescription('Nilai baru')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('hapus_jadwal')
     .setDescription('Hapus jadwal')
@@ -199,7 +205,7 @@ const commands = [
       option.setName('schedule_id')
         .setDescription('ID jadwal')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('ganti_jadwal')
     .setDescription('Ganti jadwal dan buat pengumuman')
@@ -219,7 +225,7 @@ const commands = [
       option.setName('alasan')
         .setDescription('Alasan perubahan')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('set_piket')
     .setDescription('Set piket untuk hari tertentu')
@@ -240,7 +246,7 @@ const commands = [
       option.setName('siswa')
         .setDescription('Daftar siswa (format: nama1,nomor1|nama2,nomor2)')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('edit_piket')
     .setDescription('Edit piket yang sudah ada')
@@ -261,7 +267,7 @@ const commands = [
       option.setName('siswa')
         .setDescription('Daftar siswa (format: nama1,nomor1|nama2,nomor2)')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('add_pengumuman')
     .setDescription('Tambah pengumuman baru')
@@ -287,7 +293,7 @@ const commands = [
       option.setName('keterangan')
         .setDescription('Keterangan pengumuman')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('hapus_pengumuman')
     .setDescription('Hapus pengumuman')
@@ -295,7 +301,7 @@ const commands = [
       option.setName('announcement_id')
         .setDescription('ID pengumuman')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('broadcast')
     .setDescription('Kirim broadcast pesan')
@@ -303,7 +309,7 @@ const commands = [
       option.setName('pesan')
         .setDescription('Pesan yang ingin dikirim')
         .setRequired(true)),
-  
+
   new SlashCommandBuilder()
     .setName('broadcast_urgent')
     .setDescription('Kirim broadcast pesan urgent')
@@ -320,7 +326,7 @@ async function deployCommands() {
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║   🤖 DISCORD SLASH COMMANDS DEPLOYMENT               ║');
     console.log('╚════════════════════════════════════════════════════════╝\n');
-    
+
     console.log(`📋 Step 1/3: Deleting old guild commands...`);
     await rest.put(
       Routes.applicationGuildCommands(clientId, guildId),
@@ -365,7 +371,7 @@ async function deployCommands() {
     console.log('   • /broadcast_urgent - Broadcast urgent');
     console.log('');
     console.log('✅ Deployment complete!\n');
-    
+
   } catch (error) {
     console.error('❌ Error deploying commands:', error);
     process.exit(1);

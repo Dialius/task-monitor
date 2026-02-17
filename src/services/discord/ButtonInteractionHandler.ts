@@ -653,4 +653,284 @@ export class ButtonInteractionHandler {
       userId: interaction.user.id
     });
   }
+
+  /**
+   * Handle generic edit button (shows modal)
+   */
+  private async handleEditButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const parts = interaction.customId.split('_');
+      const userId = parts[2];
+      const editType = parts.slice(3).join('_');
+
+      if (interaction.user.id !== userId) {
+        await interaction.reply({
+          content: '❌ Hanya yang menjalankan command yang bisa mengedit.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const pending = EditConfirmationService.getPending(userId);
+      if (!pending) {
+        await interaction.reply({
+          content: '⏱️ Sesi edit telah berakhir. Silakan ulangi command.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      // Create Modal
+      const modal = new ModalBuilder()
+        .setCustomId(`modal_edit_${editType}`)
+        .setTitle('Edit Data');
+
+      // Add inputs based on editType
+      if (editType === 'edit_tugas') {
+        const judulInput = new TextInputBuilder()
+          .setCustomId('judul')
+          .setLabel('Judul')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.judul || '')
+          .setRequired(true);
+
+        const mapelInput = new TextInputBuilder()
+          .setCustomId('mata_pelajaran')
+          .setLabel('Mata Pelajaran')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.mata_pelajaran || '')
+          .setRequired(true);
+
+        const deskripsiInput = new TextInputBuilder()
+          .setCustomId('deskripsi')
+          .setLabel('Deskripsi')
+          .setStyle(TextInputStyle.Paragraph)
+          .setValue(pending.originalData.deskripsi || '')
+          .setRequired(false);
+
+        const deadlineInput = new TextInputBuilder()
+          .setCustomId('deadline')
+          .setLabel('Deadline (YYYY-MM-DD HH:MM)')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.deadline ? pending.originalData.deadline.replace('T', ' ').slice(0, 16) : '')
+          .setRequired(false);
+
+        const tipeInput = new TextInputBuilder()
+          .setCustomId('tipe')
+          .setLabel('Tipe (individu/kelompok)')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.tipe || 'individu')
+          .setRequired(true);
+
+        modal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(judulInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(mapelInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(deskripsiInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(deadlineInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(tipeInput)
+        );
+      } else if (editType === 'edit_jadwal' || editType === 'ganti_jadwal') {
+        const mapelInput = new TextInputBuilder()
+          .setCustomId('mata_pelajaran')
+          .setLabel('Mata Pelajaran')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.mata_pelajaran || '')
+          .setRequired(true);
+
+        const ruanganInput = new TextInputBuilder()
+          .setCustomId('ruangan')
+          .setLabel('Ruangan')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.ruangan || '')
+          .setRequired(true);
+
+        const jamMulaiInput = new TextInputBuilder()
+          .setCustomId('jam_mulai')
+          .setLabel('Jam Mulai (HH:MM)')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.jam_mulai || '')
+          .setRequired(true);
+
+        const jamSelesaiInput = new TextInputBuilder()
+          .setCustomId('jam_selesai')
+          .setLabel('Jam Selesai (HH:MM)')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.jam_selesai || '')
+          .setRequired(true);
+
+        const guruInput = new TextInputBuilder()
+          .setCustomId('nama_guru')
+          .setLabel('Nama Guru')
+          .setStyle(TextInputStyle.Short)
+          .setValue(pending.originalData.nama_guru || '')
+          .setRequired(true);
+
+        modal.addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(mapelInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(ruanganInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(jamMulaiInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(jamSelesaiInput),
+          new ActionRowBuilder<TextInputBuilder>().addComponents(guruInput)
+        );
+      }
+
+      await interaction.showModal(modal);
+    } catch (error) {
+      logger.error('Failed to handle edit button', error as Error);
+      await interaction.reply({
+        content: '❌ Terjadi kesalahan saat membuka form edit.',
+        ephemeral: true
+      });
+    }
+  }
+
+  /**
+   * Handle generic confirm button
+   */
+  private async handleConfirmButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const parts = interaction.customId.split('_');
+      const userId = parts[2];
+      const type = parts.slice(3).join('_');
+
+      if (interaction.user.id !== userId) {
+        await interaction.reply({
+          content: '❌ Hanya yang menjalankan command yang bisa mengkonfirmasi.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const pending = EditConfirmationService.getPending(userId);
+      if (!pending) {
+        await interaction.update({
+          content: '⏱️ Sesi konfirmasi telah berakhir.',
+          embeds: [],
+          components: []
+        });
+        return;
+      }
+
+      // Execute action based on type
+      if (type === 'hapus_tugas') {
+        await this.taskService.deleteTask(pending.itemId);
+        await interaction.update({
+          content: '✅ Tugas berhasil dihapus.',
+          embeds: [],
+          components: []
+        });
+      } else if (type === 'tandai_selesai') {
+        const task = await this.taskService.markComplete(pending.itemId);
+        const finishEmbed = new EmbedBuilder()
+          .setTitle('✅ Tugas Selesai!')
+          .setDescription(`**${task.judul}**\n\n🎉 Status: **Selesai**`)
+          .setColor(0x57F287);
+
+        await interaction.update({
+          embeds: [finishEmbed],
+          components: []
+        });
+      } else if (type === 'hapus_jadwal') {
+        await this.scheduleService.deleteSchedule(pending.itemId);
+        await interaction.update({
+          content: '✅ Jadwal berhasil dihapus.',
+          embeds: [],
+          components: []
+        });
+      } else if (type === 'edit_tugas') {
+        // Apply changes from newData
+        if (!pending.newData) {
+          await interaction.reply({ content: '❌ Data perubahan tidak ditemukan.', ephemeral: true });
+          return;
+        }
+
+        // We need to apply all fields. TaskService.updateTask updates ONE field.
+        // We need updateTaskBatch or call updateTask multiple times.
+        // Or implement updateTaskDetails in TaskService.
+        // For now, let's call updateTask for each field that changed.
+        const keys = Object.keys(pending.newData);
+        for (const key of keys) {
+          if (key === 'deadline') {
+            await this.taskService.updateTask(pending.itemId, key, new Date(pending.newData[key]));
+          } else {
+            await this.taskService.updateTask(pending.itemId, key, pending.newData[key]);
+          }
+        }
+
+        await interaction.update({
+          content: '✅ Tugas berhasil diupdate.',
+          embeds: [],
+          components: []
+        });
+      } else if (type === 'edit_jadwal' || type === 'ganti_jadwal') {
+        if (!pending.newData) {
+          await interaction.reply({ content: '❌ Data perubahan tidak ditemukan.', ephemeral: true });
+          return;
+        }
+
+        const keys = Object.keys(pending.newData);
+        for (const key of keys) {
+          // Skip 'alasan'/field/value if it was from ganti_jadwal original logic (but we reverted it)
+          // But here newData comes from MODAL, so it has mapel, ruangan, etc.
+          await this.scheduleService.updateSchedule(pending.itemId, key, pending.newData[key]);
+        }
+
+        if (type === 'ganti_jadwal') {
+          // Announcement
+          const { DateTimeHelper } = await import('../../utils/DateTimeHelper');
+          // Construct change description
+          const changes = EditConfirmationService.formatDiff(pending.originalData, pending.newData);
+          await this.announcementService.createAnnouncement({
+            tanggal: DateTimeHelper.now(),
+            judul: `Perubahan Jadwal: ${pending.newData.mata_pelajaran || pending.originalData.mata_pelajaran}`,
+            tipe: 'perubahan_jadwal',
+            keterangan: `Perubahan jadwal:\n${changes}`
+          });
+        }
+
+        await interaction.update({
+          content: '✅ Jadwal berhasil diupdate.',
+          embeds: [],
+          components: []
+        });
+      }
+
+      EditConfirmationService.clear(userId);
+
+    } catch (error) {
+      logger.error('Failed to handle confirm button', error as Error);
+      await interaction.reply({
+        content: '❌ Terjadi kesalahan saat memproses konfirmasi.',
+        ephemeral: true
+      });
+    }
+  }
+
+  /**
+   * Handle generic cancel button
+   */
+  private async handleCancelButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const parts = interaction.customId.split('_');
+      const userId = parts[2];
+
+      if (interaction.user.id !== userId) {
+        await interaction.reply({
+          content: '❌ Hanya yang menjalankan command yang bisa membatalkan.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      EditConfirmationService.clear(userId);
+
+      await interaction.update({
+        content: '❌ Aksi dibatalkan.',
+        embeds: [],
+        components: []
+      });
+    } catch (error) {
+      logger.error('Failed to handle cancel button', error as Error);
+    }
+  }
 }
