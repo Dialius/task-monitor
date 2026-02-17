@@ -822,7 +822,20 @@ export class ButtonInteractionHandler {
 
       // Execute action based on type
       if (type === 'hapus_tugas') {
+        // Get task first to retrieve notion_id for Notion sync
+        const taskToDelete = await this.taskService.getTaskById(pending.itemId);
         await this.taskService.deleteTask(pending.itemId);
+
+        // Sync deletion to Notion (archive)
+        if (taskToDelete?.notion_id && this.notionService?.isEnabled()) {
+          try {
+            await this.notionService.archiveTaskInNotion(taskToDelete.notion_id);
+            logger.info('Task archived in Notion after delete', { taskId: pending.itemId, notionId: taskToDelete.notion_id });
+          } catch (syncError) {
+            logger.warn('Failed to archive task in Notion', syncError as Error);
+          }
+        }
+
         await interaction.editReply({
           content: '✅ Tugas berhasil dihapus.',
           embeds: [],
@@ -830,6 +843,19 @@ export class ButtonInteractionHandler {
         });
       } else if (type === 'tandai_selesai') {
         const task = await this.taskService.markComplete(pending.itemId);
+
+        // Sync status update to Notion
+        if (task?.notion_id && this.notionService?.isEnabled()) {
+          try {
+            await this.notionService.updateTaskInNotion(task.notion_id, {
+              status: 'selesai'
+            });
+            logger.info('Task marked complete in Notion', { taskId: pending.itemId, notionId: task.notion_id });
+          } catch (syncError) {
+            logger.warn('Failed to update task status in Notion', syncError as Error);
+          }
+        }
+
         const finishEmbed = new EmbedBuilder()
           .setTitle('✅ Tugas Selesai!')
           .setDescription(`**${task.judul}**\n\n🎉 Status: **Selesai**`)
@@ -860,6 +886,25 @@ export class ButtonInteractionHandler {
             await this.taskService.updateTask(pending.itemId, key, new Date(pending.newData[key]));
           } else {
             await this.taskService.updateTask(pending.itemId, key, pending.newData[key]);
+          }
+        }
+
+        // Sync edit to Notion
+        const editedTask = await this.taskService.getTaskById(pending.itemId);
+        if (editedTask?.notion_id && this.notionService?.isEnabled()) {
+          try {
+            const notionUpdates: any = {};
+            for (const key of keys) {
+              if (key === 'deadline') {
+                notionUpdates[key] = new Date(pending.newData[key]);
+              } else {
+                notionUpdates[key] = pending.newData[key];
+              }
+            }
+            await this.notionService.updateTaskInNotion(editedTask.notion_id, notionUpdates);
+            logger.info('Task updated in Notion after edit', { taskId: pending.itemId, notionId: editedTask.notion_id });
+          } catch (syncError) {
+            logger.warn('Failed to update task in Notion', syncError as Error);
           }
         }
 

@@ -58,7 +58,7 @@ export class AIService {
       // Try Groq first
       const result = await this.rewriteWithGroq(text, context);
       const latency = Date.now() - startTime;
-      
+
       logger.logAIRequest('groq', true, latency);
       return result;
     } catch (groqError) {
@@ -70,13 +70,13 @@ export class AIService {
         // Fallback to Gemini
         const result = await this.rewriteWithGemini(text, context);
         const latency = Date.now() - startTime;
-        
+
         logger.logAIRequest('gemini', true, latency);
         return result;
       } catch (geminiError) {
         logger.error('Both AI services failed, using original text', geminiError as Error);
         logger.logAIRequest('gemini', false, Date.now() - startTime);
-        
+
         // Return original text if both fail
         return text;
       }
@@ -117,6 +117,90 @@ export class AIService {
   }
 
   /**
+   * Parse task text with AI — uses higher token limit for JSON output
+   * This is separate from rewriteText which has low token limits
+   */
+  async parseTaskText(text: string, context: string): Promise<string> {
+    const startTime = Date.now();
+
+    try {
+      // Try Groq first with higher token limit
+      const result = await this.parseWithGroq(text, context);
+      const latency = Date.now() - startTime;
+
+      logger.logAIRequest('groq', true, latency);
+      return result;
+    } catch (groqError) {
+      logger.warn('Groq parse failed, falling back to Gemini', {
+        error: (groqError as Error).message
+      });
+
+      try {
+        // Fallback to Gemini
+        const result = await this.parseWithGemini(text, context);
+        const latency = Date.now() - startTime;
+
+        logger.logAIRequest('gemini', true, latency);
+        return result;
+      } catch (geminiError) {
+        logger.error('Both AI services failed for parsing', geminiError as Error);
+        logger.logAIRequest('gemini', false, Date.now() - startTime);
+
+        throw new Error('AI parsing failed on both providers');
+      }
+    }
+  }
+
+  /**
+   * Parse task with Groq — higher token limit for JSON
+   */
+  private async parseWithGroq(text: string, context: string): Promise<string> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.groqConfig.timeout * 1000);
+
+    try {
+      const completion = await this.groqClient.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: context
+          },
+          {
+            role: 'user',
+            content: text
+          }
+        ],
+        model: this.groqConfig.model,
+        temperature: 0.1, // Very low temperature for deterministic date output
+        max_tokens: 500   // Higher limit for JSON output
+      });
+
+      clearTimeout(timeoutId);
+
+      return completion.choices[0]?.message?.content || '';
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
+  /**
+   * Parse task with Gemini — higher token limit for JSON
+   */
+  private async parseWithGemini(text: string, context: string): Promise<string> {
+    const model = this.geminiClient.getGenerativeModel({
+      model: this.geminiConfig.model
+    });
+
+    const prompt = `${context}\n\n${text}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+
+    return response.text() || '';
+  }
+
+  /**
    * Rewrite text using Gemini
    */
   private async rewriteWithGemini(text: string, context: string): Promise<string> {
@@ -128,7 +212,7 @@ export class AIService {
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    
+
     return response.text() || text;
   }
 

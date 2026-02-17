@@ -18,9 +18,9 @@ import { AIService } from './AIService';
 import { NotionService } from './NotionService';
 import { PlatformAdapter } from '../adapters/PlatformAdapter';
 import { getLogger } from '../utils/Logger';
-import { 
-  formatDailyRecap, 
-  formatWeeklyRecap, 
+import {
+  formatDailyRecap,
+  formatWeeklyRecap,
   getWeekOfMonth,
   DailyRecapData,
   WeeklyRecapData
@@ -43,6 +43,7 @@ export class ReminderScheduler {
   private dailyJob: cron.ScheduledTask | null = null;
   private weeklyJob: cron.ScheduledTask | null = null;
   private sundayJob: cron.ScheduledTask | null = null;
+  private bidirectionalSyncJob: cron.ScheduledTask | null = null;
 
   constructor(
     private taskService: TaskService,
@@ -53,7 +54,7 @@ export class ReminderScheduler {
     private platformAdapter: PlatformAdapter,
     private config: SchedulerConfig,
     private notionService: NotionService
-  ) {}
+  ) { }
 
   /**
    * Initialize cron jobs
@@ -110,6 +111,21 @@ export class ReminderScheduler {
         cron: sundayCron,
         timezone: this.config.timezone
       });
+
+      // Setup bidirectional sync (every 2 hours)
+      const syncCron = '0 */2 * * *'; // Every 2 hours
+
+      this.bidirectionalSyncJob = cron.schedule(syncCron, async () => {
+        await this.runBidirectionalSync();
+      }, {
+        timezone: this.config.timezone
+      });
+
+      logger.info('Bidirectional sync scheduled (every 2 hours)', {
+        cron: syncCron,
+        timezone: this.config.timezone
+      });
+
     } catch (error) {
       logger.error('Failed to initialize scheduler', error as Error);
       throw error;
@@ -232,11 +248,11 @@ export class ReminderScheduler {
 
       // Get tasks for each day (Senin-Jumat)
       const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-      
+
       for (let i = 0; i < 5; i++) {
         const date = new Date(nextMonday);
         date.setDate(date.getDate() + i);
-        
+
         const tasks = await this.taskService.getTasksForDate(date);
         tasksByDay.set(days[i], tasks);
       }
@@ -270,13 +286,30 @@ export class ReminderScheduler {
     const { DateTimeHelper } = require('../utils/DateTimeHelper');
     const result = DateTimeHelper.toWIB(date);
     const day = result.getDay();
-    
+
     // If today is Friday (5), next Monday is 3 days away
     // If today is other day, calculate days until next Monday
     const daysUntilMonday = day === 5 ? 3 : (8 - day) % 7;
-    
+
     result.setDate(result.getDate() + daysUntilMonday);
     return result;
+  }
+
+  /**
+   * Run bidirectional sync between MongoDB and Notion
+   */
+  async runBidirectionalSync(): Promise<void> {
+    try {
+      if (!this.notionService.isEnabled()) {
+        return;
+      }
+
+      logger.info('Running scheduled bidirectional sync...');
+      const result = await this.notionService.bidirectionalSync();
+      logger.info('Bidirectional sync completed', result);
+    } catch (error) {
+      logger.error('Failed to run bidirectional sync', error as Error);
+    }
   }
 
   /**
@@ -296,6 +329,11 @@ export class ReminderScheduler {
     if (this.sundayJob) {
       this.sundayJob.stop();
       logger.info('Sunday reminder stopped');
+    }
+
+    if (this.bidirectionalSyncJob) {
+      this.bidirectionalSyncJob.stop();
+      logger.info('Bidirectional sync job stopped');
     }
   }
 }

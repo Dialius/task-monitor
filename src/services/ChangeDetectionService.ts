@@ -63,7 +63,7 @@ export class ChangeDetectionService {
     try {
       // Step 1: Sync from Notion with retry
       const syncResult = await this.syncWithRetry();
-      
+
       if (syncResult.synced === 0 && syncResult.errors > 0) {
         logger.error('Notion sync failed after all retries');
         return { synced: 0, edited: 0, errors: syncResult.errors };
@@ -71,7 +71,7 @@ export class ChangeDetectionService {
 
       // Step 2: Find tasks that need editing
       const tasksToEdit = await MessageTrackingService.getTasksNeedingEdit(1);
-      
+
       if (tasksToEdit.length === 0) {
         logger.info('No tasks need editing');
         return { synced: syncResult.synced, edited: 0, errors: 0 };
@@ -84,7 +84,7 @@ export class ChangeDetectionService {
       for (const task of tasksToEdit) {
         try {
           const results = await this.editTaskMessagesWithFormatters(task);
-          
+
           const successCount = results.filter(r => r.success).length;
           const failCount = results.filter(r => !r.success).length;
 
@@ -135,16 +135,21 @@ export class ChangeDetectionService {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         logger.info('Attempting Notion sync', { attempt, maxRetries });
-        
-        const result = await this.notionService.syncFromNotion();
-        
+
+        const result = await this.notionService.bidirectionalSync();
+
         logger.info('Notion sync successful', {
           attempt,
-          synced: result.synced,
+          fromNotion: result.fromNotion,
+          toNotion: result.toNotion,
+          updated: result.updated,
           errors: result.errors
         });
 
-        return result;
+        return {
+          synced: result.fromNotion + result.toNotion + result.updated,
+          errors: result.errors
+        };
       } catch (error) {
         const isLastAttempt = attempt === maxRetries;
 

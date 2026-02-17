@@ -18,6 +18,7 @@ export interface AppConfig {
   discordClientId?: string;
   discordGuildId?: string;
   discordChannelId?: string;
+  discordLogChannelId?: string;
   discordActivityEnabled: boolean;
   discordActivityInterval: number;
 
@@ -74,6 +75,7 @@ export class ConfigManager {
       discordClientId: process.env.DISCORD_CLIENT_ID,
       discordGuildId: process.env.DISCORD_GUILD_ID,
       discordChannelId: process.env.DISCORD_CHANNEL_ID,
+      discordLogChannelId: process.env.DISCORD_LOG_CHANNEL_ID,
       discordActivityEnabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
       discordActivityInterval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
 
@@ -197,7 +199,7 @@ export class ConfigManager {
   async loadFromDatabase(): Promise<void> {
     try {
       const configs = await BotConfig.find({});
-      
+
       for (const config of configs) {
         this.dbConfigCache.set(config.key, config.value);
       }
@@ -293,11 +295,11 @@ export class ConfigManager {
 
       // Create Discord admin if configured
       if (discordId) {
-        const existingDiscord = await Admin.findOne({ 
-          user_identifier: discordId, 
-          platform: 'discord' 
+        const existingDiscord = await Admin.findOne({
+          user_identifier: discordId,
+          platform: 'discord'
         });
-        
+
         if (existingDiscord) {
           logger.info(`Discord admin already exists: ${discordId}`);
         } else {
@@ -319,11 +321,11 @@ export class ConfigManager {
 
       // Create WhatsApp admin if configured
       if (whatsappId) {
-        const existingWhatsApp = await Admin.findOne({ 
-          user_identifier: whatsappId, 
-          platform: 'whatsapp' 
+        const existingWhatsApp = await Admin.findOne({
+          user_identifier: whatsappId,
+          platform: 'whatsapp'
         });
-        
+
         if (existingWhatsApp) {
           logger.info(`WhatsApp admin already exists: ${whatsappId}`);
         } else {
@@ -375,7 +377,7 @@ export function getConfigManager(): ConfigManager {
  */
 export async function initializeConfig(): Promise<ConfigManager> {
   const manager = getConfigManager();
-  
+
   // Validate environment configuration
   const validation = manager.validate();
   if (!validation.valid) {
@@ -385,7 +387,7 @@ export async function initializeConfig(): Promise<ConfigManager> {
 
   // Load from database
   await manager.loadFromDatabase();
-  
+
   // Initialize defaults
   await manager.initializeDefaults();
 

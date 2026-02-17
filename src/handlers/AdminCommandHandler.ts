@@ -272,37 +272,48 @@ export class AdminCommandHandler {
       minute: '2-digit'
     });
 
+    const fields = [
+      {
+        name: '📝 Judul',
+        value: parsed.judul || '-',
+        inline: false
+      },
+      {
+        name: '📚 Mata Pelajaran',
+        value: parsed.mata_pelajaran || '-',
+        inline: true
+      },
+      {
+        name: '👥 Tipe',
+        value: parsed.tipe === 'individu' ? 'Individu' : parsed.tipe === 'kelompok' ? 'Kelompok' : 'Ujian',
+        inline: true
+      },
+      {
+        name: '📅 Deadline',
+        value: formattedDeadline,
+        inline: false
+      },
+      {
+        name: '📄 Deskripsi',
+        value: parsed.deskripsi || '-',
+        inline: false
+      }
+    ];
+
+    // Add date warning if present
+    if (parsed._dateWarning) {
+      fields.push({
+        name: '⚠️ Peringatan Tanggal',
+        value: parsed._dateWarning,
+        inline: false
+      });
+    }
+
     return {
       title: '✅ Tugas Berhasil Di-parse',
       description: 'Silakan konfirmasi data tugas berikut:',
-      color: 0x57F287,
-      fields: [
-        {
-          name: '📝 Judul',
-          value: parsed.judul || '-',
-          inline: false
-        },
-        {
-          name: '📚 Mata Pelajaran',
-          value: parsed.mata_pelajaran || '-',
-          inline: true
-        },
-        {
-          name: '👥 Tipe',
-          value: parsed.tipe === 'individu' ? 'Individu' : 'Kelompok',
-          inline: true
-        },
-        {
-          name: '📅 Deadline',
-          value: formattedDeadline,
-          inline: false
-        },
-        {
-          name: '📄 Deskripsi',
-          value: parsed.deskripsi || '-',
-          inline: false
-        }
-      ]
+      color: parsed._dateWarning ? 0xFEE75C : 0x57F287, // Yellow if warning
+      fields
     };
   }
 
@@ -1525,13 +1536,24 @@ export class AdminCommandHandler {
       // Sync to Notion if enabled
       if (this.notionService && this.notionService.isEnabled()) {
         try {
-          await this.notionService.syncFromNotion();
-          logger.info('Synced to Notion after task creation', { taskId: task._id });
+          const notionId = await this.notionService.addTaskToNotion({
+            judul: task.judul,
+            mata_pelajaran: task.mata_pelajaran,
+            deskripsi: task.deskripsi,
+            deadline: task.deadline,
+            tipe: task.tipe,
+            prioritas: task.prioritas,
+            created_by: userId
+          });
+
+          if (notionId) {
+            await this.taskService.updateTask(task._id.toString(), 'notion_id', notionId);
+            logger.info('Task synced to Notion after creation', { taskId: task._id, notionId });
+          }
         } catch (syncError) {
-          logger.warn('Failed to sync to Notion', syncError as Error);
+          logger.warn('Failed to sync task to Notion', syncError as Error);
         }
       }
-
       logger.info('Task created via add_tugas_cepat', {
         taskId: task._id,
         userId

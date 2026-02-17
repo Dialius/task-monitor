@@ -32,6 +32,7 @@ import { ButtonInteractionHandler } from './services/discord/ButtonInteractionHa
 import { EditConfirmationService } from './services/discord/EditConfirmationService';
 import { DiscordConfigManager } from './services/discord/DiscordConfigManager';
 import { RateLimiter } from './services/discord/RateLimiter';
+import { SyncNotificationService } from './services/SyncNotificationService';
 
 // Load environment variables
 dotenv.config();
@@ -295,6 +296,8 @@ class MultiPlatformBot {
     // Setup activity status rotation
     this.discordClient.setupActivityStatus(this.taskService);
 
+
+
     // Setup Task Monitor feature
     try {
       await this.discordClient.setupTaskMonitor(
@@ -308,6 +311,21 @@ class MultiPlatformBot {
     } catch (error) {
       this.logger.error('Failed to setup Task Monitor, continuing without it', error as Error);
       console.log('   ⚠ Task Monitor disabled due to configuration error');
+    }
+
+    // Initialize Sync Notification Service
+    const logChannelId = config.get('discordLogChannelId') || process.env.DISCORD_LOG_CHANNEL_ID || '';
+
+    if (logChannelId) {
+      const syncNotificationService = new SyncNotificationService(
+        this.discordClient,
+        logChannelId
+      );
+      this.notionService.setSyncNotificationService(syncNotificationService);
+      this.logger.info('Sync Notification Service initialized', { logChannelId });
+      console.log(`   → Sync Notification configured for channel: ${logChannelId}`);
+    } else {
+      this.logger.warn('Sync Notification Service skipped - no log channel ID provided');
     }
 
     // Initialize Button Interaction Handler

@@ -1,6 +1,12 @@
 /**
  * AI Task Parser Service
  * Parse natural language input to extract task information
+ * 
+ * Enhanced date handling:
+ * - Provides a 14-day calendar table to AI so it doesn't guess dates
+ * - Uses WIB timezone throughout (not UTC)
+ * - Validates day-of-week matches after parsing
+ * - Detects and warns about day/date conflicts
  */
 
 import { AIService } from './AIService';
@@ -17,6 +23,7 @@ export interface ParsedTask {
   deadline: Date;
   tipe: 'individu' | 'kelompok' | 'ujian';
   prioritas: 'urgent' | 'penting' | 'normal';
+  _dateWarning?: string; // Warning if day/date don't match
 }
 
 /**
@@ -40,9 +47,9 @@ export class AITaskParserService {
 
       logger.info('Parsing natural language input', { input });
 
-      // Use AI to parse (using rewriteText as a workaround)
-      const context = 'Parse this natural language input and return ONLY valid JSON with task information. Follow the format and rules exactly.';
-      const response = await this.aiService.rewriteText(prompt, context);
+      // Use AI to parse with higher token limit for JSON output
+      const context = 'Parse this natural language input and return ONLY valid JSON with task information. Follow the format and rules exactly. Do NOT add any explanation or markdown formatting.';
+      const response = await this.aiService.parseTaskText(prompt, context);
 
       // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
@@ -50,7 +57,13 @@ export class AITaskParserService {
         [null, response];
 
       const jsonStr = jsonMatch[1] || response;
-      const parsed = JSON.parse(jsonStr.trim());
+
+      // Clean up potential issues in JSON string
+      const cleanedJson = jsonStr.trim()
+        .replace(/,\s*}/g, '}')  // Remove trailing commas
+        .replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+
+      const parsed = JSON.parse(cleanedJson);
 
       // Validate and convert deadline to Date
       if (!parsed.deadline) {
@@ -78,12 +91,20 @@ export class AITaskParserService {
         parsed.prioritas = 'normal';
       }
 
+      // Post-parsing: Validate day-of-week matches the date
+      const dateWarning = this.validateDayOfWeek(input, parsed.deadline, currentDate);
+      if (dateWarning) {
+        parsed._dateWarning = dateWarning;
+        logger.warn('Date/day mismatch detected', { input, warning: dateWarning });
+      }
+
       logger.info('Successfully parsed natural language', {
         input,
         parsed: {
           judul: parsed.judul,
           mata_pelajaran: parsed.mata_pelajaran,
-          deadline: parsed.deadline.toISOString()
+          deadline: parsed.deadline.toISOString(),
+          dateWarning: dateWarning || 'none'
         }
       });
 
@@ -101,72 +122,144 @@ export class AITaskParserService {
   }
 
   /**
-   * Build AI prompt for parsing
+   * Build a 14-day calendar table for the AI prompt
+   * This prevents the AI from incorrectly calculating dates
+   */
+  private buildCalendarTable(currentDate: Date): string {
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const monthNames = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    let table = '| No | Hari     | Tanggal              | ISO Format            |\n';
+    table += '|----|----------|----------------------|-----------------------|\n';
+
+    for (let i = 0; i <= 30; i++) {
+      const date = new Date(currentDate.getTime() + i * 86400000);
+      const dayName = dayNames[date.getDay()];
+      const dateStr = `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+      const isoStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const label = i === 0 ? ' (HARI INI)' : i === 1 ? ' (BESOK)' : i === 2 ? ' (LUSA)' : '';
+
+      table += `| ${String(i + 1).padStart(2, ' ')} | ${dayName.padEnd(8, ' ')} | ${dateStr.padEnd(20, ' ')} | ${isoStr}T23:59:00   |${label}\n`;
+    }
+
+    return table;
+  }
+
+  /**
+   * Build AI prompt for parsing — with full calendar reference
    */
   private buildPrompt(input: string, currentDate: Date): string {
     const validSubjects = getSubjectNames();
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-    return `Extract task information from this natural language input in Indonesian.
+    const currentDayName = dayNames[currentDate.getDay()];
+    const currentHour = currentDate.getHours();
+    const currentMinute = currentDate.getMinutes();
+    const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
-Input: "${input}"
+    const calendarTable = this.buildCalendarTable(currentDate);
 
-Current date and time: ${currentDate.toISOString()}
-Current date (readable): ${currentDate.toLocaleDateString('id-ID', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })}
+    return `Kamu adalah parser tugas sekolah. Ekstrak informasi tugas dari input bahasa Indonesia.
 
-Extract and return ONLY valid JSON with these exact fields:
+INPUT USER: "${input}"
+
+═══════════════════════════════════════════════════
+📅 WAKTU SEKARANG (WIB - Waktu Indonesia Barat):
+   Hari: ${currentDayName}
+   Tanggal: ${currentDate.getDate()} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][currentDate.getMonth()]} ${currentDate.getFullYear()}
+   Jam: ${currentTimeStr} WIB
+
+📅 KALENDER REFERENSI (WAJIB gunakan tabel ini, JANGAN menghitung sendiri!):
+${calendarTable}
+═══════════════════════════════════════════════════
+
+ATURAN TANGGAL (SANGAT PENTING - IKUTI DENGAN KETAT!):
+
+1. SELALU lihat tabel kalender di atas. JANGAN menghitung tanggal sendiri!
+
+2. Jika user menyebut HARI dan TANGGAL sekaligus (misal "kamis tanggal 26"):
+   - Cari "tanggal 26" di tabel → lihat hari apa
+   - SELALU PRIORITASKAN TANGGAL yang disebut user
+   - Gunakan tanggal tersebut meskipun harinya tidak cocok
+
+3. Jika user hanya menyebut HARI tanpa tanggal (misal "hari kamis"):
+   - Cari "Kamis" TERDEKAT di tabel (yang belum lewat)
+   - Jika hari ini adalah hari yang sama dan belum lewat jam deadline, gunakan hari ini
+   - Jika sudah lewat, gunakan minggu depan
+
+4. Jika user hanya menyebut TANGGAL tanpa hari (misal "tanggal 26"):
+   - Cari "tanggal 26" di tabel
+   - Jika tanggal 26 bulan ini sudah lewat, gunakan tanggal 26 bulan depan
+
+5. Kata kunci waktu relatif:
+   - "hari ini" → baris pertama tabel (No. 1)
+   - "besok" → baris kedua tabel (No. 2)
+   - "lusa" → baris ketiga tabel (No. 3)
+   - "minggu depan" → +7 hari dari hari ini
+   - "minggu depan hari senin" → Senin terdekat setelah 7 hari
+
+6. Jika JAM tidak disebutkan → gunakan 23:59
+
+FORMAT OUTPUT - Return ONLY valid JSON:
 {
-  "judul": "Task title (string, concise)",
-  "mata_pelajaran": "Subject name (must be one of: ${validSubjects.join(', ')})",
-  "deskripsi": "Task description (string, detailed)",
-  "deadline": "Deadline date and time (ISO format: YYYY-MM-DDTHH:mm:ss)",
-  "tipe": "Task type (must be: individu, kelompok, or ujian)",
-  "prioritas": "Priority (must be: urgent, penting, or normal)"
+  "judul": "Judul tugas (singkat, max 50 karakter)",
+  "mata_pelajaran": "Nama pelajaran (HARUS salah satu dari: ${validSubjects.join(', ')})",
+  "deskripsi": "Deskripsi tugas (detail)",
+  "deadline": "YYYY-MM-DDTHH:mm:ss (ambil dari kolom ISO Format di tabel!)",
+  "tipe": "individu / kelompok / ujian",
+  "prioritas": "urgent / penting / normal"
 }
 
-IMPORTANT RULES:
-1. Parse relative dates correctly:
-   - "besok" = tomorrow (${new Date(currentDate.getTime() + 86400000).toLocaleDateString('id-ID')})
-   - "lusa" = day after tomorrow (${new Date(currentDate.getTime() + 172800000).toLocaleDateString('id-ID')})
-   - "minggu depan" = next week same day
-   - "senin" = next Monday
-   - "selasa" = next Tuesday
-   - etc.
+ATURAN LAIN:
+- Tipe: "ujian"/"tes"/"ulangan" → ujian, "kelompok"/"grup" → kelompok, lainnya → individu
+- Prioritas: "urgent"/"segera"/"cepat" → urgent, "penting" → penting, lainnya → normal
+- Jika pelajaran tidak jelas → "Lainnya"
+- Judul singkat dan jelas, deskripsi lebih detail
+- Return HANYA JSON, tanpa penjelasan atau markdown`;
+  }
 
-2. If time not mentioned, use 23:59 (end of day)
+  /**
+   * Validate that the day-of-week in the parsed date matches what the user mentioned
+   * Returns a warning string if there's a mismatch, or null if OK
+   */
+  private validateDayOfWeek(input: string, parsedDeadline: Date, _currentDate: Date): string | null {
+    const dayMap: Record<string, number> = {
+      'minggu': 0, 'senin': 1, 'selasa': 2, 'rabu': 3,
+      'kamis': 4, 'jumat': 5, 'jum\'at': 5, 'sabtu': 6
+    };
+    const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-3. Detect keywords for tipe:
-   - "ujian", "tes", "ulangan" → tipe: ujian
-   - "kelompok", "grup", "bersama" → tipe: kelompok
-   - otherwise → tipe: individu
+    const inputLower = input.toLowerCase();
 
-4. Detect keywords for prioritas:
-   - "urgent", "penting banget", "segera", "cepat" → prioritas: urgent
-   - "penting" → prioritas: penting
-   - otherwise → prioritas: normal
+    // Check if user mentioned a specific day name
+    let mentionedDay: number | null = null;
+    for (const [dayStr, dayNum] of Object.entries(dayMap)) {
+      // Match "hari kamis", "kamis", etc. but not as part of another word
+      const regex = new RegExp(`(?:hari\\s+)?\\b${dayStr}\\b`, 'i');
+      if (regex.test(inputLower)) {
+        mentionedDay = dayNum;
+        break;
+      }
+    }
 
-5. If subject not clearly mentioned, use "Lainnya"
+    if (mentionedDay === null) {
+      return null; // User didn't mention a specific day
+    }
 
-6. Create concise judul (max 50 chars) and detailed deskripsi
+    const actualDay = parsedDeadline.getDay();
 
-7. Return ONLY the JSON object, no explanation or markdown
+    if (mentionedDay !== actualDay) {
+      const mentionedDayName = dayNames[mentionedDay];
+      const actualDayName = dayNames[actualDay];
+      const dateFormatted = `${parsedDeadline.getDate()} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][parsedDeadline.getMonth()]}`;
 
-Example input: "Besok ada tugas matematika halaman 45-50 deadline jam 10"
-Example output:
-{
-  "judul": "Tugas Matematika",
-  "mata_pelajaran": "Matematika",
-  "deskripsi": "Halaman 45-50",
-  "deadline": "2026-02-11T10:00:00",
-  "tipe": "individu",
-  "prioritas": "normal"
-}
+      return `⚠️ Tanggal ${dateFormatted} adalah hari ${actualDayName}, bukan ${mentionedDayName}. Deadline diatur ke tanggal ${dateFormatted} (${actualDayName}).`;
+    }
 
-Now parse the input above and return ONLY valid JSON:`;
+    return null;
   }
 
   /**
