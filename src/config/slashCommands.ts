@@ -4,6 +4,7 @@
  */
 
 import { SlashCommandBuilder } from 'discord.js';
+import { getSubjectChoices } from './SubjectConfig';
 
 export interface CommandDefinition {
   data: any; // Use any to avoid type issues with SlashCommandOptionsOnlyBuilder
@@ -104,7 +105,10 @@ export function getSlashCommands(): CommandDefinition[] {
         .addStringOption(option =>
           option.setName('mata_pelajaran')
             .setDescription('Mata pelajaran')
-            .setRequired(true))
+            .setRequired(true)
+            .addChoices(
+              ...getSubjectChoices()
+            ))
         .addStringOption(option =>
           option.setName('deskripsi')
             .setDescription('Deskripsi tugas')
@@ -187,7 +191,10 @@ export function getSlashCommands(): CommandDefinition[] {
         .addStringOption(option =>
           option.setName('mata_pelajaran')
             .setDescription('Mata pelajaran')
-            .setRequired(true))
+            .setRequired(true)
+            .addChoices(
+              ...getSubjectChoices()
+            ))
         .addStringOption(option =>
           option.setName('jam_mulai')
             .setDescription('Jam mulai (HH:MM)')
@@ -249,6 +256,107 @@ export function getSlashCommands(): CommandDefinition[] {
       data: new SlashCommandBuilder()
         .setName('test_reminder')
         .setDescription('🧪 Test reminder system'),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('edit_jadwal')
+        .setDescription('✏️ Edit jadwal pelajaran')
+        .addStringOption(option =>
+          option.setName('id')
+            .setDescription('ID jadwal')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('field')
+            .setDescription('Field yang akan diubah')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Jam Mulai', value: 'jam_mulai' },
+              { name: 'Jam Selesai', value: 'jam_selesai' },
+              { name: 'Mata Pelajaran', value: 'mata_pelajaran' },
+              { name: 'Ruangan', value: 'ruangan' },
+              { name: 'Nama Guru', value: 'nama_guru' }
+            ))
+        .addStringOption(option =>
+          option.setName('value')
+            .setDescription('Nilai baru')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('hapus_jadwal')
+        .setDescription('🗑️ Hapus jadwal pelajaran')
+        .addStringOption(option =>
+          option.setName('id')
+            .setDescription('ID jadwal')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('ganti_jadwal')
+        .setDescription('🔄 Ganti jadwal + buat pengumuman')
+        .addStringOption(option =>
+          option.setName('id')
+            .setDescription('ID jadwal')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('field')
+            .setDescription('Field yang akan diubah')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Jam Mulai', value: 'jam_mulai' },
+              { name: 'Jam Selesai', value: 'jam_selesai' },
+              { name: 'Mata Pelajaran', value: 'mata_pelajaran' },
+              { name: 'Ruangan', value: 'ruangan' },
+              { name: 'Nama Guru', value: 'nama_guru' }
+            ))
+        .addStringOption(option =>
+          option.setName('value')
+            .setDescription('Nilai baru')
+            .setRequired(true))
+        .addStringOption(option =>
+          option.setName('alasan')
+            .setDescription('Alasan perubahan')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('edit_piket')
+        .setDescription('✏️ Edit jadwal piket')
+        .addStringOption(option =>
+          option.setName('hari')
+            .setDescription('Hari')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Senin', value: 'Senin' },
+              { name: 'Selasa', value: 'Selasa' },
+              { name: 'Rabu', value: 'Rabu' },
+              { name: 'Kamis', value: 'Kamis' },
+              { name: 'Jumat', value: 'Jumat' },
+              { name: 'Sabtu', value: 'Sabtu' }
+            ))
+        .addStringOption(option =>
+          option.setName('nama_siswa')
+            .setDescription('Nama siswa baru (pisahkan dengan koma)')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('hapus_pengumuman')
+        .setDescription('🗑️ Hapus pengumuman')
+        .addStringOption(option =>
+          option.setName('id')
+            .setDescription('ID pengumuman')
+            .setRequired(true)),
       adminOnly: true,
       leaderOnly: false
     },

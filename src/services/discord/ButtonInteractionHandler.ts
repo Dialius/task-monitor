@@ -416,7 +416,7 @@ export class ButtonInteractionHandler {
 
     // Set footer with icon
     const footerIcon = this.configManager.getFooterIcon();
-    embed.setFooter({ 
+    embed.setFooter({
       text: 'Made by VinTheGreat',
       iconURL: footerIcon
     });
@@ -583,6 +583,7 @@ export class ButtonInteractionHandler {
       .setLabel('Mata Pelajaran')
       .setStyle(TextInputStyle.Short)
       .setValue(parsed.mata_pelajaran || '')
+      .setPlaceholder('Contoh: Matematika, B.Indo, PAI, PJOK, dll')
       .setRequired(true);
 
     const deskripsiInput = new TextInputBuilder()
@@ -617,7 +618,7 @@ export class ButtonInteractionHandler {
 
     // Show modal
     await interaction.showModal(modal);
-    
+
     logger.info('Revision modal shown', {
       userId: interaction.user.id
     });

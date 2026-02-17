@@ -15,6 +15,7 @@ import { AITaskParserService } from '../services/AITaskParserService';
 import ConfirmationService from '../services/ConfirmationService';
 import { formatDailyRecap, formatWeeklyRecap } from '../utils/RecapFormatter';
 import { Validator } from '../utils/Validator';
+import { SubjectResolver } from '../services/SubjectResolver';
 import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
@@ -52,7 +53,22 @@ export class AdminCommandHandler {
         };
       }
 
-      const [judul, deskripsi, deadlineStr, mata_pelajaran, tipe] = args;
+      const [judul, deskripsi, deadlineStr, mata_pelajaran_raw, tipe] = args;
+
+      // Resolve mata_pelajaran using fuzzy matching
+      const resolvedSubject = SubjectResolver.resolve(mata_pelajaran_raw);
+      if (!resolvedSubject) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Mata Pelajaran Tidak Dikenali',
+            description: `"${mata_pelajaran_raw}" tidak ditemukan.\n\n**Pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
+            color: 0xED4245
+          }
+        };
+      }
+      const mata_pelajaran = resolvedSubject;
 
       // Validate date
       if (!Validator.isValidDate(deadlineStr)) {
@@ -87,7 +103,7 @@ export class AdminCommandHandler {
       );
 
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      
+
       const task = await this.taskService.createTask({
         judul,
         deskripsi: enhancedDesc,
@@ -116,10 +132,10 @@ export class AdminCommandHandler {
         }
       }
 
-      const deadlineFormatted = new Date(task.deadline).toLocaleDateString('id-ID', { 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'short' 
+      const deadlineFormatted = new Date(task.deadline).toLocaleDateString('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
       });
 
       return {
@@ -206,7 +222,7 @@ export class AdminCommandHandler {
       if (platform === 'discord') {
         // Import TaskConfirmationService
         const { TaskConfirmationService } = await import('../services/discord/TaskConfirmationService');
-        
+
         // Store pending confirmation
         TaskConfirmationService.setPendingConfirmation(userId, parsed);
 
@@ -498,7 +514,24 @@ export class AdminCommandHandler {
       }
 
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      const finalValue = field === 'deadline' ? DateTimeHelper.parseDate(value) : value;
+      let finalValue: any = value;
+      if (field === 'deadline') {
+        finalValue = DateTimeHelper.parseDate(value);
+      } else if (field === 'mata_pelajaran') {
+        const resolved = SubjectResolver.resolve(value);
+        if (!resolved) {
+          return {
+            success: false,
+            message: '',
+            embedData: {
+              title: '❌ Mata Pelajaran Tidak Dikenali',
+              description: `"${value}" tidak ditemukan.\n\n**Pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
+              color: 0xED4245
+            }
+          };
+        }
+        finalValue = resolved;
+      }
       const task = await this.taskService.updateTask(taskId, field, finalValue);
 
       return {
@@ -633,7 +666,22 @@ export class AdminCommandHandler {
         };
       }
 
-      const [hari, jam_mulai, jam_selesai, mata_pelajaran, ruangan, nama_guru] = args;
+      const [hari, jam_mulai, jam_selesai, mata_pelajaran_raw, ruangan, nama_guru] = args;
+
+      // Resolve mata_pelajaran using fuzzy matching
+      const resolvedSubject = SubjectResolver.resolve(mata_pelajaran_raw);
+      if (!resolvedSubject) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Mata Pelajaran Tidak Dikenali',
+            description: `"${mata_pelajaran_raw}" tidak ditemukan.\n\n**Pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
+            color: 0xED4245
+          }
+        };
+      }
+      const mata_pelajaran = resolvedSubject;
 
       // Validate day
       if (!Validator.isValidDay(hari)) {
@@ -812,10 +860,10 @@ export class AdminCommandHandler {
         keterangan
       });
 
-      const tanggalFormatted = new Date(announcement.tanggal).toLocaleDateString('id-ID', { 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'short' 
+      const tanggalFormatted = new Date(announcement.tanggal).toLocaleDateString('id-ID', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short'
       });
 
       return {
@@ -899,7 +947,25 @@ export class AdminCommandHandler {
         };
       }
 
-      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, value);
+      // Resolve mata_pelajaran if editing that field
+      let resolvedValue = value;
+      if (field === 'mata_pelajaran') {
+        const resolved = SubjectResolver.resolve(value);
+        if (!resolved) {
+          return {
+            success: false,
+            message: '',
+            embedData: {
+              title: '❌ Mata Pelajaran Tidak Dikenali',
+              description: `"${value}" tidak ditemukan.\n\n**Mata pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
+              color: 0xED4245
+            }
+          };
+        }
+        resolvedValue = resolved;
+      }
+
+      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, resolvedValue);
 
       return {
         success: true,
@@ -990,8 +1056,26 @@ export class AdminCommandHandler {
 
       const [scheduleId, field, value, alasan] = args;
 
+      // Resolve mata_pelajaran if editing that field
+      let resolvedValue = value;
+      if (field === 'mata_pelajaran') {
+        const resolved = SubjectResolver.resolve(value);
+        if (!resolved) {
+          return {
+            success: false,
+            message: '',
+            embedData: {
+              title: '❌ Mata Pelajaran Tidak Dikenali',
+              description: `"${value}" tidak ditemukan.\n\n**Mata pelajaran yang tersedia:**\n${SubjectResolver.getAvailableSubjectsMessage()}`,
+              color: 0xED4245
+            }
+          };
+        }
+        resolvedValue = resolved;
+      }
+
       // Update schedule
-      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, value);
+      const schedule = await this.scheduleService.updateSchedule(scheduleId, field, resolvedValue);
 
       // Create announcement
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
@@ -1221,7 +1305,7 @@ export class AdminCommandHandler {
         // Get tomorrow's date
         const tomorrow = DateTimeHelper.now();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         // Filter tasks for tomorrow
         const tomorrowTasks = tasks.filter(task => {
           const taskDate = new Date(task.deadline);
@@ -1260,19 +1344,19 @@ export class AdminCommandHandler {
         const month = today.toLocaleDateString('id-ID', { month: 'short' });
 
         if (weekTasks.length === 0) {
-          message = formatWeeklyRecap({ 
-            weekNumber, 
-            month, 
-            year: today.getFullYear(), 
-            tasksByDay 
+          message = formatWeeklyRecap({
+            weekNumber,
+            month,
+            year: today.getFullYear(),
+            tasksByDay
           });
           message += '\n\n⚠️ Tidak ada tugas untuk minggu depan di database';
         } else {
-          message = formatWeeklyRecap({ 
-            weekNumber, 
-            month, 
-            year: today.getFullYear(), 
-            tasksByDay 
+          message = formatWeeklyRecap({
+            weekNumber,
+            month,
+            year: today.getFullYear(),
+            tasksByDay
           });
         }
       } else { // monday
@@ -1324,7 +1408,7 @@ export class AdminCommandHandler {
   async handleTaskConfirmation(userId: string, action: 'confirm' | 'cancel'): Promise<CommandResponse> {
     try {
       const { TaskConfirmationService } = await import('../services/discord/TaskConfirmationService');
-      
+
       const pending = TaskConfirmationService.getPendingConfirmation(userId);
 
       if (!pending) {
@@ -1341,7 +1425,7 @@ export class AdminCommandHandler {
 
       if (action === 'cancel') {
         TaskConfirmationService.clearConfirmation(userId);
-        
+
         return {
           success: true,
           message: '',
@@ -1356,7 +1440,7 @@ export class AdminCommandHandler {
       // Confirm - create task
       const parsed = pending.parsedTask;
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
-      
+
       const task = await this.taskService.createTask({
         judul: parsed.judul,
         mata_pelajaran: parsed.mata_pelajaran,

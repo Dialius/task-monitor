@@ -4,6 +4,8 @@
  */
 
 import { AIService } from './AIService';
+import { SubjectResolver } from './SubjectResolver';
+import { getSubjectNames } from '../config/SubjectConfig';
 import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
@@ -41,12 +43,12 @@ export class AITaskParserService {
       // Use AI to parse (using rewriteText as a workaround)
       const context = 'Parse this natural language input and return ONLY valid JSON with task information. Follow the format and rules exactly.';
       const response = await this.aiService.rewriteText(prompt, context);
-      
+
       // Extract JSON from response (handle markdown code blocks)
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       response.match(/```\s*([\s\S]*?)\s*```/) ||
-                       [null, response];
-      
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) ||
+        response.match(/```\s*([\s\S]*?)\s*```/) ||
+        [null, response];
+
       const jsonStr = jsonMatch[1] || response;
       const parsed = JSON.parse(jsonStr.trim());
 
@@ -85,6 +87,12 @@ export class AITaskParserService {
         }
       });
 
+      // Resolve mata_pelajaran through SubjectResolver for validation
+      const resolvedSubject = SubjectResolver.resolve(parsed.mata_pelajaran);
+      if (resolvedSubject) {
+        parsed.mata_pelajaran = resolvedSubject;
+      }
+
       return parsed as ParsedTask;
     } catch (error) {
       logger.error('Failed to parse natural language', error as Error, { input });
@@ -96,23 +104,19 @@ export class AITaskParserService {
    * Build AI prompt for parsing
    */
   private buildPrompt(input: string, currentDate: Date): string {
-    const validSubjects = [
-      'Matematika', 'Bahasa Indonesia', 'Bahasa Inggris', 'Sejarah', 
-      'PAI', 'PJOK', 'BK', 'MP 1', 'MP 2', 'MP 3', 'MP 4', 
-      'MK 1', 'MK 2', 'MK 3', 'MK 4', 'Bahasa Jawa', 'Lainnya'
-    ];
+    const validSubjects = getSubjectNames();
 
     return `Extract task information from this natural language input in Indonesian.
 
 Input: "${input}"
 
 Current date and time: ${currentDate.toISOString()}
-Current date (readable): ${currentDate.toLocaleDateString('id-ID', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
+Current date (readable): ${currentDate.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })}
 
 Extract and return ONLY valid JSON with these exact fields:
 {

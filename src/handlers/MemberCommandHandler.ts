@@ -11,6 +11,7 @@ import { PiketService } from '../services/PiketService';
 import { NotionService } from '../services/NotionService';
 import { Formatter } from '../utils/Formatter';
 import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from '../utils/TextFormatter';
+import { getSubjectEmoji } from '../config/SubjectConfig';
 import { getLogger } from '../utils/Logger';
 
 const logger = getLogger();
@@ -21,7 +22,7 @@ export class MemberCommandHandler {
     private scheduleService: ScheduleService,
     private piketService: PiketService,
     private notionService: NotionService
-  ) {}
+  ) { }
 
   /**
    * Handle /tugas command - Get all active tasks
@@ -43,7 +44,7 @@ export class MemberCommandHandler {
       }
 
       const tasks = await this.taskService.getTasks();
-      
+
       if (tasks.length === 0) {
         return {
           success: true,
@@ -76,14 +77,14 @@ export class MemberCommandHandler {
         // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
           });
-          
+
           const spacing = index < tasks.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
@@ -151,7 +152,7 @@ export class MemberCommandHandler {
       }
 
       const tasks = await this.taskService.getTasksForToday();
-      
+
       if (tasks.length === 0) {
         return {
           success: true,
@@ -184,14 +185,14 @@ export class MemberCommandHandler {
         // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
           });
-          
+
           const spacing = index < tasks.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
@@ -218,7 +219,7 @@ export class MemberCommandHandler {
       const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
       const year = today.getFullYear();
       const fullDate = `${dayName}, ${dateNum} ${monthName} ${year}`;
-      
+
       const message = this.formatTasksLikeReminder(tasks, `Hari Ini | ${fullDate}`);
       return {
         success: true,
@@ -258,7 +259,7 @@ export class MemberCommandHandler {
       }
 
       const tasks = await this.taskService.getTasksForWeek();
-      
+
       if (tasks.length === 0) {
         return {
           success: true,
@@ -291,14 +292,14 @@ export class MemberCommandHandler {
         // For 5 or fewer tasks, use regular embed
         const fields = tasks.map((task, index) => {
           const emoji = this.getTaskEmoji(task.tipe);
-          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
+          const deadline = new Date(task.deadline).toLocaleDateString('id-ID', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short'
           });
-          
+
           const spacing = index < tasks.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${emoji} ${task.judul}`,
             value: `**Mata Pelajaran:** ${task.mata_pelajaran}\n**Deadline:** ${deadline}\n**Deskripsi:** ${task.deskripsi}\n**ID:** \`${task._id}\`${spacing}`,
@@ -324,7 +325,7 @@ export class MemberCommandHandler {
       const weekNumber = Math.ceil((today.getDate() + firstDayOfMonth.getDay()) / 7);
       const monthName = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()];
       const year = today.getFullYear();
-      
+
       const message = this.formatTasksLikeReminder(tasks, `Minggu ke-${weekNumber} | ${monthName} ${year}`);
       return {
         success: true,
@@ -351,7 +352,7 @@ export class MemberCommandHandler {
   async handleJadwal(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const schedules = await this.scheduleService.getTodaySchedule();
-      
+
       if (schedules.length === 0) {
         return {
           success: true,
@@ -369,7 +370,7 @@ export class MemberCommandHandler {
         const fields = schedules.map((schedule, index) => {
           // Add single newline at end for spacing between schedules (except last)
           const spacing = index < schedules.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
@@ -415,7 +416,7 @@ export class MemberCommandHandler {
   async handleJadwalBesok(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const schedules = await this.scheduleService.getTomorrowSchedule();
-      
+
       if (schedules.length === 0) {
         return {
           success: true,
@@ -433,7 +434,7 @@ export class MemberCommandHandler {
         const fields = schedules.map((schedule, index) => {
           // Add single newline at end for spacing between schedules (except last)
           const spacing = index < schedules.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
@@ -480,7 +481,7 @@ export class MemberCommandHandler {
     try {
       const { DateTimeHelper } = require('../utils/DateTimeHelper');
       const schedules = await this.scheduleService.getSchedulesForWeek(DateTimeHelper.now());
-      
+
       if (schedules.length === 0) {
         return {
           success: true,
@@ -498,7 +499,7 @@ export class MemberCommandHandler {
         const fields = schedules.map((schedule, index) => {
           // Add single newline at end for spacing between schedules (except last)
           const spacing = index < schedules.length - 1 ? '\n' : '';
-          
+
           return {
             name: `${index + 1}. ${schedule.mata_pelajaran}`,
             value: `**Waktu:** ${schedule.jam_mulai}-${schedule.jam_selesai}\n**Ruangan:** ${schedule.ruangan}\n**Guru:** ${schedule.nama_guru}\n**ID:** \`${schedule._id}\`${spacing}`,
@@ -544,7 +545,7 @@ export class MemberCommandHandler {
   async handlePiket(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const piket = await this.piketService.getTodayPiket();
-      
+
       if (!piket) {
         return {
           success: true,
@@ -560,7 +561,7 @@ export class MemberCommandHandler {
       // For Discord, return embed data with description
       if (platform === 'discord') {
         const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-        
+
         return {
           success: true,
           message: '',
@@ -602,7 +603,7 @@ export class MemberCommandHandler {
     try {
       const { DateTimeHelper } = require('../utils/DateTimeHelper');
       const pikets = await this.piketService.getPiketForWeek(DateTimeHelper.now());
-      
+
       if (pikets.length === 0) {
         return {
           success: true,
@@ -619,10 +620,10 @@ export class MemberCommandHandler {
       if (platform === 'discord') {
         const fields = pikets.map((piket, index) => {
           const studentList = piket.nama_siswa.map((nama, i) => `${i + 1}. ${nama}`).join('\n');
-          
+
           // Add single newline at end for spacing between days (except last)
           const spacing = index < pikets.length - 1 ? '\n' : '';
-          
+
           return {
             name: piket.hari,
             value: `${studentList || 'Tidak ada petugas'}${spacing}`,
@@ -675,32 +676,37 @@ export class MemberCommandHandler {
    */
   async handleHelp(_args: string[], _userId: string, platform: Platform, _chatId?: string): Promise<CommandResponse> {
     const memberCommands = [
-      '• `/tugas` - Lihat semua tugas aktif',
-      '• `/tugas_hari_ini` - Tugas hari ini',
-      '• `/tugas_minggu_ini` - Tugas minggu ini',
-      '• `/jadwal` - Jadwal hari ini',
-      '• `/jadwal_besok` - Jadwal besok',
-      '• `/jadwal_minggu_ini` - Jadwal minggu ini',
-      '• `/piket` - Piket hari ini',
-      '• `/piket_minggu_ini` - Piket minggu ini',
-      '• `/status` - Status bot',
-      '• `/help` - Bantuan'
+      '• `/tugas` — Lihat semua tugas aktif',
+      '• `/tugas_hari_ini` — Tugas yang deadline-nya hari ini',
+      '• `/tugas_minggu_ini` — Tugas yang deadline-nya minggu ini',
+      '• `/jadwal` — Jadwal pelajaran hari ini',
+      '• `/jadwal_besok` — Jadwal pelajaran besok',
+      '• `/jadwal_minggu_ini` — Jadwal seluruh minggu',
+      '• `/piket` — Petugas piket hari ini',
+      '• `/piket_minggu_ini` — Jadwal piket seluruh minggu',
+      '• `/status` — Status & statistik bot',
+      '• `/help` — Tampilkan bantuan ini'
     ].join('\n');
 
     const adminCommands = [
-      '• `/add_tugas` - Tambah tugas',
-      '• `/add_tugas_cepat` - Tambah tugas cepat (natural language)',
-      '• `/edit_tugas` - Edit tugas',
-      '• `/hapus_tugas` - Hapus tugas',
-      '• `/tandai_selesai` - Tandai selesai',
-      '• `/add_jadwal` - Tambah jadwal',
-      '• `/set_piket` - Atur piket',
-      '• `/add_pengumuman` - Tambah pengumuman'
+      '• `/add_tugas` — Tambah tugas (pilih mapel dari dropdown)',
+      '• `/add_tugas_cepat` — Tambah tugas pakai bahasa sehari-hari',
+      '• `/edit_tugas [id]` — Edit tugas',
+      '• `/hapus_tugas [id]` — Hapus tugas',
+      '• `/tandai_selesai [id]` — Tandai tugas selesai',
+      '• `/add_jadwal` — Tambah jadwal pelajaran',
+      '• `/edit_jadwal [id] [field] [value]` — Edit jadwal',
+      '• `/hapus_jadwal [id]` — Hapus jadwal',
+      '• `/ganti_jadwal [id] [field] [value] [alasan]` — Ganti jadwal + pengumuman',
+      '• `/set_piket [hari] [nama]` — Atur jadwal piket',
+      '• `/edit_piket [hari] [nama]` — Edit jadwal piket',
+      '• `/add_pengumuman` — Tambah pengumuman',
+      '• `/hapus_pengumuman [id]` — Hapus pengumuman'
     ].join('\n');
 
     const leaderCommands = [
-      '• `/broadcast` - Broadcast pesan',
-      '• `/broadcast_urgent` - Broadcast urgent'
+      '• `/broadcast [pesan]` — Kirim pesan ke semua member',
+      '• `/broadcast_urgent [pesan]` — Broadcast urgent 🚨'
     ].join('\n');
 
     // For WhatsApp, return plain text
@@ -709,7 +715,7 @@ export class MemberCommandHandler {
         `👥 *Perintah Member*\n${memberCommands}\n\n` +
         `👨‍💼 *Perintah Admin*\n${adminCommands}\n\n` +
         `👑 *Perintah Ketua/Wakil*\n${leaderCommands}`;
-      
+
       return {
         success: true,
         message
@@ -751,7 +757,7 @@ export class MemberCommandHandler {
   async handleStatus(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
     try {
       const { EMOJI, EMBED_COLORS } = await import('../config/emoji.config');
-      
+
       const uptime = process.uptime();
       const hours = Math.floor(uptime / 3600);
       const minutes = Math.floor((uptime % 3600) / 60);
@@ -759,20 +765,20 @@ export class MemberCommandHandler {
       let mongoConnected = false;
       let mongoDbName = 'Unknown';
       let notionConnected = false;
-      
+
       // Check MongoDB status
       try {
         const mongoose = require('mongoose');
         const connectionState = mongoose.connection.readyState;
         mongoConnected = connectionState === 1;
-        
+
         if (mongoConnected) {
           mongoDbName = mongoose.connection.db?.databaseName || 'task_monitor_bot';
         }
       } catch (error) {
         mongoConnected = false;
       }
-      
+
       // Check Notion status
       if (this.notionService.isEnabled()) {
         try {
@@ -795,7 +801,7 @@ export class MemberCommandHandler {
           `> MongoDB: ${mongoConnected ? '✅ Connected' : '❌ Disconnected'}\n` +
           `> └ DB: ${mongoDbName}\n` +
           `> Notion: ${notionConnected ? '✅ Connected' : '❌ Disconnected'}`;
-        
+
         return {
           success: true,
           message
@@ -803,8 +809,8 @@ export class MemberCommandHandler {
       }
 
       // For Discord, return embed with new format
-      const embedColor = mongoConnected && (notionConnected || !this.notionService.isEnabled()) 
-        ? EMBED_COLORS.SUCCESS 
+      const embedColor = mongoConnected && (notionConnected || !this.notionService.isEnabled())
+        ? EMBED_COLORS.SUCCESS
         : EMBED_COLORS.ERROR;
 
       return {
@@ -851,7 +857,7 @@ export class MemberCommandHandler {
       };
     } catch (error) {
       logger.error('Failed to get status', error as Error);
-      
+
       // For WhatsApp
       if (platform === 'whatsapp') {
         return {
@@ -859,7 +865,7 @@ export class MemberCommandHandler {
           message: '❌ *Error*\n\nGagal mengambil status bot.'
         };
       }
-      
+
       // For Discord
       return {
         success: false,
@@ -886,7 +892,7 @@ export class MemberCommandHandler {
     message += '━━━━━━━━━━━━━━━━━━\n';
     message += formatSectionTitle('DAFTAR TUGAS', '🗓') + '\n';
     message += '━━━━━━━━━━━━━━━━━━\n\n';
-    
+
     // Group tasks by mata pelajaran
     const grouped = new Map<string, any[]>();
     for (const task of tasks) {
@@ -896,77 +902,44 @@ export class MemberCommandHandler {
       }
       grouped.get(mapel)!.push(task);
     }
-    
+
     // Format each mata pelajaran
     for (const [mapel, mapelTasks] of grouped) {
-      const emoji = this.getMapelEmoji(mapel);
-      
+      const emoji = getSubjectEmoji(mapel);
+
       message += formatSubject(mapel, emoji) + '\n';
       message += formatLabel('Tugas:', '📌') + '\n';
-      
+
       // List tasks
       for (let i = 0; i < mapelTasks.length; i++) {
         const task = mapelTasks[i];
         const bullet = `${i + 1}️⃣`;
         message += `${bullet} ${task.deskripsi}\n`;
       }
-      
+
       // Add submission link if exists
       const taskWithLink = mapelTasks.find((t: any) => t.link_pengumpulan);
       if (taskWithLink && taskWithLink.link_pengumpulan) {
         message += formatLabel('Link Pengumpulan:', '📥') + `\n${taskWithLink.link_pengumpulan}\n`;
       }
-      
+
       // Add notes if exists
       const taskWithNotes = mapelTasks.find((t: any) => t.catatan);
       if (taskWithNotes && taskWithNotes.catatan) {
         message += formatLabel('Catatan:', '⚠️') + `\n${toItalic(taskWithNotes.catatan)}\n`;
       }
-      
+
       message += '━━━━━━━━━━━━━━━━━━\n\n';
     }
-    
+
     // Footer
     message += formatHeader('Penutup', '🌟') + '\n\n';
     message += `${toItalic('Tetap semangat mengerjakan tugas ya, teman-teman')} 💪\n`;
     message += `${toItalic('Terima kasih sudah membaca sampai akhir')} 🙏\n\n`;
     message += 'Kalau ada info yang kurang atau salah ketik, silakan kabari admin.\n';
     message += toBold('CMIIW') + ' 🤗';
-    
-    return message;
-  }
 
-  /**
-   * Get emoji for mata pelajaran
-   */
-  private getMapelEmoji(mapel: string): string {
-    const emojiMap: Record<string, string> = {
-      'PJOK': '🏃',
-      'MP 1': '💻', 'MP 2': '💻', 'MP 3': '💻', 'MP 4': '💻',
-      'MK 1': '💻', 'MK 2': '💻', 'MK 3': '💻', 'MK 4': '💻',
-      'MK-1': '💻', 'MK-2': '💻', 'MK-3': '💻', 'MK-4': '💻',
-      'Sejarah': '📚',
-      'PAI': '🕌',
-      'Matematika': '🔢',
-      'MTK': '🔢',
-      'Bahasa Indonesia': '📖',
-      'B. Indonesia': '📖',
-      'Bahasa Inggris': '🌍',
-      'B. Inggris': '🌍',
-      'Bahasa Jawa': '🎭',
-      'BK': '🧠',
-      'Fisika': '⚛️',
-      'Kimia': '🧪',
-      'KIK-A': '🧪',
-      'Biologi': '🌱',
-      'Ekonomi': '💰',
-      'Geografi': '🌏',
-      'Sosiologi': '👥',
-      'Seni Budaya': '🎨',
-      'PPKN': '🇮🇩'
-    };
-    
-    return emojiMap[mapel] || '📝';
+    return message;
   }
 }
 

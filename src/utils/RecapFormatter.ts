@@ -6,6 +6,7 @@
 import { ITask } from '../models/Task';
 import { IJadwal } from '../models/Jadwal';
 import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from './TextFormatter';
+import { getSubjectEmoji } from '../config/SubjectConfig';
 
 export interface DailyRecapData {
   date: Date;
@@ -55,7 +56,7 @@ function formatFullDate(date: Date): string {
  */
 function groupTasksByMapel(tasks: ITask[]): Map<string, ITask[]> {
   const grouped = new Map<string, ITask[]>();
-  
+
   for (const task of tasks) {
     const mapel = task.mata_pelajaran || 'Lainnya';
     if (!grouped.has(mapel)) {
@@ -63,7 +64,7 @@ function groupTasksByMapel(tasks: ITask[]): Map<string, ITask[]> {
     }
     grouped.get(mapel)!.push(task);
   }
-  
+
   return grouped;
 }
 
@@ -72,21 +73,21 @@ function groupTasksByMapel(tasks: ITask[]): Map<string, ITask[]> {
  */
 function formatTaskList(tasks: ITask[]): string {
   if (tasks.length === 0) return '';
-  
+
   let result = '';
-  
+
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
     const number = i === 0 ? formatLabel('Tugas:', '📌') : '';
     const bullet = `${i + 1}️⃣`;
-    
+
     if (number) {
       result += `${number}\n`;
     }
-    
+
     result += `${bullet} ${task.deskripsi}\n`;
   }
-  
+
   return result;
 }
 
@@ -96,11 +97,11 @@ function formatTaskList(tasks: ITask[]): string {
 function formatSubmissionLink(tasks: ITask[]): string {
   // Cari task yang punya link pengumpulan
   const taskWithLink = tasks.find(t => t.link_pengumpulan);
-  
+
   if (taskWithLink && taskWithLink.link_pengumpulan) {
     return formatLabel('Link Pengumpulan:', '📥') + `\n${taskWithLink.link_pengumpulan}\n`;
   }
-  
+
   return '';
 }
 
@@ -109,11 +110,11 @@ function formatSubmissionLink(tasks: ITask[]): string {
  */
 function formatNotes(tasks: ITask[]): string {
   const taskWithNotes = tasks.find(t => t.catatan);
-  
+
   if (taskWithNotes && taskWithNotes.catatan) {
     return formatLabel('Catatan:', '⚠️') + `\n${toItalic(taskWithNotes.catatan)}\n`;
   }
-  
+
   return '';
 }
 
@@ -122,7 +123,7 @@ function formatNotes(tasks: ITask[]): string {
  */
 export function formatDailyRecap(data: DailyRecapData): string {
   const { date, tasks } = data;
-  
+
   // Header with Unicode bold
   let message = formatHeader('INFO TUGAS HARIAN', '🌟') + '\n\n';
   message += formatHeader(`Hari ini | ${formatFullDate(date)}`, '📅') + '\n\n';
@@ -132,10 +133,10 @@ export function formatDailyRecap(data: DailyRecapData): string {
   message += '━━━━━━━━━━━━━━━━━━\n';
   message += formatSectionTitle('DAFTAR TUGAS HARI INI', '🗓') + '\n';
   message += '━━━━━━━━━━━━━━━━━━\n\n';
-  
+
   // Group tasks by mata pelajaran
   const groupedTasks = groupTasksByMapel(tasks);
-  
+
   if (groupedTasks.size === 0) {
     message += `✨ ${toItalic('Tidak ada tugas untuk hari ini!')}\n`;
     message += `${toItalic('Enjoy your day!')} 🎉\n\n`;
@@ -143,34 +144,34 @@ export function formatDailyRecap(data: DailyRecapData): string {
     // Format each mata pelajaran
     for (const [mapel, mapelTasks] of groupedTasks) {
       // Emoji untuk mata pelajaran (bisa dikustomisasi)
-      const emoji = getMapelEmoji(mapel);
-      
+      const emoji = getSubjectEmoji(mapel);
+
       message += formatSubject(mapel, emoji) + '\n';
       message += formatTaskList(mapelTasks);
-      
+
       // Add submission link if exists
       const link = formatSubmissionLink(mapelTasks);
       if (link) {
         message += link;
       }
-      
+
       // Add notes if exists
       const notes = formatNotes(mapelTasks);
       if (notes) {
         message += notes;
       }
-      
+
       message += '━━━━━━━━━━━━━━━━━━\n\n';
     }
   }
-  
+
   // Footer
   message += formatHeader('Penutup', '🌟') + '\n\n';
   message += `${toItalic('Tetap semangat mengerjakan tugas ya, teman-teman')} 💪\n`;
   message += `${toItalic('Terima kasih sudah membaca sampai akhir')} 🙏\n\n`;
   message += 'Kalau ada info yang kurang atau salah ketik, silakan kabari admin.\n';
   message += toBold('CMIIW') + ' 🤗';
-  
+
   return message;
 }
 
@@ -179,7 +180,7 @@ export function formatDailyRecap(data: DailyRecapData): string {
  */
 export function formatWeeklyRecap(data: WeeklyRecapData): string {
   const { weekNumber, month, year, tasksByDay } = data;
-  
+
   // Header with Unicode bold
   let message = formatHeader('INFO TUGAS MINGGUAN', '🌟') + '\n\n';
   message += formatHeader(`Minggu ke-${weekNumber} | ${month} ${year}`, '📅') + '\n\n';
@@ -188,7 +189,7 @@ export function formatWeeklyRecap(data: WeeklyRecapData): string {
   message += 'Nih admin bawain update tugas mingguan biar kalian gak ketinggalan info!\n';
   message += 'Yuk, cek dari hari Senin sampai Ahad 👇\n\n';
   message += formatSectionTitle('Daftar Tugas Mingguan', '🗓') + '\n\n';
-  
+
   // Days of week
   const daysOfWeek = [
     { name: 'Senin', emoji: '📖' },
@@ -197,79 +198,46 @@ export function formatWeeklyRecap(data: WeeklyRecapData): string {
     { name: 'Kamis', emoji: '🌿' },
     { name: 'Jumat', emoji: '🎨' }
   ];
-  
+
   // Format each day
   for (const day of daysOfWeek) {
     const dayTasks = tasksByDay.get(day.name) || [];
-    
+
     message += formatSubject(day.name, day.emoji) + '\n';
-    
+
     if (dayTasks.length === 0) {
       message += `→ ${toItalic('Belum ada tugas')}\n\n`;
     } else {
       // Group by mata pelajaran
       const grouped = groupTasksByMapel(dayTasks);
-      
+
       for (const [mapel, tasks] of grouped) {
         message += `${toBold(`[${mapel}]`)} → `;
-        
+
         // Format task descriptions
         const descriptions = tasks.map(t => t.deskripsi).join(', ');
         message += descriptions + '\n';
-        
+
         // Add link if exists
         const taskWithLink = tasks.find(t => t.link_pengumpulan);
         if (taskWithLink && taskWithLink.link_pengumpulan) {
           message += `${toItalic('Link:')} ${taskWithLink.link_pengumpulan}\n`;
         }
       }
-      
+
       message += '\n';
     }
   }
-  
+
   // Footer
   message += `${toItalic('Udah segitu dulu tugasnya untuk minggu ini yaa')} 🌻\n\n`;
   message += 'Kalau ada yang kelewat atau salah ketik, tolong kasih tahu admin ya~\n';
   message += toBold('CMIIW') + '\n\n';
   message += `${toItalic('Tetap semangat ngerjain tugasnya, masukan dari kalian sangat berarti supaya info tetap akurat')} 🤗`;
-  
+
   return message;
 }
 
-/**
- * Get emoji for mata pelajaran
- */
-function getMapelEmoji(mapel: string): string {
-  const emojiMap: Record<string, string> = {
-    'PJOK': '🏃',
-    'MP 1': '💻',
-    'MP 2': '💻',
-    'MP 3': '💻',
-    'MP 4': '💻',
-    'MK 1': '💻',
-    'MK 2': '💻',
-    'MK 3': '💻',
-    'MK 4': '💻',
-    'Sejarah': '📚',
-    'PAI': '🕌',
-    'Matematika': '🔢',
-    'Bahasa Indonesia': '📖',
-    'Bahasa Inggris': '🌍',
-    'Bahasa Jawa': '🎭',
-    'BK': '🧠',
-    'Fisika': '⚛️',
-    'Kimia': '🧪',
-    'Biologi': '🌱',
-    'Ekonomi': '💰',
-    'Geografi': '🌏',
-    'Sosiologi': '👥',
-    'Seni Budaya': '🎨',
-    'PPKN': '🇮🇩'
-  };
-  
-  return emojiMap[mapel] || '📝';
-}
 
 /**
  * Get week number of month
@@ -278,6 +246,6 @@ export function getWeekOfMonth(date: Date): number {
   const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
   const dayOfMonth = date.getDate();
   const dayOfWeek = firstDay.getDay();
-  
+
   return Math.ceil((dayOfMonth + dayOfWeek) / 7);
 }

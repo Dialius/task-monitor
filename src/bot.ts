@@ -40,7 +40,7 @@ class MultiPlatformBot {
   private commandParser = new CommandParser();
   private commandRouter!: CommandRouter;
   private permissionService!: PermissionService;
-  
+
   // Services
   private taskService!: TaskService;
   private scheduleService!: ScheduleService;
@@ -48,23 +48,23 @@ class MultiPlatformBot {
   private announcementService!: AnnouncementService;
   private aiService!: AIService;
   private notionService!: NotionService;
-  
+
   // New services for message tracking and editing
   private messageEditService: any; // Will be imported
   private changeDetectionService: any; // Will be imported
-  
+
   // Handlers
   private adminHandler!: AdminCommandHandler;
   private memberHandler!: MemberCommandHandler;
-  
+
   // Clients
   private discordClient?: DiscordClient;
   private whatsappClient?: BaileysClient;
-  
+
   // Adapters
   private discordAdapter?: DiscordAdapter;
   private whatsappAdapter?: WhatsAppAdapter;
-  
+
   // Scheduler
   private reminderScheduler?: ReminderScheduler;
 
@@ -76,7 +76,7 @@ class MultiPlatformBot {
       console.log('\n╔════════════════════════════════════════════════════════╗');
       console.log('║   🤖 MULTI-PLATFORM CLASS REMINDER BOT                ║');
       console.log('╚════════════════════════════════════════════════════════╝\n');
-      
+
       console.log('📋 Step 1/8: Initializing logger...');
       // Initialize logger
       const config = getConfigManager();
@@ -236,7 +236,7 @@ class MultiPlatformBot {
    */
   private async initializePlatforms(): Promise<void> {
     let platformCount = 0;
-    
+
     // Initialize Discord if enabled
     if (process.env.DISCORD_ENABLED === 'true' && process.env.DISCORD_BOT_TOKEN) {
       console.log('   → Connecting to Discord...');
@@ -267,7 +267,7 @@ class MultiPlatformBot {
    */
   private async initializeDiscord(): Promise<void> {
     const config = getConfigManager();
-    
+
     this.discordClient = new DiscordClient({
       token: process.env.DISCORD_BOT_TOKEN!,
       clientId: process.env.DISCORD_CLIENT_ID!,
@@ -327,11 +327,11 @@ class MultiPlatformBot {
         'broadcast', 'broadcast_urgent',
         'test_reminder'
       ];
-      
+
       const isEphemeral = adminCommands.includes(command);
 
       // Defer reply immediately to prevent timeout and set ephemeral state using flags
-      await interaction.deferReply({ 
+      await interaction.deferReply({
         flags: isEphemeral ? 64 : undefined // 64 = EPHEMERAL flag
       });
 
@@ -339,8 +339,8 @@ class MultiPlatformBot {
       const channelId = interaction.channelId;
 
       const response = await this.commandRouter.route(
-        { 
-          command, 
+        {
+          command,
           args,
           rawMessage: `/${command} ${args.join(' | ')}`
         },
@@ -352,7 +352,7 @@ class MultiPlatformBot {
       // Check if response needs pagination
       if (response.data?.usePagination) {
         const { PaginationHelper } = await import('./utils/PaginationHelper');
-        
+
         const embeds = PaginationHelper.createTaskEmbeds(
           response.data.tasks,
           5, // 5 tasks per page
@@ -362,7 +362,7 @@ class MultiPlatformBot {
 
         // Send initial embed with pagination buttons directly
         const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-        
+
         const getButtons = (page: number) => {
           const row = new ActionRowBuilder<any>().addComponents(
             new ButtonBuilder()
@@ -392,7 +392,7 @@ class MultiPlatformBot {
 
         // Get the message to add collector
         const message = await interaction.fetchReply();
-        
+
         // Create collector for pagination
         let currentPage = 0;
         const collector = message.createMessageComponentCollector({
@@ -428,7 +428,7 @@ class MultiPlatformBot {
             // Message might be deleted
           }
         });
-        
+
         return;
       }
 
@@ -444,7 +444,7 @@ class MultiPlatformBot {
           embed.setFooter(response.embedData.footer);
         } else {
           const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
-          embed.setFooter({ 
+          embed.setFooter({
             text: 'Made by VinTheGreat',
             iconURL: footerIcon
           });
@@ -468,7 +468,7 @@ class MultiPlatformBot {
         // Check if we need to show confirmation buttons (for add_tugas_cepat)
         if (response.data?.showConfirmationButtons) {
           const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-          
+
           const row = new ActionRowBuilder<any>().addComponents(
             new ButtonBuilder()
               .setCustomId('task_confirm_yes')
@@ -484,12 +484,12 @@ class MultiPlatformBot {
               .setStyle(ButtonStyle.Secondary)
           );
 
-          await interaction.editReply({ 
+          await interaction.editReply({
             embeds: [embed],
             components: [row]
           });
         } else {
-          await interaction.editReply({ 
+          await interaction.editReply({
             embeds: [embed]
           });
         }
@@ -662,7 +662,7 @@ class MultiPlatformBot {
       if (response.data?.usePagination) {
         const { PaginationHelper } = await import('./utils/PaginationHelper');
         const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
-        
+
         const embeds = PaginationHelper.createTaskEmbeds(
           response.data.tasks,
           5, // 5 tasks per page
@@ -733,7 +733,7 @@ class MultiPlatformBot {
             // Message might be deleted
           }
         });
-        
+
         return;
       }
 
@@ -749,7 +749,7 @@ class MultiPlatformBot {
           embed.setFooter(response.embedData.footer);
         } else {
           const footerIcon = process.env.DISCORD_FOOTER_ICON || 'https://i.imgur.com/AfFp7pu.png';
-          embed.setFooter({ 
+          embed.setFooter({
             text: 'Made by VinTheGreat',
             iconURL: footerIcon
           });
@@ -779,7 +779,7 @@ class MultiPlatformBot {
     console.log('      ✓ Discord bot online');
     console.log(`      ✓ Server: ${process.env.DISCORD_GUILD_ID}`);
     console.log(`      ✓ Channel: ${process.env.DISCORD_CHANNEL_ID}`);
-    
+
     const activityService = this.discordClient.getActivityStatusService();
     if (activityService) {
       const activityConfig = activityService.getConfig();
@@ -795,11 +795,11 @@ class MultiPlatformBot {
    */
   private async initializeWhatsApp(): Promise<void> {
     console.log('      → Initializing Baileys client...');
-    
+
     // Check if pairing code mode is enabled
     const usePairingCode = process.env.WHATSAPP_USE_PAIRING_CODE === 'true';
     const phoneNumber = process.env.WHATSAPP_PAIRING_NUMBER || process.env.FIRST_ADMIN_WHATSAPP_ID;
-    
+
     this.whatsappClient = new BaileysClient({
       authDir: './auth_info',
       printQRInTerminal: true,
@@ -818,10 +818,10 @@ class MultiPlatformBot {
     if (!usePairingCode) {
       console.log('      → Scan QR code with your phone if this is first time\n');
     }
-    
+
     // Start connection (don't await - it will connect in background)
     this.whatsappClient.connect();
-    
+
     // Wait for connection to be ready
     console.log('      → Waiting for WhatsApp connection...\n');
     await this.waitForWhatsAppReady();
@@ -830,105 +830,30 @@ class MultiPlatformBot {
     if (socket) {
       this.whatsappAdapter = new WhatsAppAdapter(socket);
 
-      // Register message handler for commands
+      // Register message handler — WhatsApp is reminder-only, no command processing
       this.whatsappClient.onMessage(async (message) => {
         // Skip messages from bot itself to prevent loops
         if (message.key.fromMe) {
           return;
         }
 
-        // Update message count
+        // Only track message activity, do NOT process commands
         BotMonitorService.updateState({
           messageCount: (BotMonitorService.getState().messageCount || 0) + 1,
           lastActivity: new Date()
         });
-
-        // Extract text from message
-        const text = message.message?.conversation || 
-                    message.message?.extendedTextMessage?.text ||
-                    '';
-        
-        if (!text) return;
-
-        // Get sender ID (use participant for groups/channels, otherwise remoteJid)
-        const senderId = message.key.participant || message.key.remoteJid || '';
-        const chatId = message.key.remoteJid || '';
-
-        // Parse command
-        const parsed = this.commandParser.parse(text);
-        
-        // If not a command, check if user has pending confirmation
-        if (!parsed) {
-          // Check if this is a confirmation response (ya/edit/batal)
-          const ConfirmationService = (await import('./services/ConfirmationService')).default;
-          
-          if (ConfirmationService.hasPendingConfirmation(senderId)) {
-            // Treat as confirmation response to add_tugas_cepat
-            console.log(`📨 WhatsApp confirmation response: "${text}" from ${senderId}`);
-            
-            // Update command count
-            BotMonitorService.updateState({
-              commandCount: (BotMonitorService.getState().commandCount || 0) + 1
-            });
-            
-            const response = await this.commandRouter.route(
-              {
-                command: 'add_tugas_cepat',
-                args: [text],
-                rawMessage: text
-              },
-              senderId,
-              'whatsapp'
-            );
-
-            // Send response - WhatsApp always uses message field
-            if (this.whatsappAdapter) {
-              const messageToSend = response.message || 
-                (response.embedData ? this.formatEmbedForWhatsApp(response.embedData) : '');
-              
-              if (messageToSend) {
-                await this.whatsappAdapter.sendMessage(chatId, messageToSend);
-              }
-            }
-          }
-          return;
-        }
-
-        console.log(`📨 WhatsApp command: /${parsed.command} from ${senderId}`);
-
-        // Update command count
-        BotMonitorService.updateState({
-          commandCount: (BotMonitorService.getState().commandCount || 0) + 1
-        });
-
-        // Route command
-        const response = await this.commandRouter.route(
-          parsed,
-          senderId,
-          'whatsapp'
-        );
-
-        // Send response - WhatsApp always uses message field
-        if (this.whatsappAdapter) {
-          const messageToSend = response.message || 
-            (response.embedData ? this.formatEmbedForWhatsApp(response.embedData) : '');
-          
-          if (messageToSend) {
-            await this.whatsappAdapter.sendMessage(chatId, messageToSend);
-          }
-        }
       });
 
       console.log('      ✓ WhatsApp connected');
       console.log('      ✓ Commands enabled - bot can add tasks');
       console.log('      ✓ Reminders enabled - auto sync from Notion');
-      
+
       // Update bot monitor status
       BotMonitorService.updateState({
         whatsappConnected: true,
         lastActivity: new Date()
       });
-      
+
       if (process.env.WHATSAPP_GROUP_ID) {
         console.log(`      ✓ Target channel: ${process.env.WHATSAPP_GROUP_ID}`);
       } else {
@@ -958,14 +883,14 @@ class MultiPlatformBot {
           clearInterval(interval);
           reject(new Error('WhatsApp connection timeout after 5 minutes'));
         }
-        
+
         // Log progress setiap 30 detik
         if (elapsed - lastLogTime >= 30000) {
           const remaining = Math.floor((maxWait - elapsed) / 1000);
           console.log(`      ⏳ Menunggu koneksi... (${remaining}s tersisa)`);
           lastLogTime = elapsed;
         }
-        
+
         elapsed += checkInterval;
       }, checkInterval);
     });
@@ -983,7 +908,7 @@ class MultiPlatformBot {
     }
 
     const groupId = process.env.WHATSAPP_GROUP_ID || process.env.DISCORD_CHANNEL_ID || '';
-    
+
     if (!groupId) {
       console.log('   ⚠ No group/channel ID configured - scheduler disabled');
       return;
@@ -1046,24 +971,24 @@ class MultiPlatformBot {
    */
   private formatEmbedForWhatsApp(embedData: any): string {
     let message = '';
-    
+
     // Add title
     if (embedData.title) {
       message += `*${embedData.title}*\n\n`;
     }
-    
+
     // Add description
     if (embedData.description) {
       message += `${embedData.description}\n`;
     }
-    
+
     // Add fields
     if (embedData.fields && embedData.fields.length > 0) {
       embedData.fields.forEach((field: any) => {
         message += `\n*${field.name}*\n${field.value}\n`;
       });
     }
-    
+
     return message;
   }
 
@@ -1072,11 +997,11 @@ class MultiPlatformBot {
    */
   async start(): Promise<void> {
     await this.initialize();
-    
+
     console.log('\n╔════════════════════════════════════════════════════════╗');
     console.log('║   ✅ BOT IS RUNNING!                                  ║');
     console.log('╚════════════════════════════════════════════════════════╝\n');
-    
+
     console.log('📝 Available Commands:');
     console.log('   Member Commands:');
     console.log('   • /help atau /bantuan - Daftar command');
@@ -1103,7 +1028,7 @@ class MultiPlatformBot {
     console.log('   • /broadcast_urgent - Broadcast urgent');
     console.log('');
     console.log('💡 Tip: Kirim /help di chat untuk melihat semua command\n');
-    
+
     this.logger.info('🤖 Multi-Platform Bot is running!');
   }
 
@@ -1113,7 +1038,7 @@ class MultiPlatformBot {
    */
   async stop(): Promise<void> {
     this.logger.info('Stopping bot...');
-    
+
     try {
       // Stop scheduler
       if (this.reminderScheduler) {
