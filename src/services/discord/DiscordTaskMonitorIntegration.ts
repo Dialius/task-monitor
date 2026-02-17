@@ -13,6 +13,9 @@ import { ButtonInteractionHandler } from './ButtonInteractionHandler';
 import { TaskService } from '../TaskService';
 import { ScheduleService } from '../ScheduleService';
 import { AnnouncementService } from '../AnnouncementService';
+import { NotionService } from '../NotionService';
+import { AIService } from '../AIService';
+import { PiketService } from '../PiketService';
 import { getLogger } from '../../utils/Logger';
 
 const logger = getLogger();
@@ -22,6 +25,10 @@ export class DiscordTaskMonitorIntegration {
   private readonly taskService: TaskService;
   private readonly scheduleService: ScheduleService;
   private readonly announcementService: AnnouncementService;
+
+  private readonly notionService: NotionService;
+  private readonly aiService: AIService;
+  private readonly piketService: PiketService;
 
   private configManager!: DiscordConfigManager;
   private rateLimiter!: RateLimiter;
@@ -34,12 +41,18 @@ export class DiscordTaskMonitorIntegration {
     client: Client,
     taskService: TaskService,
     scheduleService: ScheduleService,
-    announcementService: AnnouncementService
+    announcementService: AnnouncementService,
+    notionService: NotionService,
+    aiService: AIService,
+    piketService: PiketService
   ) {
     this.client = client;
     this.taskService = taskService;
     this.scheduleService = scheduleService;
     this.announcementService = announcementService;
+    this.notionService = notionService;
+    this.aiService = aiService;
+    this.piketService = piketService;
   }
 
   /**
@@ -76,6 +89,9 @@ export class DiscordTaskMonitorIntegration {
         this.taskService,
         this.scheduleService,
         this.announcementService,
+        this.notionService,
+        this.aiService,
+        this.piketService,
         this.configManager,
         this.rateLimiter
       );

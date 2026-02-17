@@ -300,7 +300,10 @@ class MultiPlatformBot {
       await this.discordClient.setupTaskMonitor(
         this.taskService,
         this.scheduleService,
-        this.announcementService
+        this.announcementService,
+        this.notionService,
+        this.aiService,
+        this.piketService
       );
     } catch (error) {
       this.logger.error('Failed to setup Task Monitor, continuing without it', error as Error);
@@ -318,6 +321,9 @@ class MultiPlatformBot {
       this.taskService,
       this.scheduleService,
       this.announcementService,
+      this.notionService,
+      this.aiService,
+      this.piketService,
       discordConfigManager,
       rateLimiter
     );

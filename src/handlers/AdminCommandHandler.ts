@@ -822,6 +822,10 @@ export class AdminCommandHandler {
         return { nama, nomor_wa };
       });
 
+      if (!this.piketService) {
+        throw new Error('PiketService is not available');
+      }
+
       const piket = await this.piketService.setPiket(hari, students);
 
       return {
@@ -1338,7 +1342,7 @@ export class AdminCommandHandler {
       }
 
       // Auto-sync from Notion before generating reminder
-      if (this.notionService.isEnabled()) {
+      if (this.notionService && this.notionService.isEnabled()) {
         logger.info('Auto-syncing from Notion before /test_reminder command');
         try {
           await this.notionService.syncFromNotion();
@@ -1519,7 +1523,7 @@ export class AdminCommandHandler {
       TaskConfirmationService.clearConfirmation(userId);
 
       // Sync to Notion if enabled
-      if (this.notionService.isEnabled()) {
+      if (this.notionService && this.notionService.isEnabled()) {
         try {
           await this.notionService.syncFromNotion();
           logger.info('Synced to Notion after task creation', { taskId: task._id });

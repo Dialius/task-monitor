@@ -23,6 +23,9 @@ import { format } from 'date-fns';
 import { ScheduleService } from '../ScheduleService';
 import { AnnouncementService } from '../AnnouncementService';
 import { EditConfirmationService } from './EditConfirmationService';
+import { NotionService } from '../NotionService';
+import { AIService } from '../AIService';
+import { PiketService } from '../PiketService';
 
 const logger = getLogger();
 
@@ -37,6 +40,9 @@ export class ButtonInteractionHandler {
     private taskService: TaskService,
     private scheduleService: ScheduleService,
     private announcementService: AnnouncementService,
+    private notionService: NotionService,
+    private aiService: AIService,
+    private piketService: PiketService,
     private configManager: DiscordConfigManager,
     private rateLimiter: RateLimiter
   ) {
@@ -503,11 +509,11 @@ export class ButtonInteractionHandler {
         const { AdminCommandHandler } = await import('../../handlers/AdminCommandHandler');
         const adminHandler = new AdminCommandHandler(
           this.taskService,
-          null as any, // scheduleService not needed
-          null as any, // piketService not needed
-          null as any, // announcementService not needed
-          null as any, // aiService not needed
-          null as any  // notionService not needed
+          this.scheduleService,
+          this.piketService,
+          this.announcementService,
+          this.aiService,
+          this.notionService
         );
 
         const response = await adminHandler.handleTaskConfirmation(userId, 'confirm');
@@ -538,11 +544,11 @@ export class ButtonInteractionHandler {
         const { AdminCommandHandler } = await import('../../handlers/AdminCommandHandler');
         const adminHandler = new AdminCommandHandler(
           this.taskService,
-          null as any,
-          null as any,
-          null as any,
-          null as any,
-          null as any
+          this.scheduleService,
+          this.piketService,
+          this.announcementService,
+          this.aiService,
+          this.notionService
         );
 
         const response = await adminHandler.handleTaskConfirmation(userId, 'cancel');

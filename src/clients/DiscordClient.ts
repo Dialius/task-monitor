@@ -24,6 +24,9 @@ import { DiscordConfigManager } from '../services/discord/DiscordConfigManager';
 import { RateLimiter } from '../services/discord/RateLimiter';
 import { TaskMonitorService } from '../services/discord/TaskMonitorService';
 import { ButtonInteractionHandler } from '../services/discord/ButtonInteractionHandler';
+import { NotionService } from '../services/NotionService';
+import { AIService } from '../services/AIService';
+import { PiketService } from '../services/PiketService';
 
 const logger = getLogger();
 
@@ -352,7 +355,10 @@ export class DiscordClient {
   async setupTaskMonitor(
     taskService: TaskService,
     scheduleService: ScheduleService,
-    announcementService: AnnouncementService
+    announcementService: AnnouncementService,
+    notionService: NotionService,
+    aiService: AIService,
+    piketService: PiketService
   ): Promise<void> {
     try {
       logger.info('Setting up Task Monitor feature');
@@ -394,6 +400,9 @@ export class DiscordClient {
         taskService,
         scheduleService,
         announcementService,
+        notionService,
+        aiService,
+        piketService,
         this.discordConfigManager,
         this.rateLimiter
       );
