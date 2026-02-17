@@ -19,8 +19,6 @@ import { NotionService } from './NotionService';
 import { PlatformAdapter } from '../adapters/PlatformAdapter';
 import { getLogger } from '../utils/Logger';
 import {
-  formatDailyRecap,
-  formatWeeklyRecap,
   getWeekOfMonth,
   DailyRecapData,
   WeeklyRecapData
@@ -29,7 +27,6 @@ import {
 const logger = getLogger();
 
 export interface SchedulerConfig {
-  groupId: string;
   dailyReminderTime: string;  // "17:00"
   weeklyReminderDay: number;  // 5 for Friday
   weeklyReminderTime: string; // "20:00"
@@ -42,8 +39,8 @@ export interface SchedulerConfig {
 export class ReminderScheduler {
   private dailyJob: cron.ScheduledTask | null = null;
   private weeklyJob: cron.ScheduledTask | null = null;
-  private sundayJob: cron.ScheduledTask | null = null;
   private bidirectionalSyncJob: cron.ScheduledTask | null = null;
+  private adapters: { adapter: PlatformAdapter, channelId: string }[] = [];
 
   constructor(
     private taskService: TaskService,
@@ -51,27 +48,27 @@ export class ReminderScheduler {
     _piketService: PiketService, // Reserved for future use
     _announcementService: AnnouncementService, // Reserved for future use
     _aiService: AIService, // Reserved for future use
-    private platformAdapter: PlatformAdapter,
+    adapters: { adapter: PlatformAdapter, channelId: string }[],
     private config: SchedulerConfig,
     private notionService: NotionService
-  ) { }
+  ) {
+    this.adapters = adapters;
+  }
 
   /**
    * Initialize cron jobs
    * Requirement: 6.1, 7.1
    * 
    * Schedule:
-   * - Senin-Kamis (1-4): 16:00 - Daily recap (tugas besok)
-   * - Jumat (5): 16:00 - Weekly recap (tugas minggu depan Senin-Jumat)
-   * - Minggu (0): 16:00 - Monday recap (tugas hari Senin)
-   * - Sabtu (6): Tidak ada reminder
+   * - Daily (Sun-Thu): 16:00 - Tasks for tomorrow (Mon-Fri)
+   * - Weekly (Fri): 21:00 - Tasks for next week
    */
   initialize(): void {
     try {
-      // Setup daily reminder (Senin-Kamis jam 16:00)
+      // Setup daily reminder (Minggu-Kamis jam 16:00)
       // Cron: minute hour * * day-of-week
-      // Day: 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis
-      const dailyCron = '0 16 * * 1-4'; // 16:00 Senin-Kamis
+      // Day: 0=Minggu, 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis
+      const dailyCron = '0 16 * * 0-4'; // 16:00 Minggu-Kamis
 
       this.dailyJob = cron.schedule(dailyCron, async () => {
         await this.sendDailyRecap();
@@ -79,13 +76,13 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Daily reminder scheduled (Mon-Thu 16:00)', {
+      logger.info('Daily reminder scheduled (Sun-Thu 16:00)', {
         cron: dailyCron,
         timezone: this.config.timezone
       });
 
-      // Setup weekly reminder (Jumat jam 16:00)
-      const weeklyCron = '0 16 * * 5'; // 16:00 Jumat
+      // Setup weekly reminder (Jumat jam 21:00)
+      const weeklyCron = '0 21 * * 5'; // 21:00 Jumat
 
       this.weeklyJob = cron.schedule(weeklyCron, async () => {
         await this.sendWeeklyRecap();
@@ -93,22 +90,8 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Weekly reminder scheduled (Fri 16:00)', {
+      logger.info('Weekly reminder scheduled (Fri 21:00)', {
         cron: weeklyCron,
-        timezone: this.config.timezone
-      });
-
-      // Setup Sunday reminder (Minggu jam 16:00 - untuk tugas Senin)
-      const sundayCron = '0 16 * * 0'; // 16:00 Minggu
-
-      this.sundayJob = cron.schedule(sundayCron, async () => {
-        await this.sendMondayRecap();
-      }, {
-        timezone: this.config.timezone
-      });
-
-      logger.info('Sunday reminder scheduled (Sun 16:00 - Monday tasks)', {
-        cron: sundayCron,
         timezone: this.config.timezone
       });
 
@@ -151,11 +134,13 @@ export class ReminderScheduler {
       const tomorrow = DateTimeHelper.now();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const recap = await this.buildDailyRecap(tomorrow);
+      const recapData = await this.buildDailyRecapData(tomorrow);
 
-      await this.platformAdapter.sendMessage(this.config.groupId, recap);
+      for (const { adapter, channelId } of this.adapters) {
+        await adapter.sendDailyRecap(channelId, recapData);
+      }
 
-      logger.info('Daily recap sent successfully');
+      logger.info('Daily recap sent successfully to all adapters');
     } catch (error) {
       logger.error('Failed to send daily recap', error as Error);
     }
@@ -178,43 +163,25 @@ export class ReminderScheduler {
 
       const { DateTimeHelper } = require('../utils/DateTimeHelper');
       const today = DateTimeHelper.now();
-      const recap = await this.buildWeeklyRecap(today);
+      const recapData = await this.buildWeeklyRecapData(today);
 
-      await this.platformAdapter.sendMessage(this.config.groupId, recap);
+      for (const { adapter, channelId } of this.adapters) {
+        await adapter.sendWeeklyRecap(channelId, recapData);
+      }
 
-      logger.info('Weekly recap sent successfully');
+      logger.info('Weekly recap sent successfully to all adapters');
     } catch (error) {
       logger.error('Failed to send weekly recap', error as Error);
     }
   }
 
-  /**
-   * Generate and send Monday recap (sent on Sunday)
-   */
-  async sendMondayRecap(): Promise<void> {
-    try {
-      logger.info('Generating Monday recap (sent on Sunday)');
 
-      // Get next Monday (tomorrow from Sunday)
-      const { DateTimeHelper } = require('../utils/DateTimeHelper');
-      const monday = DateTimeHelper.now();
-      monday.setDate(monday.getDate() + 1);
-
-      const recap = await this.buildDailyRecap(monday);
-
-      await this.platformAdapter.sendMessage(this.config.groupId, recap);
-
-      logger.info('Monday recap sent successfully');
-    } catch (error) {
-      logger.error('Failed to send Monday recap', error as Error);
-    }
-  }
 
   /**
-   * Build daily recap message
+   * Build daily recap data
    * Requirement: 6.3, 6.4, 6.5, 6.6, 6.7, 6.8
    */
-  async buildDailyRecap(date: Date): Promise<string> {
+  async buildDailyRecapData(date: Date): Promise<DailyRecapData> {
     try {
       // Get tomorrow's tasks
       const tasks = await this.taskService.getTasksForDate(date);
@@ -226,21 +193,18 @@ export class ReminderScheduler {
         schedules
       };
 
-      // Format using custom formatter
-      const formatted = formatDailyRecap(recapData);
-
-      return formatted;
+      return recapData;
     } catch (error) {
-      logger.error('Failed to build daily recap', error as Error);
-      return '❌ Gagal membuat recap harian.';
+      logger.error('Failed to build daily recap data', error as Error);
+      return { date, tasks: [], schedules: [] };
     }
   }
 
   /**
-   * Build weekly recap message
+   * Build weekly recap data
    * Requirement: 7.3, 7.4, 7.5, 7.6, 7.7
    */
-  async buildWeeklyRecap(startDate: Date): Promise<string> {
+  async buildWeeklyRecapData(startDate: Date): Promise<WeeklyRecapData> {
     try {
       // Get next week's tasks (Senin-Jumat)
       const nextMonday = this.getNextMonday(startDate);
@@ -269,13 +233,10 @@ export class ReminderScheduler {
         tasksByDay
       };
 
-      // Format using custom formatter
-      const formatted = formatWeeklyRecap(recapData);
-
-      return formatted;
+      return recapData;
     } catch (error) {
-      logger.error('Failed to build weekly recap', error as Error);
-      return '❌ Gagal membuat recap mingguan.';
+      logger.error('Failed to build weekly recap data', error as Error);
+      return { weekNumber: 0, month: '', year: 0, tasksByDay: new Map() };
     }
   }
 
@@ -326,10 +287,7 @@ export class ReminderScheduler {
       logger.info('Weekly reminder stopped');
     }
 
-    if (this.sundayJob) {
-      this.sundayJob.stop();
-      logger.info('Sunday reminder stopped');
-    }
+
 
     if (this.bidirectionalSyncJob) {
       this.bidirectionalSyncJob.stop();

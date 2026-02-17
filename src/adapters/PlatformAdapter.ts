@@ -17,6 +17,8 @@ export interface MessageContext {
   platform: 'discord' | 'whatsapp';
 }
 
+import { DailyRecapData, WeeklyRecapData } from '../utils/RecapFormatter';
+
 export interface TaskListOptions {
   tasks: any[];
   showButtons?: boolean; // Discord only
@@ -106,4 +108,18 @@ export interface PlatformAdapter {
    * @returns True if user has admin role
    */
   hasAdminRole(userId: string, guildId?: string): Promise<boolean>;
+
+  /**
+   * Send daily recap
+   * @param channelId - Target channel/group ID
+   * @param data - Recap data
+   */
+  sendDailyRecap(channelId: string, data: DailyRecapData): Promise<void>;
+
+  /**
+   * Send weekly recap
+   * @param channelId - Target channel/group ID
+   * @param data - Recap data
+   */
+  sendWeeklyRecap(channelId: string, data: WeeklyRecapData): Promise<void>;
 }

@@ -25,6 +25,7 @@ import { AdminCommandHandler } from './handlers/AdminCommandHandler';
 import { MemberCommandHandler } from './handlers/MemberCommandHandler';
 import { DiscordClient } from './clients/DiscordClient';
 import { BaileysClient } from './clients/BaileysClient';
+import { PlatformAdapter } from './adapters/PlatformAdapter';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
@@ -1117,17 +1118,35 @@ class MultiPlatformBot {
    * Initialize reminder scheduler
    */
   private async initializeScheduler(): Promise<void> {
-    // Use WhatsApp adapter if available, otherwise Discord
-    const adapter = this.whatsappAdapter || this.discordAdapter;
-    if (!adapter) {
-      console.log('   ⚠ No platform adapter available - scheduler disabled');
-      return;
+    // Build adapters list
+    const adapters: { adapter: PlatformAdapter, channelId: string }[] = [];
+
+    // Add WhatsApp adapter if available
+    if (this.whatsappAdapter) {
+      const waGroupId = process.env.WHATSAPP_GROUP_ID;
+      if (waGroupId) {
+        adapters.push({
+          adapter: this.whatsappAdapter,
+          channelId: waGroupId
+        });
+        console.log(`      ✓ Scheduler: Added WhatsApp adapter (Group: ${waGroupId})`);
+      }
     }
 
-    const groupId = process.env.WHATSAPP_GROUP_ID || process.env.DISCORD_CHANNEL_ID || '';
+    // Add Discord adapter if available
+    if (this.discordAdapter) {
+      const discordChannelId = process.env.DISCORD_REMINDER_CHANNEL_ID || process.env.DISCORD_CHANNEL_ID;
+      if (discordChannelId) {
+        adapters.push({
+          adapter: this.discordAdapter,
+          channelId: discordChannelId
+        });
+        console.log(`      ✓ Scheduler: Added Discord adapter (Channel: ${discordChannelId})`);
+      }
+    }
 
-    if (!groupId) {
-      console.log('   ⚠ No group/channel ID configured - scheduler disabled');
+    if (adapters.length === 0) {
+      console.log('   ⚠ No platform adapters configured for scheduler - disabled');
       return;
     }
 
@@ -1137,12 +1156,11 @@ class MultiPlatformBot {
       this.piketService,
       this.announcementService,
       this.aiService,
-      adapter,
+      adapters,
       {
-        groupId,
-        dailyReminderTime: process.env.DAILY_REMINDER_TIME || '17:00',
-        weeklyReminderDay: parseInt(process.env.WEEKLY_REMINDER_DAY || '5'),
-        weeklyReminderTime: process.env.WEEKLY_REMINDER_TIME || '20:00',
+        dailyReminderTime: process.env.DAILY_REMINDER_TIME || '16:00',
+        weeklyReminderDay: parseInt(process.env.WEEKLY_REMINDER_DAY || '5'), // 5 = Friday
+        weeklyReminderTime: process.env.WEEKLY_REMINDER_TIME || '21:00',
         timezone: process.env.TIMEZONE || 'Asia/Jakarta'
       },
       this.notionService
@@ -1150,9 +1168,8 @@ class MultiPlatformBot {
 
     this.reminderScheduler.initialize();
 
-    console.log('   → Daily recap (Mon-Thu): 16:00 - Tugas besok');
-    console.log('   → Weekly recap (Fri): 16:00 - Tugas minggu depan');
-    console.log('   → Monday recap (Sun): 16:00 - Tugas hari Senin');
+    console.log('   → Daily recap (Sun-Thu): 16:00 - Tasks for tomorrow');
+    console.log('   → Weekly recap (Fri): 21:00 - Tasks for next week');
     console.log('   → Timezone: ' + (process.env.TIMEZONE || 'Asia/Jakarta'));
   }
 

@@ -1378,7 +1378,7 @@ export class AdminCommandHandler {
         };
       }
 
-      let message: string;
+      let message: string = '';
       const { DateTimeHelper } = await import('../utils/DateTimeHelper');
 
       if (type === 'daily') {
@@ -1439,25 +1439,9 @@ export class AdminCommandHandler {
             tasksByDay
           });
         }
-      } else { // monday
-        // Get next Monday's tasks
-        const today = DateTimeHelper.now();
-        const daysUntilMonday = (8 - today.getDay()) % 7 || 7;
-        const nextMonday = new Date(today);
-        nextMonday.setDate(nextMonday.getDate() + daysUntilMonday);
-
-        const mondayTasks = tasks.filter(task => {
-          const taskDate = new Date(task.deadline);
-          return taskDate.toDateString() === nextMonday.toDateString();
-        });
-
-        if (mondayTasks.length === 0) {
-          message = formatDailyRecap({ date: nextMonday, tasks: [], schedules: [] });
-          message += '\n\n⚠️ Tidak ada tugas untuk hari Senin di database';
-        } else {
-          message = formatDailyRecap({ date: nextMonday, tasks: mondayTasks, schedules: [] });
-        }
       }
+
+
 
       return {
         success: true,
@@ -1626,7 +1610,8 @@ export class AdminCommandHandler {
           color: color,
           fields: [
             { name: '📥 From Notion', value: stats.fromNotion.toString(), inline: true },
-            { name: 'out Pull MongoDB', value: stats.toNotion.toString(), inline: true }, // "toNotion" means Mongo -> Notion
+            { name: '📤 To Notion', value: stats.toNotion.toString(), inline: true },
+            { name: '\u200b', value: '\u200b', inline: false },
             { name: '🔄 Updated', value: stats.updated.toString(), inline: true },
             { name: '❌ Errors', value: stats.errors.toString(), inline: true },
           ]

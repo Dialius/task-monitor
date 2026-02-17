@@ -19,6 +19,7 @@ import {
   ScheduleOptions,
   AnnouncementOptions
 } from './PlatformAdapter';
+import { DailyRecapData, WeeklyRecapData } from '../utils/RecapFormatter';
 
 /**
  * Discord Adapter implementing PlatformAdapter interface
@@ -269,5 +270,86 @@ export class DiscordAdapter implements PlatformAdapter {
       lainnya: '📢'
     };
     return emojiMap[tipe] || '📢';
+  }
+
+  /**
+   * Send daily recap (Discord Embed format)
+   */
+  async sendDailyRecap(channelId: string, data: DailyRecapData): Promise<void> {
+    const { date, tasks, schedules } = data;
+    const dateStr = date.toLocaleDateString('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📅 Daily Recap | ${dateStr}`)
+      .setColor('#3498db')
+      .setTimestamp();
+
+    // Tasks Field
+    if (tasks && tasks.length > 0) {
+      const taskList = tasks.map((t, i) => {
+        const priorityEmoji = this.getPriorityEmoji(t.prioritas);
+        return `${i + 1}. ${priorityEmoji} **${t.mata_pelajaran}** - ${t.judul}`;
+      }).join('\n');
+      embed.addFields({ name: '📝 Tugas Besok', value: taskList });
+    } else {
+      embed.addFields({ name: '📝 Tugas Besok', value: 'Tidak ada tugas untuk besok! 🎉' });
+    }
+
+    // Schedule Field
+    if (schedules && schedules.length > 0) {
+      const scheduleList = schedules.map((s, i) => {
+        return `${i + 1}. \`${s.jam_mulai}-${s.jam_selesai}\` **${s.mata_pelajaran}** (${s.ruangan})`;
+      }).join('\n');
+      embed.addFields({ name: '📅 Jadwal Besok', value: scheduleList });
+    } else {
+      embed.addFields({ name: '📅 Jadwal Besok', value: 'Tidak ada jadwal pelajaran.' });
+    }
+
+    const channel = await this.client.channels.fetch(channelId);
+    if (channel && channel.isTextBased()) {
+      await (channel as TextChannel).send({ embeds: [embed] });
+    }
+  }
+
+  /**
+   * Send weekly recap (Discord Embed format)
+   */
+  async sendWeeklyRecap(channelId: string, data: WeeklyRecapData): Promise<void> {
+    const { weekNumber, month, year, tasksByDay } = data;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`📊 Weekly Recap | Minggu ke-${weekNumber} ${month} ${year}`)
+      .setDescription('Ringkasan tugas untuk minggu depan.')
+      .setColor('#9b59b6')
+      .setTimestamp();
+
+    let hasTasks = false;
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+
+    days.forEach(day => {
+      const tasks = tasksByDay.get(day);
+      if (tasks && tasks.length > 0) {
+        hasTasks = true;
+        const taskList = tasks.map((t, i) => {
+          const priorityEmoji = this.getPriorityEmoji(t.prioritas);
+          return `${i + 1}. ${priorityEmoji} **${t.mata_pelajaran}** - ${t.judul}`;
+        }).join('\n');
+        embed.addFields({ name: `📅 ${day}`, value: taskList });
+      }
+    });
+
+    if (!hasTasks) {
+      embed.setDescription('Tidak ada tugas untuk minggu depan! 🎉');
+    }
+
+    const channel = await this.client.channels.fetch(channelId);
+    if (channel && channel.isTextBased()) {
+      await (channel as TextChannel).send({ embeds: [embed] });
+    }
   }
 }

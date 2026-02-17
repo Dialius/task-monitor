@@ -500,6 +500,51 @@ Ujian Matematika dimajukan ke besok!
 
 ---
 
+### 🛠️ System Management
+
+#### `/sync_now`
+Melakukan sinkronisasi manual antara Notion dan MongoDB.
+
+**Format:**
+```
+/sync_now
+```
+
+**Output:**
+```
+🔄 Manual Sync Completed
+
+📊 Stats:
+📥 From Notion: 5
+📤 To Notion: 2
+🔄 Updated: 1
+❌ Errors: 0
+```
+
+---
+
+#### `/test_reminder`
+Melakukan test pada sistem reminder.
+
+**Format:**
+```
+/test_reminder [type]
+```
+
+**Parameter:**
+- `type` (optional): Tipe reminder (`daily`, `weekly`, `monday`)
+  - `daily`: Reminder harian (untuk besok)
+  - `weekly`: Reminder mingguan (untuk minggu depan)
+  - `monday`: Reminder hari Minggu (untuk Senin depan)
+
+**Contoh:**
+```
+/test_reminder type:Weekly
+```
+
+---
+
+
 ## 📝 Tips Penggunaan
 
 ### 1. Mendapatkan ID

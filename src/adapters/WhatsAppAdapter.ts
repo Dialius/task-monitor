@@ -11,6 +11,12 @@ import {
   AnnouncementOptions
 } from './PlatformAdapter';
 import { Formatter } from '../utils/Formatter';
+import {
+  formatDailyRecap,
+  formatWeeklyRecap,
+  DailyRecapData,
+  WeeklyRecapData
+} from '../utils/RecapFormatter';
 
 /**
  * WhatsApp Adapter implementing PlatformAdapter interface
@@ -49,7 +55,7 @@ export class WhatsAppAdapter implements PlatformAdapter {
   ): Promise<void> {
     // WhatsApp mentions format: @phone_number
     const mentions = userIds.map(id => `${id}@s.whatsapp.net`);
-    
+
     await this.client.sendMessage(channelId, {
       text: message,
       mentions: mentions
@@ -83,11 +89,11 @@ export class WhatsAppAdapter implements PlatformAdapter {
     options: AnnouncementOptions
   ): Promise<void> {
     let message = Formatter.formatAnnouncement(options.announcement);
-    
+
     if (options.urgent) {
       message = `🚨 *URGENT* 🚨\n\n${message}`;
     }
-    
+
     await this.sendMessage(channelId, message);
   }
 
@@ -118,5 +124,21 @@ export class WhatsAppAdapter implements PlatformAdapter {
     // WhatsApp doesn't have built-in roles
     // This will be handled by PermissionService checking database
     return false;
+  }
+
+  /**
+   * Send daily recap (WhatsApp text format)
+   */
+  async sendDailyRecap(channelId: string, data: DailyRecapData): Promise<void> {
+    const message = formatDailyRecap(data);
+    await this.sendMessage(channelId, message);
+  }
+
+  /**
+   * Send weekly recap (WhatsApp text format)
+   */
+  async sendWeeklyRecap(channelId: string, data: WeeklyRecapData): Promise<void> {
+    const message = formatWeeklyRecap(data);
+    await this.sendMessage(channelId, message);
   }
 }

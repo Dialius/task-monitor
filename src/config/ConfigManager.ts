@@ -19,6 +19,7 @@ export interface AppConfig {
   discordGuildId?: string;
   discordChannelId?: string;
   discordLogChannelId?: string;
+  discordReminderChannelId?: string;
   discordActivityEnabled: boolean;
   discordActivityInterval: number;
 
@@ -76,6 +77,7 @@ export class ConfigManager {
       discordGuildId: process.env.DISCORD_GUILD_ID,
       discordChannelId: process.env.DISCORD_CHANNEL_ID,
       discordLogChannelId: process.env.DISCORD_LOG_CHANNEL_ID,
+      discordReminderChannelId: process.env.DISCORD_REMINDER_CHANNEL_ID,
       discordActivityEnabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
       discordActivityInterval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
 

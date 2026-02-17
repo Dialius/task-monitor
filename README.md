@@ -219,6 +219,12 @@ Delimiter: `|` (pipe)
 /add_pengumuman | Judul | Isi | YYYY-MM-DD | umum/penting/urgent
 ```
 
+#### System Management
+```
+/sync_now              # Manual sync Notion <-> MongoDB
+/test_reminder          # Test reminder (opsional: daily/weekly/monday)
+```
+
 ### Member Commands
 
 #### Task Queries

@@ -701,7 +701,9 @@ export class MemberCommandHandler {
       '• `/set_piket [hari] [nama]` — Atur jadwal piket',
       '• `/edit_piket [hari] [nama]` — Edit jadwal piket',
       '• `/add_pengumuman` — Tambah pengumuman',
-      '• `/hapus_pengumuman [id]` — Hapus pengumuman'
+      '• `/hapus_pengumuman [id]` — Hapus pengumuman',
+      '• `/test_reminder` — Test sistem reminder',
+      '• `/sync_now` — Manual sync Notion <-> MongoDB'
     ].join('\n');
 
     const leaderCommands = [

@@ -255,7 +255,15 @@ export function getSlashCommands(): CommandDefinition[] {
     {
       data: new SlashCommandBuilder()
         .setName('test_reminder')
-        .setDescription('🧪 Test reminder system'),
+        .setDescription('🧪 Test reminder system')
+        .addStringOption(option =>
+          option.setName('type')
+            .setDescription('Tipe reminder')
+            .setRequired(false)
+            .addChoices(
+              { name: 'Daily (Besok)', value: 'daily' },
+              { name: 'Weekly (Minggu Depan)', value: 'weekly' }
+            )),
       adminOnly: true,
       leaderOnly: false
     },
