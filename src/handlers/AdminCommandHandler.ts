@@ -1588,4 +1588,61 @@ export class AdminCommandHandler {
       };
     }
   }
+  /**
+   * Handle /sync_now command
+   * Trigger manual bidirectional sync
+   * Requirement: 5.3
+   */
+  async handleSyncNow(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      if (!this.notionService.isEnabled()) {
+        return {
+          success: false,
+          message: '',
+          embedData: {
+            title: '❌ Notion Sync Disabled',
+            description: 'Notion service tidak aktif. Cek konfigurasi .env',
+            color: 0xED4245
+          }
+        };
+      }
+
+      // Initial response to indicate processing (since sync might take time)
+      // Note: The router will send this first, but since we await the sync here, 
+      // the user might see a delay if we don't handle it carefully. 
+      // However, for admin commands we usually defer reply in bot.ts.
+      // Let's just await the sync.
+
+      const stats = await this.notionService.bidirectionalSync();
+
+      const color = stats.errors > 0 ? 0xFEE75C : 0x57F287; // Yellow if errors, Green if success
+
+      return {
+        success: true,
+        message: '',
+        embedData: {
+          title: '🔄 Manual Sync Completed',
+          description: 'Bidirectional sync finished.',
+          color: color,
+          fields: [
+            { name: '📥 From Notion', value: stats.fromNotion.toString(), inline: true },
+            { name: 'out Pull MongoDB', value: stats.toNotion.toString(), inline: true }, // "toNotion" means Mongo -> Notion
+            { name: '🔄 Updated', value: stats.updated.toString(), inline: true },
+            { name: '❌ Errors', value: stats.errors.toString(), inline: true },
+          ]
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to run manual sync', error as Error);
+      return {
+        success: false,
+        message: '',
+        embedData: {
+          title: '❌ Sync Failed',
+          description: (error as Error).message || 'Terjadi kesalahan internal.',
+          color: 0xED4245
+        }
+      };
+    }
+  }
 }

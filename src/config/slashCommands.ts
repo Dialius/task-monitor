@@ -261,6 +261,13 @@ export function getSlashCommands(): CommandDefinition[] {
     },
     {
       data: new SlashCommandBuilder()
+        .setName('sync_now')
+        .setDescription('🔄 Manual sync (Notion <-> MongoDB)'),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
         .setName('edit_jadwal')
         .setDescription('✏️ Edit jadwal pelajaran')
         .addStringOption(option =>

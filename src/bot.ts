@@ -117,6 +117,20 @@ class MultiPlatformBot {
       await this.initializePlatforms();
       console.log('✅ Platforms connected\n');
 
+      console.log('📋 Step 6a/8: Performing initial sync...');
+      // Initial sync
+      try {
+        if (this.notionService.isEnabled()) {
+          await this.notionService.bidirectionalSync();
+          console.log('✅ Initial sync completed\n');
+        } else {
+          console.log('   ℹ Notion sync disabled, skipping\n');
+        }
+      } catch (error) {
+        this.logger.error('Initial sync failed', error as Error);
+        console.log('   ⚠️ Initial sync failed (bot will continue)\n');
+      }
+
       console.log('📋 Step 7/8: Starting reminder scheduler...');
       // Initialize reminder scheduler
       await this.initializeScheduler();
@@ -215,6 +229,7 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('broadcast', this.adminHandler.handleBroadcast.bind(this.adminHandler));
     this.commandRouter.registerHandler('broadcast_urgent', this.adminHandler.handleBroadcastUrgent.bind(this.adminHandler));
     this.commandRouter.registerHandler('test_reminder', this.adminHandler.handleTestReminder.bind(this.adminHandler));
+    this.commandRouter.registerHandler('sync_now', this.adminHandler.handleSyncNow.bind(this.adminHandler));
 
     console.log('   → Registering member commands...');
     // Register member commands
@@ -379,7 +394,7 @@ class MultiPlatformBot {
         'set_piket', 'edit_piket',
         'add_pengumuman', 'hapus_pengumuman',
         'broadcast', 'broadcast_urgent',
-        'test_reminder'
+        'test_reminder', 'sync_now'
       ];
 
       const isEphemeral = adminCommands.includes(command);
