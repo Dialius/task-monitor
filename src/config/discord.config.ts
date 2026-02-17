@@ -27,19 +27,19 @@ export const discordConfig: DiscordConfig = {
     // Status emojis
     online: process.env.DISCORD_EMOJI_ONLINE || '<a:online:1472202442664972392>',
     offline: process.env.DISCORD_EMOJI_OFFLINE || '<a:offline:1472202439997526262>',
-    
+
     // Time emoji
     clock: process.env.DISCORD_EMOJI_CLOCK || '<a:clock:1472202437338206282>',
-    
+
     // Action emojis
     loading: process.env.DISCORD_EMOJI_LOADING || '<a:loading:1472202449728307312>',
     calendar: process.env.DISCORD_EMOJI_CALENDAR || '<a:calendar:1472202454606020904>',
     task: process.env.DISCORD_EMOJI_TASK || '<a:task:1472202447274508348>',
-    
+
     // Type emojis
     individual: process.env.DISCORD_EMOJI_INDIVIDUAL || '<a:individu:1472202431151607951>',
     group: process.env.DISCORD_EMOJI_GROUP || '<a:group:1472202456690720880>',
-    
+
     // Result emojis
     success: process.env.DISCORD_EMOJI_SUCCESS || '<a:success:1472202445244469278>',
     error: process.env.DISCORD_EMOJI_ERROR || '<a:error:1472202434591064157>'
@@ -109,135 +109,15 @@ export const discordConfig: DiscordConfig = {
   //   Without type (uses default):
   //     { text: 'productivity mode', dynamic: false }
   activity: {
-  enabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
-  interval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
-  type: parseInt(process.env.DISCORD_ACTIVITY_TYPE || '3') as number,
-  templates: [
-      // ========================================
-      // PLAYING Templates (🎮 Type: 0)
-      // ========================================
+    enabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
+    interval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
+    type: parseInt(process.env.DISCORD_ACTIVITY_TYPE || '3') as number,
+    templates: [
       {
-        text: 'dengan {total} tugas numpuk',
-        dynamic: true,
-        type: 0 as 0
-      },
-      {
-        text: 'kejar deadline sekolah',
+        text: '/help untuk daftar perintah',
         dynamic: false,
-        type: 0 as 0
-      },
-      {
-        text: '{today} tugas harus dikumpul hari ini',
-        dynamic: true,
-        type: 0 as 0
-      },
-      {
-        text: 'Homework Manager 2026',
-        dynamic: false,
-        type: 0 as 0
-      },
-      {
-        text: 'mode SKS sejati',
-        dynamic: false,
-        type: 0 as 0
-      },
-
-      // ========================================
-      // WATCHING Templates (👀 Type: 3)
-      // ========================================
-      {
-        text: '{active} tugas belum dikerjain',
-        dynamic: true,
-        type: 3 as 3
-      },
-      {
-        text: 'deadline terdekat: {nearest}',
-        dynamic: true,
-        type: 3 as 3
-      },
-      {
-        text: 'jadwal pelajaran hari ini',
-        dynamic: false,
-        type: 3 as 3
-      },
-      {
-        text: 'progress belajar: {percent}%',
-        dynamic: true,
-        type: 3 as 3
-      },
-      {
-        text: 'nasib {urgent} tugas yang terlupakan',
-        dynamic: true,
-        type: 3 as 3
-      },
-      {
-        text: 'drama pengumpulan tugas last minute',
-        dynamic: false,
-        type: 3 as 3
-      },
-
-      // ========================================
-      // LISTENING Templates (🎧 Type: 2)
-      // ========================================
-      {
-        text: 'alarm deadline {hours} jam lagi',
-        dynamic: true,
-        type: 2 as 2
-      },
-      {
-        text: 'notif tugas masuk terus',
-        dynamic: false,
-        type: 2 as 2
-      },
-      {
-        text: '{active} reminder belum dibalas guru',
-        dynamic: true,
-        type: 2 as 2
-      },
-      {
-        text: 'lo-fi sambil belajar',
-        dynamic: true,
-        type: 2 as 2
-      },
-      {
-        text: 'curhatan murid soal PR senin',
-        dynamic: false,
-        type: 2 as 2
-      },
-
-      // ========================================
-      // COMPETING Templates (🏆 Type: 5)
-      // ========================================
-      {
-        text: '{hours} jam lagi — masih bisa dikebut',
-        dynamic: true,
-        type: 5 as 5
-      },
-      {
-        text: 'kebut {today} tugas dalam sehari',
-        dynamic: true,
-        type: 5 as 5
-      },
-      {
-        text: 'capai {percent}% sebelum {nearest}',
-        dynamic: true,
-        type: 5 as 5
-      },
-      {
-        text: 'siapa cepat dia lulus',
-        dynamic: true,
-        type: 5 as 5
-      },
-      {
-        text: 'sprint ujian akhir semester',
-        dynamic: false,
-        type: 5 as 5
-      },
-      {
-        text: '{total} tugas, 1 malam, bismillah',
-        dynamic: true,
-        type: 5 as 5
-      },
+        type: 2 as 2 // Listening
+      }
     ]
   },
 
