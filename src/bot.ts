@@ -29,10 +29,7 @@ import { PlatformAdapter } from './adapters/PlatformAdapter';
 import { DiscordAdapter } from './adapters/DiscordAdapter';
 import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
-import { ButtonInteractionHandler } from './services/discord/ButtonInteractionHandler';
 import { EditConfirmationService } from './services/discord/EditConfirmationService';
-import { DiscordConfigManager } from './services/discord/DiscordConfigManager';
-import { RateLimiter } from './services/discord/RateLimiter';
 import { SyncNotificationService } from './services/SyncNotificationService';
 
 // Load environment variables
@@ -344,30 +341,7 @@ class MultiPlatformBot {
       this.logger.warn('Sync Notification Service skipped - no log channel ID provided');
     }
 
-    // Initialize Button Interaction Handler
-    const discordConfigManager = new DiscordConfigManager();
-    const rateLimiter = new RateLimiter(
-      discordConfigManager.getGeneralRateLimit(),
-      discordConfigManager.getCommandRateLimit()
-    );
 
-    const buttonHandler = new ButtonInteractionHandler(
-      this.taskService,
-      this.scheduleService,
-      this.announcementService,
-      this.notionService,
-      this.aiService,
-      this.piketService,
-      discordConfigManager,
-      rateLimiter
-    );
-
-    // Register button interaction listener
-    this.discordClient.getClient().on('interactionCreate', async (interaction) => {
-      if (interaction.isButton()) {
-        await buttonHandler.handleButtonClick(interaction);
-      }
-    });
 
     this.discordAdapter = new DiscordAdapter(this.discordClient.getClient());
 
