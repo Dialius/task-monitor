@@ -3,7 +3,16 @@
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 5.1, 5.2, 5.3, 6.1, 6.2, 9.1
  */
 
-import { ButtonInteraction, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+import {
+  ButtonInteraction,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
+} from 'discord.js';
 import { TaskService } from '../TaskService';
 import { DiscordConfigManager } from './DiscordConfigManager';
 import { RateLimiter } from './RateLimiter';
@@ -11,6 +20,9 @@ import { LoadingMessageManager } from './LoadingMessageManager';
 import { ITask } from '../../models/Task';
 import { getLogger } from '../../utils/Logger';
 import { format } from 'date-fns';
+import { ScheduleService } from '../ScheduleService';
+import { AnnouncementService } from '../AnnouncementService';
+import { EditConfirmationService } from './EditConfirmationService';
 
 const logger = getLogger();
 
@@ -23,6 +35,8 @@ export class ButtonInteractionHandler {
 
   constructor(
     private taskService: TaskService,
+    private scheduleService: ScheduleService,
+    private announcementService: AnnouncementService,
     private configManager: DiscordConfigManager,
     private rateLimiter: RateLimiter
   ) {
@@ -46,6 +60,22 @@ export class ButtonInteractionHandler {
       // Handle task confirmation buttons (add_tugas_cepat)
       if (buttonId.startsWith('task_confirm_')) {
         await this.handleTaskConfirmation(interaction);
+        return;
+      }
+
+      // Handle generic edit/confirm/cancel buttons
+      if (buttonId.startsWith('btn_edit_')) {
+        await this.handleEditButton(interaction);
+        return;
+      }
+
+      if (buttonId.startsWith('btn_confirm_')) {
+        await this.handleConfirmButton(interaction);
+        return;
+      }
+
+      if (buttonId.startsWith('btn_cancel_')) {
+        await this.handleCancelButton(interaction);
         return;
       }
 

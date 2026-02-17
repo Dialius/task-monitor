@@ -1156,7 +1156,7 @@ export class AdminCommandHandler {
           ]
         },
         data: {
-          showEditButtons: true,
+          showEditButtons: true, // This triggers the Confirm/Cancel buttons in bot.ts
           editType: 'ganti_jadwal'
         }
       };

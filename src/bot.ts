@@ -488,6 +488,69 @@ class MultiPlatformBot {
             embeds: [embed],
             components: [row]
           });
+        }
+        // Check for Edit buttons (Edit/Cancel)
+        else if (response.data?.showEditButtons) {
+          const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+          const userId = interaction.user.id;
+          const isGantiJadwal = response.data.editType === 'ganti_jadwal'; // Special case for ganti_jadwal which is a confirm flow
+
+          // If ganti_jadwal, it's actually a confirm flow, not an edit-modal flow
+          if (isGantiJadwal) {
+            const row = new ActionRowBuilder<any>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`btn_confirm_${userId}_${response.data.editType}`)
+                .setLabel('✅ Konfirmasi')
+                .setStyle(ButtonStyle.Success),
+              new ButtonBuilder()
+                .setCustomId(`btn_cancel_${userId}`)
+                .setLabel('❌ Batal')
+                .setStyle(ButtonStyle.Secondary)
+            );
+            await interaction.editReply({ embeds: [embed], components: [row] });
+          } else {
+            // Standard Edit flow (triggers modal)
+            const row = new ActionRowBuilder<any>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`btn_edit_${userId}_${response.data.editType}`)
+                .setLabel('✏️ Edit')
+                .setStyle(ButtonStyle.Primary),
+              new ButtonBuilder()
+                .setCustomId(`btn_cancel_${userId}`)
+                .setLabel('❌ Batal')
+                .setStyle(ButtonStyle.Secondary)
+            );
+            await interaction.editReply({ embeds: [embed], components: [row] });
+          }
+        }
+        // Check for Delete/Confirm buttons
+        else if (response.data?.showDeleteButtons) {
+          const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = await import('discord.js');
+          const userId = interaction.user.id;
+
+          let label = '🗑️ Hapus';
+          let style = ButtonStyle.Danger;
+
+          if (response.data.editType === 'tandai_selesai') {
+            label = '✅ Selesai';
+            style = ButtonStyle.Success;
+          }
+
+          const row = new ActionRowBuilder<any>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`btn_confirm_${userId}_${response.data.editType}`)
+              .setLabel(label)
+              .setStyle(style),
+            new ButtonBuilder()
+              .setCustomId(`btn_cancel_${userId}`)
+              .setLabel('❌ Batal')
+              .setStyle(ButtonStyle.Secondary)
+          );
+
+          await interaction.editReply({
+            embeds: [embed],
+            components: [row]
+          });
         } else {
           await interaction.editReply({
             embeds: [embed]
