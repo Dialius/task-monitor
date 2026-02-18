@@ -9,6 +9,7 @@ import { TaskService } from '../services/TaskService';
 import { ScheduleService } from '../services/ScheduleService';
 import { PiketService } from '../services/PiketService';
 import { NotionService } from '../services/NotionService';
+import { HolidayService } from '../services/HolidayService';
 import { Formatter } from '../utils/Formatter';
 import { toBold, toItalic, formatHeader, formatSectionTitle, formatSubject, formatLabel } from '../utils/TextFormatter';
 import { getSubjectEmoji } from '../config/SubjectConfig';
@@ -21,7 +22,8 @@ export class MemberCommandHandler {
     private taskService: TaskService,
     private scheduleService: ScheduleService,
     private piketService: PiketService,
-    private notionService: NotionService
+    private notionService: NotionService,
+    private holidayService: HolidayService
   ) { }
 
   /**
@@ -589,6 +591,67 @@ export class MemberCommandHandler {
         embedData: {
           title: '❌ Error',
           description: 'Gagal mengambil jadwal piket hari ini.',
+          color: 0x99AAB5
+        }
+      };
+    }
+  }
+
+  /**
+   * Handle /cek_libur command
+   * Requirement: 8.2
+   */
+  async handleCekLibur(_args: string[], _userId: string, platform: Platform): Promise<CommandResponse> {
+    try {
+      const holidays = await this.holidayService.getUpcomingHolidays(10);
+
+      if (holidays.length === 0) {
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📅 Daftar Libur',
+            description: 'Tidak ada hari libur mendatang.',
+            color: 0x3498db
+          }
+        };
+      }
+
+      if (platform === 'discord') {
+        const fields = holidays.map((h, i) => ({
+          name: `${i + 1}. ${h.reason} (${new Date(h.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })})`,
+          value: h.description || '-',
+          inline: false
+        }));
+
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '📅 Daftar Libur Mendatang',
+            color: 0x3498db,
+            fields
+          }
+        };
+      }
+
+      const list = holidays.map((h, i) =>
+        `${i + 1}. ${h.reason} - ${new Date(h.date).toLocaleDateString('id-ID')}`
+      ).join('\n');
+
+      return {
+        success: true,
+        message: `📅 *Daftar Libur Mendatang*\n\n${list}`
+      };
+
+    } catch (error) {
+      logger.error('Failed to handle cek_libur', error as Error);
+      return {
+        success: false,
+        message: '',
+        embedData: {
+          title: '❌ Error',
+          description: 'Gagal mengambil data libur.',
           color: 0x99AAB5
         }
       };

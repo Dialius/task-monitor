@@ -209,7 +209,8 @@ class MultiPlatformBot {
       this.taskService,
       this.scheduleService,
       this.piketService,
-      this.notionService
+      this.notionService,
+      this.holidayService
     );
 
     // Initialize router
@@ -237,7 +238,7 @@ class MultiPlatformBot {
 
     // Holiday commands
     this.commandRouter.registerHandler('atur_libur', this.adminHandler.handleAturLibur.bind(this.adminHandler));
-    this.commandRouter.registerHandler('cek_libur', this.adminHandler.handleCekLibur.bind(this.adminHandler));
+    // cek_libur moved to member handler
     this.commandRouter.registerHandler('hapus_libur', this.adminHandler.handleHapusLibur.bind(this.adminHandler));
 
     console.log('   → Registering member commands...');
@@ -251,6 +252,7 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('jadwal_minggu_ini', this.memberHandler.handleJadwalMingguIni.bind(this.memberHandler));
     this.commandRouter.registerHandler('piket', this.memberHandler.handlePiket.bind(this.memberHandler));
     this.commandRouter.registerHandler('piket_minggu_ini', this.memberHandler.handlePiketMingguIni.bind(this.memberHandler));
+    this.commandRouter.registerHandler('cek_libur', this.memberHandler.handleCekLibur.bind(this.memberHandler));
     this.commandRouter.registerHandler('help', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('bantuan', this.memberHandler.handleHelp.bind(this.memberHandler));
     this.commandRouter.registerHandler('status', this.memberHandler.handleStatus.bind(this.memberHandler));

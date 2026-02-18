@@ -341,6 +341,35 @@ export function getSlashCommands(): CommandDefinition[] {
       adminOnly: true,
       leaderOnly: false
     },
+    {
+      data: new SlashCommandBuilder()
+        .setName('atur_libur')
+        .setDescription('📅 Atur hari libur via AI')
+        .addStringOption(option =>
+          option.setName('pesan')
+            .setDescription('Pesan natural, e.g. "Minggu depan libur kenaikan kelas"')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('cek_libur')
+        .setDescription('📅 Cek daftar hari libur mendatang'),
+      adminOnly: false,
+      leaderOnly: false
+    },
+    {
+      data: new SlashCommandBuilder()
+        .setName('hapus_libur')
+        .setDescription('🗑️ Hapus hari libur')
+        .addStringOption(option =>
+          option.setName('pesan')
+            .setDescription('Pesan natural, e.g. "Hapus libur minggu depan"')
+            .setRequired(true)),
+      adminOnly: true,
+      leaderOnly: false
+    },
 
     // ============================================
     // LEADER COMMANDS (Ketua, Wakil only)
