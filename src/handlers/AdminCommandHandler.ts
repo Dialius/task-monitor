@@ -13,6 +13,7 @@ import { AIService } from '../services/AIService';
 import { NotionService } from '../services/NotionService';
 import { AITaskParserService } from '../services/AITaskParserService';
 import ConfirmationService from '../services/ConfirmationService';
+import { HolidayService } from '../services/HolidayService';
 import { formatDailyRecap, formatWeeklyRecap } from '../utils/RecapFormatter';
 import { Validator } from '../utils/Validator';
 import { SubjectResolver } from '../services/SubjectResolver';
@@ -30,7 +31,8 @@ export class AdminCommandHandler {
     private piketService: PiketService,
     private announcementService: AnnouncementService,
     private aiService: AIService,
-    private notionService: NotionService
+    private notionService: NotionService,
+    private holidayService: HolidayService
   ) {
     this.aiTaskParser = new AITaskParserService(aiService);
   }
@@ -1628,6 +1630,153 @@ export class AdminCommandHandler {
           color: 0xED4245
         }
       };
+    }
+  }
+
+
+  /**
+   * Handle /atur_libur command
+   * Format: /atur_libur pesan: "Libur kenaikan kelas..."
+   * Requirement: 8.1, 8.2
+   */
+  async handleAturLibur(args: string[], userId: string, platform: Platform): Promise<CommandResponse> {
+    try {
+      const input = args.join(' ');
+      if (!input) return { success: false, message: 'Harap masukkan deskripsi libur. Contoh: /atur_libur pesan: Libur semester dari senin sampai jumat' };
+
+      // 1. Parse with AI
+      const parsed = await this.aiService.parseHoliday(input);
+
+      // 2. Add to DB
+      const startDate = new Date(parsed.startDate);
+      const endDate = new Date(parsed.endDate);
+      const result = await this.holidayService.addHoliday(startDate, endDate, parsed.reason, input);
+
+      // 3. Response
+      const dateRange = startDate.getTime() === endDate.getTime()
+        ? startDate.toLocaleDateString('id-ID', { dateStyle: 'full' })
+        : `${startDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })} - ${endDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })}`;
+
+      return {
+        success: true,
+        message: '',
+        embedData: {
+          title: '✅ Libur Berhasil Diatur',
+          description: `**${parsed.reason}**\n🗓 ${dateRange}\n\nBot tidak akan mengirim tugas pada tanggal tersebut.\nReminder akan aktif kembali pada sore hari terakhir libur.`,
+          color: 0x57F287
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to set holiday', error as Error);
+      return {
+        success: false,
+        message: `❌ Gagal mengatur libur: ${(error as Error).message}`
+      };
+    }
+  }
+
+  /**
+   * Handle /cek_libur command
+   * Requirement: 8.3
+   */
+  async handleCekLibur(_args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      const holidays = await this.holidayService.getUpcomingHolidays(10);
+      if (holidays.length === 0) {
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '🗓 Daftar Hari Libur',
+            description: 'Tidak ada hari libur mendatang yang tercatat.',
+            color: 0x3498DB
+          }
+        };
+      }
+
+      const fields = holidays.map(h => ({
+        name: new Date(h.date).toLocaleDateString('id-ID', { dateStyle: 'full' }),
+        value: h.reason,
+        inline: false
+      }));
+
+      return {
+        success: true,
+        message: '',
+        embedData: {
+          title: '🗓 Daftar Hari Libur Mendatang',
+          fields,
+          color: 0x3498DB
+        }
+      };
+    } catch (error) {
+      logger.error('Failed to get holidays', error as Error);
+      return { success: false, message: '❌ Gagal mengambil data libur.' };
+    }
+  }
+
+  /**
+   * Handle /hapus_libur command
+   * Format: /hapus_libur tanggal: YYYY-MM-DD
+   * Requirement: 8.3
+   */
+  async handleHapusLibur(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
+    try {
+      const input = args.join(' ');
+      if (!input) return { success: false, message: '❌ Harap masukkan tanggal atau deskripsi deletion. Contoh: `/hapus_libur 2026-05-20` atau `/hapus_libur hapus libur tanggal 5-8`' };
+
+      // 1. Try date format YYYY-MM-DD
+      if (Validator.isValidDate(args[0]) && args.length === 1) {
+        const dateStr = args[0];
+        const date = new Date(dateStr);
+        const success = await this.holidayService.removeHoliday(date);
+
+        if (success) {
+          return {
+            success: true,
+            message: '',
+            embedData: {
+              title: '✅ Libur Dihapus',
+              description: `Libur pada tanggal **${dateStr}** berhasil dihapus.`,
+              color: 0x57F287
+            }
+          };
+        } else {
+          return { success: false, message: `❌ Tidak ada data libur yang ditemukan pada tanggal ${dateStr}.` };
+        }
+      }
+
+      // 2. Try Natural Language via AI
+      const parsed = await this.aiService.parseHolidayRemoval(input);
+      const startDate = new Date(parsed.startDate);
+      const endDate = new Date(parsed.endDate);
+
+      const deletedCount = await this.holidayService.removeHolidaysInRange(startDate, endDate);
+
+      const dateRange = startDate.getTime() === endDate.getTime()
+        ? startDate.toLocaleDateString('id-ID', { dateStyle: 'full' })
+        : `${startDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })} - ${endDate.toLocaleDateString('id-ID', { dateStyle: 'medium' })}`;
+
+      if (deletedCount > 0) {
+        return {
+          success: true,
+          message: '',
+          embedData: {
+            title: '✅ Libur Dihapus',
+            description: `Berhasil menghapus **${deletedCount}** hari libur.\n🗓 Rentang: ${dateRange}`,
+            color: 0x57F287
+          }
+        };
+      } else {
+        return {
+          success: false,
+          message: `❌ Tidak ditemukan hari libur dalam rentang tanggal tersebut (${dateRange}).`
+        };
+      }
+
+    } catch (error) {
+      logger.error('Failed to remove holiday', error as Error);
+      return { success: false, message: `❌ Gagal menghapus libur: ${(error as Error).message}` };
     }
   }
 }

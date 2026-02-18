@@ -31,6 +31,7 @@ import { WhatsAppAdapter } from './adapters/WhatsAppAdapter';
 import { BotMonitorService } from './api/services/bot-monitor.service';
 import { EditConfirmationService } from './services/discord/EditConfirmationService';
 import { SyncNotificationService } from './services/SyncNotificationService';
+import { HolidayService } from './services/HolidayService';
 
 // Load environment variables
 dotenv.config();
@@ -51,6 +52,7 @@ class MultiPlatformBot {
   private announcementService!: AnnouncementService;
   private aiService!: AIService;
   private notionService!: NotionService;
+  private holidayService!: HolidayService;
 
   // New services for message tracking and editing
   private messageEditService: any; // Will be imported
@@ -180,6 +182,9 @@ class MultiPlatformBot {
     // Notion service
     this.notionService = new NotionService();
 
+    // Holiday service
+    this.holidayService = new HolidayService();
+
     this.logger.info('Services initialized');
   }
 
@@ -196,7 +201,8 @@ class MultiPlatformBot {
       this.piketService,
       this.announcementService,
       this.aiService,
-      this.notionService
+      this.notionService,
+      this.holidayService
     );
 
     this.memberHandler = new MemberCommandHandler(
@@ -228,6 +234,11 @@ class MultiPlatformBot {
     this.commandRouter.registerHandler('broadcast_urgent', this.adminHandler.handleBroadcastUrgent.bind(this.adminHandler));
     this.commandRouter.registerHandler('test_reminder', this.adminHandler.handleTestReminder.bind(this.adminHandler));
     this.commandRouter.registerHandler('sync_now', this.adminHandler.handleSyncNow.bind(this.adminHandler));
+
+    // Holiday commands
+    this.commandRouter.registerHandler('atur_libur', this.adminHandler.handleAturLibur.bind(this.adminHandler));
+    this.commandRouter.registerHandler('cek_libur', this.adminHandler.handleCekLibur.bind(this.adminHandler));
+    this.commandRouter.registerHandler('hapus_libur', this.adminHandler.handleHapusLibur.bind(this.adminHandler));
 
     console.log('   → Registering member commands...');
     // Register member commands
@@ -1137,7 +1148,8 @@ class MultiPlatformBot {
         weeklyReminderTime: process.env.WEEKLY_REMINDER_TIME || '21:00',
         timezone: process.env.TIMEZONE || 'Asia/Jakarta'
       },
-      this.notionService
+      this.notionService,
+      this.holidayService
     );
 
     this.reminderScheduler.initialize();

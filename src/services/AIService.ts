@@ -152,6 +152,80 @@ export class AIService {
   }
 
   /**
+   * Parse holiday text with AI
+   * Requirement: 8.2
+   */
+  async parseHoliday(text: string): Promise<{ startDate: string, endDate: string, reason: string }> {
+    const today = new Date();
+    const context = `
+    Extract holiday information from the text.
+    Return JSON with fields:
+    - startDate (YYYY-MM-DD)
+    - endDate (YYYY-MM-DD): If only one day, same as startDate.
+    - reason (string): The name or reason of the holiday.
+    
+    Current Date: ${today.toISOString()} (${today.toLocaleDateString('id-ID', { weekday: 'long' })})
+    
+    Example Input: "Libur kenaikan kelas dari senin sampai rabu besok"
+    Example Output: {"startDate": "2026-03-10", "endDate": "2026-03-12", "reason": "Kenaikan Kelas"}
+    `;
+
+    const result = await this.parseTaskText(text, context);
+    try {
+      // Cleaning potential markdown code blocks
+      const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+      return JSON.parse(cleanResult);
+    } catch (e) {
+      logger.error("Failed to parse holiday JSON", e as Error);
+      throw new Error("Gagal memproses info libur. Pastikan format jelas, contoh: 'Libur [alasan] dari [tanggal] sampai [tanggal]'");
+    }
+  }
+
+  /**
+   * Parse holiday removal text with AI
+   * Requirement: 13.2
+   */
+  async parseHolidayRemoval(text: string): Promise<{ startDate: string, endDate: string, reason?: string }> {
+    const today = new Date();
+    // Calculate tomorrow for 'besok' handling in prompt
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const context = `
+    Extract holiday removal information from the text.
+    Return JSON with fields:
+    - startDate (YYYY-MM-DD)
+    - endDate (YYYY-MM-DD): If only one day, same as startDate.
+    - reason (string, optional): Context or reason mentioned for removal.
+    
+    Current Date: ${today.toISOString().split('T')[0]} (${today.toLocaleDateString('id-ID', { weekday: 'long' })})
+    
+    Example Input: "Hapus libur semester dari tanggal 5 sampai 8"
+    Example Output: {"startDate": "2026-06-05", "endDate": "2026-06-08", "reason": "Libur Semester"}
+
+    Example Input: "hapus libur besok"
+    Example Output: {"startDate": "${tomorrow.toISOString().split('T')[0]}", "endDate": "${tomorrow.toISOString().split('T')[0]}", "reason": "Besok"}
+    `;
+
+    const result = await this.parseTaskText(text, context);
+    try {
+      // Cleaning potential markdown code blocks
+      const cleanResult = result.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanResult);
+
+      // Basic validation
+      if (!parsed.startDate || !parsed.endDate) {
+        throw new Error("Missing dates");
+      }
+
+      return parsed;
+    } catch (e) {
+      logger.error("Failed to parse holiday removal JSON", e as Error);
+      throw new Error(`Gagal memproses info penghapusan libur. AI: ${result}`);
+    }
+  }
+
+  /**
    * Parse task with Groq — higher token limit for JSON
    */
   private async parseWithGroq(text: string, context: string): Promise<string> {

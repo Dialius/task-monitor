@@ -702,6 +702,9 @@ export class MemberCommandHandler {
       '• `/edit_piket [hari] [nama]` — Edit jadwal piket',
       '• `/add_pengumuman` — Tambah pengumuman',
       '• `/hapus_pengumuman [id]` — Hapus pengumuman',
+      '• `/atur_libur [pesan]` — Set libur via AI',
+      '• `/cek_libur` — Cek daftar libur',
+      '• `/hapus_libur [tgl/rentang]` — Hapus libur',
       '• `/test_reminder` — Test sistem reminder',
       '• `/sync_now` — Manual sync Notion <-> MongoDB'
     ].join('\n');

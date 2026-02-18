@@ -45,6 +45,7 @@ DISCORD_BOT_TOKEN=MTxxxxx                      # Bot token
 DISCORD_CLIENT_ID=123456789                    # Application ID
 DISCORD_GUILD_ID=987654321                     # Server ID
 DISCORD_CHANNEL_ID=111222333                   # Channel ID
+DISCORD_LOG_CHANNEL_ID=444555666               # Channel for sync logs (Task Monitor)
 ```
 
 #### Discord Role Permissions

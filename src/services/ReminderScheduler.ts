@@ -16,6 +16,7 @@ import { PiketService } from './PiketService';
 import { AnnouncementService } from './AnnouncementService';
 import { AIService } from './AIService';
 import { NotionService } from './NotionService';
+import { HolidayService } from './HolidayService';
 import { PlatformAdapter } from '../adapters/PlatformAdapter';
 import { getLogger } from '../utils/Logger';
 import {
@@ -50,7 +51,8 @@ export class ReminderScheduler {
     _aiService: AIService, // Reserved for future use
     adapters: { adapter: PlatformAdapter, channelId: string }[],
     private config: SchedulerConfig,
-    private notionService: NotionService
+    private notionService: NotionService,
+    private holidayService: HolidayService
   ) {
     this.adapters = adapters;
   }
@@ -187,10 +189,21 @@ export class ReminderScheduler {
       const tasks = await this.taskService.getTasksForDate(date);
       const schedules = await this.scheduleService.getScheduleForDate(date);
 
+      // Check if tomorrow is holiday
+      const isHoliday = await this.holidayService.isHoliday(date);
+      let holidayReason = '';
+
+      if (isHoliday) {
+        const holiday = await this.holidayService.getHoliday(date);
+        if (holiday) holidayReason = holiday.reason;
+      }
+
       const recapData: DailyRecapData = {
         date,
         tasks,
-        schedules
+        schedules,
+        isHoliday,
+        holidayReason
       };
 
       return recapData;
@@ -226,11 +239,24 @@ export class ReminderScheduler {
       const month = monthNames[nextMonday.getMonth()];
       const year = nextMonday.getFullYear();
 
+      // Check holidays for the week
+      const holidays = new Map<string, string>();
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(nextMonday);
+        d.setDate(d.getDate() + i);
+
+        if (await this.holidayService.isHoliday(d)) {
+          const h = await this.holidayService.getHoliday(d);
+          if (h) holidays.set(days[i], h.reason);
+        }
+      }
+
       const recapData: WeeklyRecapData = {
         weekNumber,
         month,
         year,
-        tasksByDay
+        tasksByDay,
+        holidays
       };
 
       return recapData;

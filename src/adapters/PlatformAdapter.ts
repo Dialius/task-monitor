@@ -110,11 +110,13 @@ export interface PlatformAdapter {
   hasAdminRole(userId: string, guildId?: string): Promise<boolean>;
 
   /**
-   * Send daily recap
+   * Send daily recap (Agenda Harian)
    * @param channelId - Target channel/group ID
    * @param data - Recap data
    */
   sendDailyRecap(channelId: string, data: DailyRecapData): Promise<void>;
+
+
 
   /**
    * Send weekly recap

@@ -317,6 +317,26 @@ const commands = [
       option.setName('pesan')
         .setDescription('Pesan urgent yang ingin dikirim')
         .setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('atur_libur')
+    .setDescription('Set hari libur dengan bahasa natural (AI)')
+    .addStringOption(option =>
+      option.setName('pesan')
+        .setDescription('Contoh: Libur kenaikan kelas dari senin sampai rabu besok')
+        .setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('cek_libur')
+    .setDescription('Cek daftar hari libur mendatang'),
+
+  new SlashCommandBuilder()
+    .setName('hapus_libur')
+    .setDescription('Hapus hari libur (bisa tanggal spesifik atau rentang via AI)')
+    .addStringOption(option =>
+      option.setName('tanggal_atau_deskripsi')
+        .setDescription('Tanggal (YYYY-MM-DD) atau deskripsi (contoh: hapus libur tgl 5-8)')
+        .setRequired(true)),
 ].map(command => command.toJSON());
 
 const rest = new REST().setToken(token);
