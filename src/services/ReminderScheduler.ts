@@ -17,6 +17,7 @@ import { AnnouncementService } from './AnnouncementService';
 import { AIService } from './AIService';
 import { NotionService } from './NotionService';
 import { HolidayService } from './HolidayService';
+import { TaskMonitorService } from './discord/TaskMonitorService';
 import { PlatformAdapter } from '../adapters/PlatformAdapter';
 import { getLogger } from '../utils/Logger';
 import {
@@ -52,7 +53,8 @@ export class ReminderScheduler {
     adapters: { adapter: PlatformAdapter, channelId: string }[],
     private config: SchedulerConfig,
     private notionService: NotionService,
-    private holidayService: HolidayService
+    private holidayService: HolidayService,
+    private taskMonitorService?: TaskMonitorService
   ) {
     this.adapters = adapters;
   }
@@ -294,6 +296,12 @@ export class ReminderScheduler {
       logger.info('Running scheduled bidirectional sync...');
       const result = await this.notionService.bidirectionalSync();
       logger.info('Bidirectional sync completed', result);
+
+      // Update Task Monitor if available
+      if (this.taskMonitorService) {
+        logger.info('Updating Task Monitor embed after sync...');
+        await this.taskMonitorService.updateEmbed();
+      }
     } catch (error) {
       logger.error('Failed to run bidirectional sync', error as Error);
     }

@@ -38,11 +38,11 @@ export class TaskMonitorService {
       await this.updateEmbed();
 
       // Start auto-update cycle
-      this.startAutoUpdate();
+      // this.startAutoUpdate(); // Disabled in favor of ReminderScheduler control
 
-      logger.info('Task Monitor Service initialized with auto-update enabled');
+      logger.info('Task Monitor Service initialized (external scheduling)');
       console.log('      ✓ Task Monitor embed initialized');
-      console.log('      ✓ Auto-update every 2 hours');
+      console.log('      ✓ Auto-update managed by Scheduler');
     } catch (error) {
       logger.error('Failed to initialize Task Monitor Service', error as Error);
       throw error;
@@ -94,7 +94,7 @@ export class TaskMonitorService {
 
     // Set footer with icon
     const footerIcon = this.configManager.getFooterIcon();
-    embed.setFooter({ 
+    embed.setFooter({
       text: 'Made by VinTheGreat',
       iconURL: footerIcon
     });

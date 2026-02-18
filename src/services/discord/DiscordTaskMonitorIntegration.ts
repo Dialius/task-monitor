@@ -110,7 +110,8 @@ export class DiscordTaskMonitorIntegration {
       await this.taskMonitorService.initialize();
 
       // Step 5: Start auto-update
-      this.taskMonitorService.startAutoUpdate();
+      // this.taskMonitorService.startAutoUpdate(); // Disabled - managed by ReminderScheduler
+      logger.info('Task Monitor auto-update disabled (managed by Scheduler)');
 
       this.isInitialized = true;
       logger.info('Discord Task Monitor Integration initialized successfully');

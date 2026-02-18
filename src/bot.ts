@@ -1152,7 +1152,8 @@ class MultiPlatformBot {
         timezone: process.env.TIMEZONE || 'Asia/Jakarta'
       },
       this.notionService,
-      this.holidayService
+      this.holidayService,
+      this.discordClient?.getTaskMonitorService()
     );
 
     this.reminderScheduler.initialize();

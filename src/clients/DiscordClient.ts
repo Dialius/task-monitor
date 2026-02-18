@@ -461,4 +461,11 @@ export class DiscordClient {
   getActivityStatusService(): ActivityStatusService | undefined {
     return this.activityStatusService;
   }
+
+  /**
+   * Get Task Monitor service
+   */
+  getTaskMonitorService(): TaskMonitorService | undefined {
+    return this.taskMonitorService;
+  }
 }
