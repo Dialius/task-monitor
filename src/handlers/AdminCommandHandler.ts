@@ -1639,7 +1639,7 @@ export class AdminCommandHandler {
    * Format: /atur_libur pesan: "Libur kenaikan kelas..."
    * Requirement: 8.1, 8.2
    */
-  async handleAturLibur(args: string[], userId: string, platform: Platform): Promise<CommandResponse> {
+  async handleAturLibur(args: string[], _userId: string, _platform: Platform): Promise<CommandResponse> {
     try {
       const input = args.join(' ');
       if (!input) return { success: false, message: 'Harap masukkan deskripsi libur. Contoh: /atur_libur pesan: Libur semester dari senin sampai jumat' };
@@ -1650,7 +1650,7 @@ export class AdminCommandHandler {
       // 2. Add to DB
       const startDate = new Date(parsed.startDate);
       const endDate = new Date(parsed.endDate);
-      const result = await this.holidayService.addHoliday(startDate, endDate, parsed.reason, input);
+      await this.holidayService.addHoliday(startDate, endDate, parsed.reason, input);
 
       // 3. Response
       const dateRange = startDate.getTime() === endDate.getTime()

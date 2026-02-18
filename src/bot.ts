@@ -330,7 +330,8 @@ class MultiPlatformBot {
         this.announcementService,
         this.notionService,
         this.aiService,
-        this.piketService
+        this.piketService,
+        this.holidayService
       );
     } catch (error) {
       this.logger.error('Failed to setup Task Monitor, continuing without it', error as Error);

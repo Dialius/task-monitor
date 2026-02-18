@@ -26,6 +26,7 @@ import { EditConfirmationService } from './EditConfirmationService';
 import { NotionService } from '../NotionService';
 import { AIService } from '../AIService';
 import { PiketService } from '../PiketService';
+import { HolidayService } from '../HolidayService';
 
 const logger = getLogger();
 
@@ -43,6 +44,7 @@ export class ButtonInteractionHandler {
     private notionService: NotionService,
     private aiService: AIService,
     private piketService: PiketService,
+    private holidayService: HolidayService,
     private configManager: DiscordConfigManager,
     private rateLimiter: RateLimiter
   ) {
@@ -513,7 +515,8 @@ export class ButtonInteractionHandler {
           this.piketService,
           this.announcementService,
           this.aiService,
-          this.notionService
+          this.notionService,
+          this.holidayService
         );
 
         const response = await adminHandler.handleTaskConfirmation(userId, 'confirm');
@@ -548,7 +551,8 @@ export class ButtonInteractionHandler {
           this.piketService,
           this.announcementService,
           this.aiService,
-          this.notionService
+          this.notionService,
+          this.holidayService
         );
 
         const response = await adminHandler.handleTaskConfirmation(userId, 'cancel');

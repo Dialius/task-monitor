@@ -27,6 +27,7 @@ import { ButtonInteractionHandler } from '../services/discord/ButtonInteractionH
 import { NotionService } from '../services/NotionService';
 import { AIService } from '../services/AIService';
 import { PiketService } from '../services/PiketService';
+import { HolidayService } from '../services/HolidayService';
 
 const logger = getLogger();
 
@@ -358,7 +359,8 @@ export class DiscordClient {
     announcementService: AnnouncementService,
     notionService: NotionService,
     aiService: AIService,
-    piketService: PiketService
+    piketService: PiketService,
+    holidayService: HolidayService
   ): Promise<void> {
     try {
       logger.info('Setting up Task Monitor feature');
@@ -403,6 +405,7 @@ export class DiscordClient {
         notionService,
         aiService,
         piketService,
+        holidayService,
         this.discordConfigManager,
         this.rateLimiter
       );

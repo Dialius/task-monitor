@@ -16,6 +16,7 @@ import { AnnouncementService } from '../AnnouncementService';
 import { NotionService } from '../NotionService';
 import { AIService } from '../AIService';
 import { PiketService } from '../PiketService';
+import { HolidayService } from '../HolidayService';
 import { getLogger } from '../../utils/Logger';
 
 const logger = getLogger();
@@ -29,6 +30,7 @@ export class DiscordTaskMonitorIntegration {
   private readonly notionService: NotionService;
   private readonly aiService: AIService;
   private readonly piketService: PiketService;
+  private readonly holidayService: HolidayService;
 
   private configManager!: DiscordConfigManager;
   private rateLimiter!: RateLimiter;
@@ -44,7 +46,8 @@ export class DiscordTaskMonitorIntegration {
     announcementService: AnnouncementService,
     notionService: NotionService,
     aiService: AIService,
-    piketService: PiketService
+    piketService: PiketService,
+    holidayService: HolidayService
   ) {
     this.client = client;
     this.taskService = taskService;
@@ -53,6 +56,7 @@ export class DiscordTaskMonitorIntegration {
     this.notionService = notionService;
     this.aiService = aiService;
     this.piketService = piketService;
+    this.holidayService = holidayService;
   }
 
   /**
@@ -92,6 +96,7 @@ export class DiscordTaskMonitorIntegration {
         this.notionService,
         this.aiService,
         this.piketService,
+        this.holidayService,
         this.configManager,
         this.rateLimiter
       );
