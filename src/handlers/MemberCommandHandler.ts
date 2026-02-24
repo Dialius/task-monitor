@@ -875,7 +875,7 @@ export class MemberCommandHandler {
           `> MongoDB: ${mongoConnected ? '✅ Connected' : '❌ Disconnected'}\n` +
           `> └ DB: ${mongoDbName}\n` +
           `> Notion: ${notionConnected ? '✅ Connected' : '❌ Disconnected'}\n\n` +
-          `⏰ *System Services*\n` +
+          `⚙️ *System Services*\n` +
           `> Reminders: ${reminderActive ? '🔔 Active' : '🔕 Skipped (Holiday)'}`;
 
         return {
@@ -924,7 +924,7 @@ export class MemberCommandHandler {
               inline: true
             },
             {
-              name: `⏰ System Services`,
+              name: `${EMOJI.SYSTEM} System Services`,
               value: [
                 `> **Reminders**`,
                 `> ${reminderActive ? EMOJI.ONLINE : EMOJI.ERROR} **${reminderActive ? 'Active' : 'Skipped (Holiday)'}**`
