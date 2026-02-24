@@ -857,6 +857,12 @@ export class MemberCommandHandler {
         }
       }
 
+      // Check Reminders status (Holiday check)
+      const { DateTimeHelper } = require('../utils/DateTimeHelper');
+      const today = DateTimeHelper.now();
+      const isHoliday = await this.holidayService.isHoliday(today);
+      const reminderActive = !isHoliday;
+
       // For WhatsApp, return plain text
       if (platform === 'whatsapp') {
         const message = `🤖 *System Status Monitor*\n\n` +
@@ -868,7 +874,9 @@ export class MemberCommandHandler {
           `🔌 *Connectivity*\n` +
           `> MongoDB: ${mongoConnected ? '✅ Connected' : '❌ Disconnected'}\n` +
           `> └ DB: ${mongoDbName}\n` +
-          `> Notion: ${notionConnected ? '✅ Connected' : '❌ Disconnected'}`;
+          `> Notion: ${notionConnected ? '✅ Connected' : '❌ Disconnected'}\n\n` +
+          `⏰ *System Services*\n` +
+          `> Reminders: ${reminderActive ? '🔔 Active' : '🔕 Skipped (Holiday)'}`;
 
         return {
           success: true,
@@ -914,6 +922,14 @@ export class MemberCommandHandler {
                 `> ${notionConnected ? EMOJI.SUCCESS : (this.notionService.isEnabled() ? EMOJI.ERROR : '⚠️')} ${notionConnected ? 'Connected' : (this.notionService.isEnabled() ? 'Disconnected' : 'Disabled')}`
               ].join('\n'),
               inline: true
+            },
+            {
+              name: `⏰ System Services`,
+              value: [
+                `> **Reminders**`,
+                `> ${reminderActive ? EMOJI.ONLINE : EMOJI.ERROR} **${reminderActive ? 'Active' : 'Skipped (Holiday)'}**`
+              ].join('\n'),
+              inline: false
             }
           ],
           footer: {

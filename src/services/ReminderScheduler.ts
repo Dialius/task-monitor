@@ -140,6 +140,12 @@ export class ReminderScheduler {
 
       const recapData = await this.buildDailyRecapData(tomorrow);
 
+      // Skip sending if tomorrow is a holiday
+      if (recapData.isHoliday) {
+        logger.info(`Skipping daily recap for tomorrow (${tomorrow.toLocaleDateString()}) because it is a holiday: ${recapData.holidayReason}`);
+        return;
+      }
+
       for (const { adapter, channelId } of this.adapters) {
         await adapter.sendDailyRecap(channelId, recapData);
       }

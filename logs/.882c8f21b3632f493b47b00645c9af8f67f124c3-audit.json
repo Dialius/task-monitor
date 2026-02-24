@@ -6,16 +6,6 @@
     "auditLog": "D:\\task-monitor\\logs\\.882c8f21b3632f493b47b00645c9af8f67f124c3-audit.json",
     "files": [
         {
-            "date": 1770637983497,
-            "name": "D:\\task-monitor\\logs\\bot-2026-02-09.log",
-            "hash": "9fa858884104bd4ccd4f46a9115c6fd287b27aa486b451070d30bddd9cde54a1"
-        },
-        {
-            "date": 1770680680873,
-            "name": "D:\\task-monitor\\logs\\bot-2026-02-10.log",
-            "hash": "433fd1f20698c8934f27019d884ba526efe0c7dc81ddb2e8113fcb8d4c40fcb5"
-        },
-        {
             "date": 1770772117004,
             "name": "D:\\task-monitor\\logs\\bot-2026-02-11.log",
             "hash": "d627eb5ce54a36f8231a9bc8f8b3c865c5120f6fbb222b811869ad889b1e843c"
@@ -24,6 +14,11 @@
             "date": 1771056990817,
             "name": "D:\\task-monitor\\logs\\bot-2026-02-14.log",
             "hash": "109ae2ceaf5c9d298024b3d7b53aa6d322224aebb7a9f989ea32f4f65c916ea3"
+        },
+        {
+            "date": 1771916871146,
+            "name": "D:\\task-monitor\\logs\\bot-2026-02-24.log",
+            "hash": "38bc9958da333f92b40489782213a635ee10fa166b42f810778e2691bc950051"
         }
     ],
     "hashType": "sha256"

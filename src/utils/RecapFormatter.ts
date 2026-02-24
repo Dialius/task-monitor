@@ -164,24 +164,12 @@ function renderTaskBlock(type: string, tasks: ITask[]): string {
  * Format Harian (Besok) sesuai request user.
  */
 export function formatDailyRecap(data: DailyRecapData): string {
-  const { date, tasks, isHoliday, holidayReason } = data;
+  const { date, tasks } = data;
   const dayName = getDayName(date);
 
-  // 1. Header
   let message = formatHeader('INFO TUGAS HARIAN', '🌟') + '\n\n';
   message += formatHeader(`Besok | ${formatFullDate(date)}`, '📅') + '\n\n';
   message += `🌈 ${toItalic('Halo teman-teman XI PPLG 3!')}\n`;
-
-  // -- HOLIDAY LOGIC --
-  if (isHoliday) {
-    message += `Besok adalah ${toBold(holidayReason || 'Hari Libur')}. Sekolah libur ya! 🔇\n\n`;
-    message += 'Nikmati waktu istirahatnya dan selamat beribadah bagi yang merayakan.\n';
-    message += 'Jangan lupa cek tugas untuk hari berikutnya ya.\n\n';
-    message += 'Selamat Libur! 🎉\n';
-    message += toBold('CMIIW') + ' 🤗';
-    return message;
-  }
-  // -------------------
 
   // Normal Day Logic
   if (dayName === 'Senin') {
