@@ -320,7 +320,7 @@ export class DiscordAdapter implements PlatformAdapter {
    * Send weekly recap (Discord Embed format)
    */
   async sendWeeklyRecap(channelId: string, data: WeeklyRecapData): Promise<void> {
-    const { weekNumber, month, year, tasksByDay } = data;
+    const { weekNumber, month, year, tasksByDay, holidays } = data;
 
     const embed = new EmbedBuilder()
       .setTitle(`📊 Weekly Recap | Minggu ke-${weekNumber} ${month} ${year}`)
@@ -332,6 +332,13 @@ export class DiscordAdapter implements PlatformAdapter {
     const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
 
     days.forEach(day => {
+      // Check for holiday first
+      if (holidays && holidays.has(day)) {
+        const reason = holidays.get(day);
+        embed.addFields({ name: `📅 ${day}`, value: `🔴 **LIBUR** - ${reason}` });
+        return;
+      }
+
       const tasks = tasksByDay.get(day);
       if (tasks && tasks.length > 0) {
         hasTasks = true;
