@@ -69,10 +69,15 @@ export class ReminderScheduler {
    */
   initialize(): void {
     try {
-      // Setup daily reminder (Minggu-Kamis jam 16:00)
+      // Setup daily reminder (Minggu-Kamis)
+      // Parse hour and minute from config like '16:00'
+      const dailyTimeParts = (this.config.dailyReminderTime || '16:00').split(':');
+      const dailyHour = dailyTimeParts[0] || '16';
+      const dailyMinute = dailyTimeParts[1] || '00';
+
       // Cron: minute hour * * day-of-week
       // Day: 0=Minggu, 1=Senin, 2=Selasa, 3=Rabu, 4=Kamis
-      const dailyCron = '0 16 * * 0-4'; // 16:00 Minggu-Kamis
+      const dailyCron = `${dailyMinute} ${dailyHour} * * 0-4`;
 
       this.dailyJob = cron.schedule(dailyCron, async () => {
         await this.sendDailyRecap();
@@ -80,13 +85,18 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Daily reminder scheduled (Sun-Thu 16:00)', {
+      logger.info(`Daily reminder scheduled (Sun-Thu ${this.config.dailyReminderTime})`, {
         cron: dailyCron,
         timezone: this.config.timezone
       });
 
-      // Setup weekly reminder (Jumat jam 21:00)
-      const weeklyCron = '0 21 * * 5'; // 21:00 Jumat
+      // Setup weekly reminder 
+      const weeklyTimeParts = (this.config.weeklyReminderTime || '21:00').split(':');
+      const weeklyHour = weeklyTimeParts[0] || '21';
+      const weeklyMinute = weeklyTimeParts[1] || '00';
+      const weeklyDay = this.config.weeklyReminderDay !== undefined ? this.config.weeklyReminderDay : 5;
+
+      const weeklyCron = `${weeklyMinute} ${weeklyHour} * * ${weeklyDay}`;
 
       this.weeklyJob = cron.schedule(weeklyCron, async () => {
         await this.sendWeeklyRecap();
@@ -94,7 +104,7 @@ export class ReminderScheduler {
         timezone: this.config.timezone
       });
 
-      logger.info('Weekly reminder scheduled (Fri 21:00)', {
+      logger.info(`Weekly reminder scheduled (Day ${weeklyDay} ${this.config.weeklyReminderTime})`, {
         cron: weeklyCron,
         timezone: this.config.timezone
       });

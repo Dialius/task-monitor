@@ -1158,8 +1158,10 @@ class MultiPlatformBot {
 
     this.reminderScheduler.initialize();
 
-    console.log('   → Daily recap (Sun-Thu): 16:00 - Tasks for tomorrow');
-    console.log('   → Weekly recap (Fri): 21:00 - Tasks for next week');
+    const dailyTime = process.env.DAILY_REMINDER_TIME || '16:00';
+    const weeklyTime = process.env.WEEKLY_REMINDER_TIME || '21:00';
+    console.log(`   → Daily recap (Sun-Thu): ${dailyTime} - Tasks for tomorrow`);
+    console.log(`   → Weekly recap (Fri): ${weeklyTime} - Tasks for next week`);
     console.log('   → Timezone: ' + (process.env.TIMEZONE || 'Asia/Jakarta'));
   }
 
