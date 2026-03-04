@@ -1,0 +1,65 @@
+# Dependencies
+node_modules/
+
+# Source & build (already compiled in Dockerfile)
+src/
+dist/
+
+# Git
+.git/
+.github/
+
+# WhatsApp session (stored in MongoDB now)
+auth_info/
+
+# IDE
+.vscode/
+.idea/
+.kiro/
+
+# Logs
+logs/
+*.log
+
+# Archives & old docs
+_archive_md/
+*.zip
+
+# Config files not needed in container
+.env
+.env.example
+*.md
+*.bat
+*.ps1
+*.sh
+jest.config.js
+tsconfig.json
+ecosystem.config.js
+hostinger.config.json
+railway.json
+.railwayignore
+.htaccess
+.hostinger-build.sh
+.node-version
+.nvmrc
+.blackboxrules
+.gitignore
+.dockerignore
+
+# Deploy packages
+deploy-package/
+HOSTINGER_DEPLOY.zip
+public_html_UPDATE.zip
+
+# Test coverage
+coverage/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Web frontend (if separate)
+web/
+
+# OS files
+.DS_Store
+Thumbs.db

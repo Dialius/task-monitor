@@ -1006,11 +1006,15 @@ class MultiPlatformBot {
     const usePairingCode = process.env.WHATSAPP_USE_PAIRING_CODE === 'true';
     const phoneNumber = process.env.WHATSAPP_PAIRING_NUMBER || process.env.FIRST_ADMIN_WHATSAPP_ID;
 
+    // Use MongoDB auth for persistent sessions (survives container restarts)
+    const useMongoAuth = process.env.WHATSAPP_USE_MONGO_AUTH !== 'false'; // Default: true
+
     this.whatsappClient = new BaileysClient({
       authDir: './auth_info',
       printQRInTerminal: true,
       usePairingCode,
-      phoneNumber
+      phoneNumber,
+      useMongoAuth
     });
 
     if (usePairingCode && phoneNumber) {

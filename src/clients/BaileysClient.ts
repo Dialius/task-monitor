@@ -15,6 +15,7 @@ import { Boom } from '@hapi/boom';
 import { getLogger } from '../utils/Logger';
 import QRCode from 'qrcode-terminal';
 import QRCodeImage from 'qrcode';
+import { useMongoDBAuthState, clearMongoDBAuthState } from './MongoAuthState';
 
 const logger = getLogger();
 
@@ -23,6 +24,7 @@ export interface BaileysConfig {
   printQRInTerminal: boolean; // kept for compatibility but not used
   usePairingCode?: boolean; // Use pairing code instead of QR (better for Railway)
   phoneNumber?: string; // Phone number for pairing code (format: 628xxx)
+  useMongoAuth?: boolean; // Use MongoDB for session persistence (survives container restarts)
 }
 
 export interface ConnectionState {
@@ -57,8 +59,31 @@ export class BaileysClient {
    */
   async connect(): Promise<void> {
     try {
-      const { state, saveCreds } = await useMultiFileAuthState(this.config.authDir);
-      
+      let state: any;
+      let saveCreds: () => Promise<void>;
+
+      // Use MongoDB auth state if enabled (persistent across container restarts)
+      if (this.config.useMongoAuth) {
+        try {
+          const mongoAuth = await useMongoDBAuthState();
+          state = mongoAuth.state;
+          saveCreds = mongoAuth.saveCreds;
+          logger.info('Using MongoDB for WhatsApp session persistence');
+          console.log('      ✓ WhatsApp session: MongoDB (persistent)');
+        } catch (mongoError) {
+          logger.warn('MongoDB auth failed, falling back to file-based auth', mongoError as Error);
+          console.log('      ⚠️  MongoDB auth failed, falling back to file-based');
+          const fileAuth = await useMultiFileAuthState(this.config.authDir);
+          state = fileAuth.state;
+          saveCreds = fileAuth.saveCreds;
+        }
+      } else {
+        const fileAuth = await useMultiFileAuthState(this.config.authDir);
+        state = fileAuth.state;
+        saveCreds = fileAuth.saveCreds;
+        console.log('      ✓ WhatsApp session: File-based (local only)');
+      }
+
       // Fetch latest Baileys version for compatibility
       const { version } = await fetchLatestBaileysVersion();
 
@@ -69,18 +94,18 @@ export class BaileysClient {
         printQRInTerminal: false,
         logger: {
           level: 'silent',
-          error: () => {},
-          warn: () => {},
-          info: () => {},
-          debug: () => {},
-          trace: () => {},
+          error: () => { },
+          warn: () => { },
+          info: () => { },
+          debug: () => { },
+          trace: () => { },
           child: () => ({
             level: 'silent',
-            error: () => {},
-            warn: () => {},
-            info: () => {},
-            debug: () => {},
-            trace: () => {},
+            error: () => { },
+            warn: () => { },
+            info: () => { },
+            debug: () => { },
+            trace: () => { },
             child: () => ({} as any)
           })
         },
@@ -120,22 +145,22 @@ export class BaileysClient {
       const now = Date.now();
       const lastQRTime = (this as any).lastQRTime || 0;
       const qrInterval = 45000; // 45 detik antara QR code
-      
+
       if (now - lastQRTime < qrInterval) {
         console.log(`⏳ QR code terlalu cepat, tunggu ${Math.ceil((qrInterval - (now - lastQRTime)) / 1000)}s...\n`);
         return;
       }
-      
+
       (this as any).lastQRTime = now;
-      
+
       if (this.config.usePairingCode && this.config.phoneNumber) {
         // Use pairing code instead of QR (better for Railway/server deployment)
         if (this.socket && !this.socket.authState.creds.registered) {
           console.log('\n📱 PAIRING CODE MODE\n');
-          
+
           // Clean phone number - remove any non-digit characters
           let cleanNumber = this.config.phoneNumber.replace(/\D/g, '');
-          
+
           // Ensure it starts with country code (62 for Indonesia)
           if (!cleanNumber.startsWith('62')) {
             if (cleanNumber.startsWith('0')) {
@@ -146,10 +171,10 @@ export class BaileysClient {
               cleanNumber = '62' + cleanNumber;
             }
           }
-          
+
           console.log('🔢 Requesting pairing code for:', cleanNumber);
           console.log('   (Original input:', this.config.phoneNumber + ')');
-          
+
           try {
             const code = await this.socket.requestPairingCode(cleanNumber);
             console.log('\n╔════════════════════════════════════════╗');
@@ -169,7 +194,7 @@ export class BaileysClient {
             console.log('   - Kode berlaku 60 detik, masukkan segera!');
             console.log('   - Jika salah, tunggu kode baru di logs (45 detik)\n');
             console.log('⏳ Menunggu pairing...\n');
-            
+
             logger.info('Pairing code generated', { phoneNumber: cleanNumber, code });
           } catch (error) {
             console.error('❌ Failed to request pairing code:', error);
@@ -232,7 +257,7 @@ export class BaileysClient {
     if (connection === 'close') {
       this.isConnected = false;
       const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
-      
+
       logger.warn('WhatsApp connection closed', {
         statusCode,
         reason: DisconnectReason[statusCode] || 'Unknown',
@@ -243,14 +268,14 @@ export class BaileysClient {
       if (statusCode === DisconnectReason.loggedOut) {
         console.log('\n❌ WhatsApp logged out - please authenticate again\n');
         logger.info('WhatsApp logged out, clearing session');
-        
+
         // Clear session files and reconnect with fresh authentication
         await this.clearSession();
-        
+
         // Reset reconnect attempts and reconnect
         this.reconnectAttempts = 0;
         this.shouldReconnect = true;
-        
+
         console.log('🔄 Reconnecting with fresh session...\n');
         setTimeout(async () => {
           await this.connect();
@@ -275,13 +300,13 @@ export class BaileysClient {
       } else if (statusCode === 440) {
         // connectionReplaced - Another WhatsApp Web/Bot is using the same number
         this.connectionReplacedCount++;
-        
+
         console.log(`\n⚠️  Connection replaced (${this.connectionReplacedCount}/${this.maxConnectionReplacedCount})\n`);
         console.log('💡 Possible causes:');
         console.log('   • Another bot instance is running with the same number');
         console.log('   • WhatsApp Web is open in another browser');
         console.log('   • Multiple devices connected to the same account\n');
-        
+
         if (this.connectionReplacedCount >= this.maxConnectionReplacedCount) {
           console.log('❌ Too many connectionReplaced errors - stopping reconnection\n');
           console.log('🔧 Solutions:');
@@ -289,12 +314,12 @@ export class BaileysClient {
           console.log('   2. Stop any other bot instances using this number');
           console.log('   3. Check WhatsApp > Linked Devices and remove unused devices');
           console.log('   4. Restart bot after fixing the issue\n');
-          
+
           this.shouldReconnect = false;
           logger.error('Too many connectionReplaced errors, stopping reconnection');
           return;
         }
-        
+
         // Wait longer before reconnecting (10 seconds)
         console.log('🔄 Waiting 10 seconds before reconnecting...\n');
         setTimeout(async () => {
@@ -317,7 +342,7 @@ export class BaileysClient {
       this.shouldReconnect = true;
       console.log('\n✅ WhatsApp connected successfully!\n');
       logger.info('WhatsApp connection established');
-      
+
       // Log phone number if available
       if (this.socket?.user) {
         console.log(`📱 Connected as: ${this.socket.user.id}\n`);
@@ -349,7 +374,7 @@ export class BaileysClient {
     this.reconnectAttempts++;
     const delay = Math.min(Math.pow(2, this.reconnectAttempts - 1) * 1000, 30000); // Max 30s
 
-    console.log(`🔄 Reconnecting in ${delay/1000}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...\n`);
+    console.log(`🔄 Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...\n`);
     logger.info(`Reconnecting to WhatsApp in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
     setTimeout(async () => {
@@ -430,37 +455,37 @@ export class BaileysClient {
 
     console.log('📝 Registering message handler - waiting for messages...\n');
     this.messageHandlerRegistered = true;
-    
+
     this.socket.ev.on('messages.upsert', async ({ messages, type }) => {
       console.log(`\n🔔 messages.upsert event received (type: ${type})`);
       console.log(`   Total messages: ${messages.length}`);
-      
+
       // Check if testing mode is enabled (allows messages from self)
       const testingMode = process.env.WHATSAPP_TESTING_MODE === 'true';
       if (testingMode) {
         console.log(`   ⚠️  TESTING MODE: Messages from self will be processed`);
       }
-      
+
       for (const message of messages) {
         console.log(`\n   Message details:`);
         console.log(`   - From me: ${message.key.fromMe}`);
         console.log(`   - Has message: ${!!message.message}`);
         console.log(`   - Remote JID: ${message.key.remoteJid}`);
         console.log(`   - Message type: ${type}`);
-        
+
         // Skip messages from self (unless testing mode)
         if (message.key.fromMe && !testingMode) {
           console.log(`   ⚠️  Skipped: Message from me (set WHATSAPP_TESTING_MODE=true to allow)`);
           continue;
         }
-        
+
         if (!message.message) {
           console.log(`   ⚠️  Skipped: No message content`);
           continue;
         }
 
         console.log(`   ✅ Processing message...`);
-        
+
         try {
           handler(message);
         } catch (error) {
@@ -486,9 +511,9 @@ export class BaileysClient {
         connection: update.connection as 'open' | 'close' | 'connecting',
         lastDisconnect: update.lastDisconnect
           ? {
-              error: (update.lastDisconnect.error as Boom).output as any,
-              date: new Date()
-            }
+            error: (update.lastDisconnect.error as Boom).output as any,
+            date: new Date()
+          }
           : undefined
       };
 
@@ -524,9 +549,14 @@ export class BaileysClient {
    */
   async clearSession(): Promise<void> {
     try {
+      // Clear MongoDB session if enabled
+      if (this.config.useMongoAuth) {
+        await clearMongoDBAuthState();
+      }
+
       const fs = await import('fs');
       const path = await import('path');
-      
+
       // Check if auth directory exists
       if (!fs.existsSync(this.config.authDir)) {
         logger.info('Auth directory does not exist, nothing to clear');
