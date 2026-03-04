@@ -1,8 +1,7 @@
-# Dependencies
+# Dependencies (installed fresh in Docker)
 node_modules/
 
-# Source & build (already compiled in Dockerfile)
-src/
+# Build output (built fresh in Docker)
 dist/
 
 # Git
@@ -33,7 +32,6 @@ _archive_md/
 *.ps1
 *.sh
 jest.config.js
-tsconfig.json
 ecosystem.config.js
 hostinger.config.json
 railway.json
