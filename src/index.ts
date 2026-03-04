@@ -42,22 +42,22 @@ process.on('SIGTERM', async () => {
  */
 async function main() {
   try {
-    // Start the bot (always runs)
-    console.log('🚀 Starting Multi-Platform Bot...\n');
-    const bot = new MultiPlatformBot();
-    await bot.start();
-
-    // Optionally start API server if enabled
+    // Start API server FIRST so health check passes quickly (important for Back4App/containers)
     if (process.env.API_ENABLED === 'true') {
-      console.log('\n📋 Starting API server...');
+      console.log('📋 Starting API server first (for health check)...');
       const apiPort = parseInt(process.env.API_PORT || '3001');
       const apiServer = new APIServer(apiPort);
       await apiServer.start();
       console.log(`✅ API server running on port ${apiPort}\n`);
     } else {
-      console.log('\n⚠️  API server is disabled');
+      console.log('⚠️  API server is disabled');
       console.log('   Set API_ENABLED=true in .env to enable dashboard\n');
     }
+
+    // Then start the bot (takes longer: Discord, WhatsApp, DB, etc.)
+    console.log('🚀 Starting Multi-Platform Bot...\n');
+    const bot = new MultiPlatformBot();
+    await bot.start();
 
   } catch (error) {
     logger.error('Failed to start application', error as Error);
