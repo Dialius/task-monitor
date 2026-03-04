@@ -66,46 +66,52 @@ export class ConfigManager {
    * Load configuration from environment variables
    */
   private loadFromEnvironment(): AppConfig {
+    // Helper to trim env var values (avoid issues with spaces in hosting dashboards)
+    const env = (key: string, fallback?: string): string | undefined => {
+      const value = process.env[key];
+      return value ? value.trim() : fallback;
+    };
+
     return {
       // MongoDB
-      mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/multiplatform_class_bot',
+      mongodbUri: env('MONGODB_URI', 'mongodb://localhost:27017/multiplatform_class_bot')!,
 
       // Discord
-      discordEnabled: process.env.DISCORD_ENABLED === 'true',
-      discordBotToken: process.env.DISCORD_BOT_TOKEN,
-      discordClientId: process.env.DISCORD_CLIENT_ID,
-      discordGuildId: process.env.DISCORD_GUILD_ID,
-      discordChannelId: process.env.DISCORD_CHANNEL_ID,
-      discordLogChannelId: process.env.DISCORD_LOG_CHANNEL_ID,
-      discordReminderChannelId: process.env.DISCORD_REMINDER_CHANNEL_ID,
-      discordActivityEnabled: process.env.DISCORD_ACTIVITY_ENABLED !== 'false',
-      discordActivityInterval: parseInt(process.env.DISCORD_ACTIVITY_INTERVAL || '5'),
+      discordEnabled: env('DISCORD_ENABLED') === 'true',
+      discordBotToken: env('DISCORD_BOT_TOKEN'),
+      discordClientId: env('DISCORD_CLIENT_ID'),
+      discordGuildId: env('DISCORD_GUILD_ID'),
+      discordChannelId: env('DISCORD_CHANNEL_ID'),
+      discordLogChannelId: env('DISCORD_LOG_CHANNEL_ID'),
+      discordReminderChannelId: env('DISCORD_REMINDER_CHANNEL_ID'),
+      discordActivityEnabled: env('DISCORD_ACTIVITY_ENABLED') !== 'false',
+      discordActivityInterval: parseInt(env('DISCORD_ACTIVITY_INTERVAL', '5')!),
 
       // WhatsApp
-      whatsappEnabled: process.env.WHATSAPP_ENABLED === 'true',
-      whatsappGroupId: process.env.WHATSAPP_GROUP_ID,
+      whatsappEnabled: env('WHATSAPP_ENABLED') === 'true',
+      whatsappGroupId: env('WHATSAPP_GROUP_ID'),
 
       // AI Services
-      groqApiKey: process.env.GROQ_API_KEY,
-      groqModel: process.env.GROQ_MODEL || 'llama-3.1-70b-versatile',
-      geminiApiKey: process.env.GEMINI_API_KEY,
-      geminiModel: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-      aiTimeout: parseInt(process.env.AI_TIMEOUT || '10'),
+      groqApiKey: env('GROQ_API_KEY'),
+      groqModel: env('GROQ_MODEL', 'llama-3.1-70b-versatile')!,
+      geminiApiKey: env('GEMINI_API_KEY'),
+      geminiModel: env('GEMINI_MODEL', 'gemini-1.5-flash')!,
+      aiTimeout: parseInt(env('AI_TIMEOUT', '10')!),
 
       // Notion
-      notionEnabled: process.env.NOTION_ENABLED === 'true',
-      notionDatabaseId: process.env.NOTION_DATABASE_ID,
-      notionApiKey: process.env.NOTION_API_KEY,
+      notionEnabled: env('NOTION_ENABLED') === 'true',
+      notionDatabaseId: env('NOTION_DATABASE_ID'),
+      notionApiKey: env('NOTION_API_KEY'),
 
       // Scheduler
-      timezone: process.env.TIMEZONE || 'Asia/Jakarta',
-      dailyReminderTime: process.env.DAILY_REMINDER_TIME || '17:00',
-      weeklyReminderDay: parseInt(process.env.WEEKLY_REMINDER_DAY || '5'),
-      weeklyReminderTime: process.env.WEEKLY_REMINDER_TIME || '20:00',
+      timezone: env('TIMEZONE', 'Asia/Jakarta')!,
+      dailyReminderTime: env('DAILY_REMINDER_TIME', '17:00')!,
+      weeklyReminderDay: parseInt(env('WEEKLY_REMINDER_DAY', '5')!),
+      weeklyReminderTime: env('WEEKLY_REMINDER_TIME', '20:00')!,
 
       // Logging
-      logLevel: process.env.LOG_LEVEL || 'info',
-      logDir: process.env.LOG_DIR || './logs'
+      logLevel: env('LOG_LEVEL', 'info')!,
+      logDir: env('LOG_DIR', './logs')!
     };
   }
 

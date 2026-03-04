@@ -43,7 +43,7 @@ process.on('SIGTERM', async () => {
 async function main() {
   try {
     // Start API server FIRST so health check passes quickly (important for Back4App/containers)
-    if (process.env.API_ENABLED === 'true') {
+    if (process.env.API_ENABLED?.trim() === 'true') {
       console.log('📋 Starting API server first (for health check)...');
       const apiPort = parseInt(process.env.API_PORT || '3001');
       const apiServer = new APIServer(apiPort);
