@@ -74,6 +74,14 @@ class MultiPlatformBot {
   private reminderScheduler?: ReminderScheduler;
 
   /**
+   * Helper: delay untuk mengurangi CPU spike saat startup
+   * Penting untuk hosting dengan CPU limit rendah (Wispbyte, dll)
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * Initialize bot
    */
   async initialize(): Promise<void> {
@@ -91,31 +99,37 @@ class MultiPlatformBot {
         rotationInterval: 'daily'
       });
       console.log('✅ Logger initialized\n');
+      await this.sleep(1500); // Delay untuk mengurangi CPU spike
 
       console.log('📋 Step 2/8: Connecting to database...');
       // Connect to database
       await connectDatabase();
       console.log('✅ Database connected\n');
+      await this.sleep(1500);
 
       console.log('📋 Step 3/8: Loading configuration...');
       // Initialize configuration from database
       await initializeConfig();
       console.log('✅ Configuration loaded\n');
+      await this.sleep(1500);
 
       console.log('📋 Step 4/8: Initializing services...');
       // Initialize services
       await this.initializeServices();
       console.log('✅ Services initialized\n');
+      await this.sleep(1500);
 
       console.log('📋 Step 5/8: Setting up command system...');
       // Initialize command system
       await this.initializeCommandSystem();
       console.log('✅ Command system ready\n');
+      await this.sleep(2000); // Delay lebih lama sebelum koneksi platform (paling berat)
 
       console.log('📋 Step 6/8: Connecting to platforms...');
       // Initialize platforms
       await this.initializePlatforms();
       console.log('✅ Platforms connected\n');
+      await this.sleep(2000);
 
       console.log('📋 Step 6a/8: Performing initial sync...');
       // Initial sync
@@ -135,6 +149,7 @@ class MultiPlatformBot {
       // Initialize reminder scheduler
       await this.initializeScheduler();
       console.log('✅ Scheduler started\n');
+      await this.sleep(1500);
 
       console.log('📋 Step 8/8: Initializing message edit & change detection...');
       // Initialize message edit service and change detection
@@ -273,6 +288,8 @@ class MultiPlatformBot {
       console.log('   → Connecting to Discord...');
       await this.initializeDiscord();
       platformCount++;
+      // Delay sebelum koneksi WhatsApp untuk mengurangi CPU spike
+      await this.sleep(2000);
     } else {
       console.log('   → Discord: Disabled');
     }
