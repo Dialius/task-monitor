@@ -33,18 +33,18 @@ Click project → Tab **"Variables"** → **"+ New Variable"**
 **Copy paste ini satu per satu:**
 
 ```
-MONGODB_URI=mongodb+srv://VinTheGreat:VINTAGE01@cluster0.jhprx.mongodb.net/task_monitor_bot
+MONGODB_URI=mongodb+srv://your_username:your_password@cluster0.jhprx.mongodb.net/task_monitor_bot
 WHATSAPP_ENABLED=true
 WHATSAPP_GROUP_ID=120363424833026714@newsletter
 WHATSAPP_TESTING_MODE=true
 DISCORD_ENABLED=false
-GROQ_API_KEY=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
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
-GEMINI_API_KEY=AIzaSyAgINOTutYJ5PI3k4brtHTv8HxEcpQcvy4
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 AI_TIMEOUT=10
 NOTION_DATABASE_ID=3030a8e24bf6807bb826d8667d0764b0
-NOTION_API_KEY=ntn_W28334028706CdGuxGjxJsjl97QvVjiKl87zm7eRk93dV8
+NOTION_API_KEY=your_notion_api_key_here
 TIMEZONE=Asia/Jakarta
 DAILY_REMINDER_TIME=17:00
 WEEKLY_REMINDER_DAY=5

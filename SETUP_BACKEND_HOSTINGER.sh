@@ -110,7 +110,7 @@ cat > .env << 'EOF'
 # ============================================
 # DATABASE CONFIGURATION
 # ============================================
-MONGODB_URI=mongodb+srv://VinTheGreat:VINTAGE01@cluster0.jhprx.mongodb.net/
+MONGODB_URI=mongodb+srv://your_username:your_password@cluster0.jhprx.mongodb.net/
 
 # ============================================
 # FIRST ADMIN CONFIGURATION (BOOTSTRAP)
@@ -123,7 +123,7 @@ FIRST_ADMIN_ROLE=ketua
 # DISCORD CONFIGURATION
 # ============================================
 DISCORD_ENABLED=false
-DISCORD_BOT_TOKEN=MTM3MTcyNjc5Mzk4NzQ2MTE4MA.G_yVHh.ljy24Dpsu3uA519b0t83CGmyE-rDnsDDYGn688
+DISCORD_BOT_TOKEN=your_discord_bot_token_here
 DISCORD_CLIENT_ID=1371726793987461180
 DISCORD_GUILD_ID=1419483428520460392
 DISCORD_CHANNEL_ID=1470432018738184445
@@ -138,9 +138,9 @@ WHATSAPP_TESTING_MODE=true
 # ============================================
 # AI SERVICE CONFIGURATION
 # ============================================
-GROQ_API_KEY=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
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
-GEMINI_API_KEY=AIzaSyAgINOTutYJ5PI3k4brtHTv8HxEcpQcvy4
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 AI_TIMEOUT=10
 
@@ -148,7 +148,7 @@ AI_TIMEOUT=10
 # NOTION INTEGRATION (OPTIONAL)
 # ============================================
 NOTION_DATABASE_ID=3030a8e24bf6807bb826d8667d0764b0
-NOTION_API_KEY=ntn_W28334028706CdGuxGjxJsjl97QvVjiKl87zm7eRk93dV8
+NOTION_API_KEY=your_notion_api_key_here
 
 # ============================================
 # SCHEDULER CONFIGURATION

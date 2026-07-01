@@ -53,7 +53,7 @@ Ini yang PALING PENTING! Bot tidak akan jalan tanpa environment variables.
 
 ```env
 # Database
-MONGODB_URI=mongodb+srv://VinTheGreat:VINTAGE01@cluster0.jhprx.mongodb.net/task_monitor_bot
+MONGODB_URI=mongodb+srv://your_username:your_password@cluster0.jhprx.mongodb.net/task_monitor_bot
 
 # WhatsApp Configuration
 WHATSAPP_ENABLED=true
@@ -64,15 +64,15 @@ WHATSAPP_TESTING_MODE=true
 DISCORD_ENABLED=false
 
 # AI Services
-GROQ_API_KEY=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
+GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
-GEMINI_API_KEY=AIzaSyAgINOTutYJ5PI3k4brtHTv8HxEcpQcvy4
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 AI_TIMEOUT=10
 
 # Notion Integration
 NOTION_DATABASE_ID=3030a8e24bf6807bb826d8667d0764b0
-NOTION_API_KEY=ntn_W28334028706CdGuxGjxJsjl97QvVjiKl87zm7eRk93dV8
+NOTION_API_KEY=your_notion_api_key_here
 
 # Timezone & Scheduler
 TIMEZONE=Asia/Jakarta
